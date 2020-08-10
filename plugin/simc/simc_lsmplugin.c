@@ -17,43 +17,37 @@
  *
  */
 
-
-#include <stdio.h>
-#include <openssl/md5.h>
 #include <assert.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <string.h>
+#include <fcntl.h>
+#include <openssl/md5.h>
 #include <sqlite3.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-#include "utils.h"
 #include "db.h"
-#include "mgm_ops.h"
-#include "san_ops.h"
 #include "fs_ops.h"
+#include "mgm_ops.h"
 #include "nfs_ops.h"
 #include "ops_v1_2.h"
 #include "ops_v1_3.h"
+#include "san_ops.h"
+#include "utils.h"
 
-#define PLUGIN_NAME                 "Compiled plug-in example"
-#define DEFAULT_STATE_FILE_PATH     "/tmp/lsm_sim_data"
+#define PLUGIN_NAME             "Compiled plug-in example"
+#define DEFAULT_STATE_FILE_PATH "/tmp/lsm_sim_data"
 
 int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
                     uint32_t timeout, lsm_flag flags);
 int plugin_unregister(lsm_plugin_ptr c, lsm_flag flags);
 
 static struct lsm_mgmt_ops_v1 mgm_ops = {
-    tmo_set,
-    tmo_get,
-    capabilities,
-    job_status,
-    job_free,
-    pool_list,
-    system_list,
+    tmo_set,  tmo_get,   capabilities, job_status,
+    job_free, pool_list, system_list,
 };
 
 static struct lsm_san_ops_v1 san_ops = {
@@ -123,8 +117,7 @@ static struct lsm_ops_v1_3 ops_v1_3 = {
 };
 
 int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
-                    uint32_t timeout, lsm_flag flags)
-{
+                    uint32_t timeout, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     char *scheme = NULL;
     char *user = NULL;
@@ -148,8 +141,9 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
      * else use system environment LSM_SIM_DATA,
      * else use DEFAULT_STATE_FILE_PATH
      */
-    _good(lsm_uri_parse(uri, &scheme, &user, &server, &port, &path,
-                        &uri_params), rc, out);
+    _good(
+        lsm_uri_parse(uri, &scheme, &user, &server, &port, &path, &uri_params),
+        rc, out);
 
     if (uri_params != NULL)
         statefile = lsm_hash_string_get(uri_params, "statefile");
@@ -160,12 +154,14 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
     if (statefile == NULL)
         statefile = DEFAULT_STATE_FILE_PATH;
 
-    if (! _file_exists(statefile)) {
+    if (!_file_exists(statefile)) {
         fd = open(statefile, O_WRONLY | O_CREAT, fd_mode);
         if (fd < 0) {
             rc = LSM_ERR_INVALID_ARGUMENT;
-            _lsm_err_msg_set(err_msg, "Failed to create statefile '%s', "
-                             "error %d: %s", statefile, errno, strerror(errno));
+            _lsm_err_msg_set(err_msg,
+                             "Failed to create statefile '%s', "
+                             "error %d: %s",
+                             statefile, errno, strerror(errno));
             goto out;
         }
         close(fd);
@@ -173,18 +169,17 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
 
     _good(_db_init(err_msg, &db, statefile, timeout), rc, out);
 
-    pri_data = (struct _simc_private_data *)
-        malloc(sizeof(struct _simc_private_data));
+    pri_data =
+        (struct _simc_private_data *)malloc(sizeof(struct _simc_private_data));
     _alloc_null_check(err_msg, pri_data, rc, out);
 
     pri_data->db = db;
     pri_data->timeout = timeout;
 
-    rc = lsm_register_plugin_v1_3(c, pri_data, &mgm_ops, &san_ops,
-                                  &fs_ops, &nfs_ops, &ops_v1_2,
-                                  &ops_v1_3);
+    rc = lsm_register_plugin_v1_3(c, pri_data, &mgm_ops, &san_ops, &fs_ops,
+                                  &nfs_ops, &ops_v1_2, &ops_v1_3);
 
- out:
+out:
     free(scheme);
     free(user);
     free(server);
@@ -200,8 +195,7 @@ int plugin_register(lsm_plugin_ptr c, const char *uri, const char *password,
     return rc;
 }
 
-int plugin_unregister(lsm_plugin_ptr c, lsm_flag flags)
-{
+int plugin_unregister(lsm_plugin_ptr c, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     struct _simc_private_data *pri_data = NULL;
 
@@ -209,15 +203,14 @@ int plugin_unregister(lsm_plugin_ptr c, lsm_flag flags)
     if (c != NULL) {
         pri_data = lsm_private_data_get(c);
         if ((pri_data != NULL) && (pri_data->db != NULL))
-                _db_close(pri_data->db);
+            _db_close(pri_data->db);
         free(pri_data);
     }
 
     return rc;
 }
 
-int main(int argc, char *argv[])
-{
-    return lsm_plugin_init_v1(argc, argv, plugin_register,
-                              plugin_unregister, PLUGIN_NAME, _DB_VERSION);
+int main(int argc, char *argv[]) {
+    return lsm_plugin_init_v1(argc, argv, plugin_register, plugin_unregister,
+                              PLUGIN_NAME, _DB_VERSION);
 }

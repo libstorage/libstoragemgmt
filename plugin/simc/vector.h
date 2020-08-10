@@ -21,7 +21,7 @@
 
 #include <stdint.h>
 
-#define _VECTOR_NO_PRE_ALLOCATION           0
+#define _VECTOR_NO_PRE_ALLOCATION 0
 
 struct _vector;
 
@@ -54,8 +54,9 @@ void *_vector_get(struct _vector *vec, uint32_t index);
  */
 uint32_t _vector_size(struct _vector *vec);
 
-#define _vector_for_each(vec, i, data) \
-    for (i = 0; ((vec != NULL) && (i < _vector_size(vec)) && \
-                 (data = _vector_get(vec, i))); ++i)
+#define _vector_for_each(vec, i, data)                                         \
+    for (i = 0; ((vec != NULL) && (i < _vector_size(vec)) &&                   \
+                 (data = _vector_get(vec, i)));                                \
+         ++i)
 
-#endif  /* End of _SIMC_VECTOR_H_ */
+#endif /* End of _SIMC_VECTOR_H_ */

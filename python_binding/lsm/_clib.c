@@ -18,8 +18,8 @@
  */
 
 #include <Python.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include <libstoragemgmt/libstoragemgmt.h>
 
@@ -28,122 +28,124 @@
  * https://docs.python.org/3/howto/cporting.html
  */
 
-
 #if PY_MAJOR_VERSION > 2
-    #define PyInt_FromLong PyLong_FromLong
+#define PyInt_FromLong PyLong_FromLong
 #endif
 
-#define _alloc_check(ptr, flag_no_mem, out) \
-    do { \
-        if (ptr == NULL) { \
-            flag_no_mem = true; \
-            goto out; \
-        } \
-    } while(0)
+#define _alloc_check(ptr, flag_no_mem, out)                                    \
+    do {                                                                       \
+        if (ptr == NULL) {                                                     \
+            flag_no_mem = true;                                                \
+            goto out;                                                          \
+        }                                                                      \
+    } while (0)
 
 #define _NO_NEED_TO_FREE(x)
 #define _UNUSED(x) (void)(x)
 
-#define _wrapper(func_name, c_func_name, arg_type, arg, c_rt_type, \
-                 c_rt_default, py_rt_conv_func, c_rt_free_func) \
-static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
-{ \
-    static const char *kwlist[] = {# arg, NULL}; \
-    c_rt_type c_rt = c_rt_default; \
-    arg_type arg = NULL; \
-    lsm_error *lsm_err = NULL; \
-    int rc = LSM_ERR_OK; \
-    PyObject *rc_list = NULL; \
-    PyObject *rc_obj = NULL; \
-    PyObject *err_msg_obj = NULL; \
-    PyObject *err_no_obj = NULL; \
-    bool flag_no_mem = false; \
-    _UNUSED(self); \
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
-                                     &arg)) \
-        return NULL; \
-    rc = c_func_name(arg, &c_rt, &lsm_err); \
-    err_no_obj = PyInt_FromLong(rc); \
-    _alloc_check(err_no_obj, flag_no_mem, out); \
-    rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
-    _alloc_check(rc_list, flag_no_mem, out); \
-    rc_obj = py_rt_conv_func(c_rt); \
-    _alloc_check(rc_obj, flag_no_mem, out); \
-    if (rc != LSM_ERR_OK) { \
-        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err)); \
-        lsm_error_free(lsm_err); \
-        lsm_err = NULL; \
-        _alloc_check(err_msg_obj, flag_no_mem, out); \
-        goto out; \
-    } else { \
-        err_msg_obj = PyUnicode_FromString(""); \
-        _alloc_check(err_msg_obj, flag_no_mem, out); \
-    } \
- out: \
-    if (lsm_err != NULL) \
-        lsm_error_free(lsm_err); \
-    c_rt_free_func(c_rt); \
-    if (flag_no_mem == true) { \
-        Py_XDECREF(rc_list); \
-        Py_XDECREF(err_no_obj); \
-        Py_XDECREF(err_msg_obj); \
-        Py_XDECREF(rc_obj); \
-        return PyErr_NoMemory(); \
-    } \
-    PyList_SET_ITEM(rc_list, 0, rc_obj); \
-    PyList_SET_ITEM(rc_list, 1, err_no_obj); \
-    PyList_SET_ITEM(rc_list, 2, err_msg_obj); \
-    return rc_list; \
-}
+#define _wrapper(func_name, c_func_name, arg_type, arg, c_rt_type,             \
+                 c_rt_default, py_rt_conv_func, c_rt_free_func)                \
+    static PyObject *func_name(PyObject *self, PyObject *args,                 \
+                               PyObject *kwargs) {                             \
+        static const char *kwlist[] = {#arg, NULL};                            \
+        c_rt_type c_rt = c_rt_default;                                         \
+        arg_type arg = NULL;                                                   \
+        lsm_error *lsm_err = NULL;                                             \
+        int rc = LSM_ERR_OK;                                                   \
+        PyObject *rc_list = NULL;                                              \
+        PyObject *rc_obj = NULL;                                               \
+        PyObject *err_msg_obj = NULL;                                          \
+        PyObject *err_no_obj = NULL;                                           \
+        bool flag_no_mem = false;                                              \
+        _UNUSED(self);                                                         \
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **)kwlist,   \
+                                         &arg))                                \
+            return NULL;                                                       \
+        rc = c_func_name(arg, &c_rt, &lsm_err);                                \
+        err_no_obj = PyInt_FromLong(rc);                                       \
+        _alloc_check(err_no_obj, flag_no_mem, out);                            \
+        rc_list = PyList_New(3 /* rc_obj, errno, err_str*/);                   \
+        _alloc_check(rc_list, flag_no_mem, out);                               \
+        rc_obj = py_rt_conv_func(c_rt);                                        \
+        _alloc_check(rc_obj, flag_no_mem, out);                                \
+        if (rc != LSM_ERR_OK) {                                                \
+            err_msg_obj =                                                      \
+                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            lsm_error_free(lsm_err);                                           \
+            lsm_err = NULL;                                                    \
+            _alloc_check(err_msg_obj, flag_no_mem, out);                       \
+            goto out;                                                          \
+        } else {                                                               \
+            err_msg_obj = PyUnicode_FromString("");                            \
+            _alloc_check(err_msg_obj, flag_no_mem, out);                       \
+        }                                                                      \
+    out:                                                                       \
+        if (lsm_err != NULL)                                                   \
+            lsm_error_free(lsm_err);                                           \
+        c_rt_free_func(c_rt);                                                  \
+        if (flag_no_mem == true) {                                             \
+            Py_XDECREF(rc_list);                                               \
+            Py_XDECREF(err_no_obj);                                            \
+            Py_XDECREF(err_msg_obj);                                           \
+            Py_XDECREF(rc_obj);                                                \
+            return PyErr_NoMemory();                                           \
+        }                                                                      \
+        PyList_SET_ITEM(rc_list, 0, rc_obj);                                   \
+        PyList_SET_ITEM(rc_list, 1, err_no_obj);                               \
+        PyList_SET_ITEM(rc_list, 2, err_msg_obj);                              \
+        return rc_list;                                                        \
+    }
 
-#define _wrapper_no_output(func_name, c_func_name, arg_type, arg) \
-static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs); \
-static PyObject *func_name(PyObject *self, PyObject *args, PyObject *kwargs) \
-{ \
-    static const char *kwlist[] = {# arg, NULL}; \
-    arg_type arg = NULL; \
-    lsm_error *lsm_err = NULL; \
-    int rc = LSM_ERR_OK; \
-    PyObject *rc_list = NULL; \
-    PyObject *rc_obj = Py_None; \
-    PyObject *err_msg_obj = NULL; \
-    PyObject *err_no_obj = NULL; \
-    bool flag_no_mem = false; \
-    _UNUSED(self); \
-    _alloc_check(rc_obj, flag_no_mem, out); \
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **) kwlist, \
-                                     &disk_path)) \
-        return NULL; \
-    rc = c_func_name(arg, &lsm_err); \
-    err_no_obj = PyInt_FromLong(rc); \
-    _alloc_check(err_no_obj, flag_no_mem, out); \
-    rc_list = PyList_New(3 /* rc_obj, errno, err_str*/); \
-    _alloc_check(rc_list, flag_no_mem, out); \
-    if (rc != LSM_ERR_OK) { \
-        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err)); \
-        lsm_error_free(lsm_err); \
-        lsm_err = NULL; \
-        _alloc_check(err_msg_obj, flag_no_mem, out); \
-        goto out; \
-    } else { \
-        err_msg_obj = PyUnicode_FromString(""); \
-        _alloc_check(err_msg_obj, flag_no_mem, out); \
-    } \
- out: \
-    if (lsm_err != NULL) \
-        lsm_error_free(lsm_err); \
-    if (flag_no_mem == true) { \
-        Py_XDECREF(rc_list); \
-        Py_XDECREF(err_no_obj); \
-        Py_XDECREF(err_msg_obj); \
-        Py_XDECREF(rc_obj); \
-        return PyErr_NoMemory(); \
-    } \
-    PyList_SET_ITEM(rc_list, 0, rc_obj); \
-    PyList_SET_ITEM(rc_list, 1, err_no_obj); \
-    PyList_SET_ITEM(rc_list, 2, err_msg_obj); \
-    return rc_list; \
-}
+#define _wrapper_no_output(func_name, c_func_name, arg_type, arg)              \
+    static PyObject *func_name(PyObject *self, PyObject *args,                 \
+                               PyObject *kwargs);                              \
+    static PyObject *func_name(PyObject *self, PyObject *args,                 \
+                               PyObject *kwargs) {                             \
+        static const char *kwlist[] = {#arg, NULL};                            \
+        arg_type arg = NULL;                                                   \
+        lsm_error *lsm_err = NULL;                                             \
+        int rc = LSM_ERR_OK;                                                   \
+        PyObject *rc_list = NULL;                                              \
+        PyObject *rc_obj = Py_None;                                            \
+        PyObject *err_msg_obj = NULL;                                          \
+        PyObject *err_no_obj = NULL;                                           \
+        bool flag_no_mem = false;                                              \
+        _UNUSED(self);                                                         \
+        _alloc_check(rc_obj, flag_no_mem, out);                                \
+        if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **)kwlist,   \
+                                         &disk_path))                          \
+            return NULL;                                                       \
+        rc = c_func_name(arg, &lsm_err);                                       \
+        err_no_obj = PyInt_FromLong(rc);                                       \
+        _alloc_check(err_no_obj, flag_no_mem, out);                            \
+        rc_list = PyList_New(3 /* rc_obj, errno, err_str*/);                   \
+        _alloc_check(rc_list, flag_no_mem, out);                               \
+        if (rc != LSM_ERR_OK) {                                                \
+            err_msg_obj =                                                      \
+                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            lsm_error_free(lsm_err);                                           \
+            lsm_err = NULL;                                                    \
+            _alloc_check(err_msg_obj, flag_no_mem, out);                       \
+            goto out;                                                          \
+        } else {                                                               \
+            err_msg_obj = PyUnicode_FromString("");                            \
+            _alloc_check(err_msg_obj, flag_no_mem, out);                       \
+        }                                                                      \
+    out:                                                                       \
+        if (lsm_err != NULL)                                                   \
+            lsm_error_free(lsm_err);                                           \
+        if (flag_no_mem == true) {                                             \
+            Py_XDECREF(rc_list);                                               \
+            Py_XDECREF(err_no_obj);                                            \
+            Py_XDECREF(err_msg_obj);                                           \
+            Py_XDECREF(rc_obj);                                                \
+            return PyErr_NoMemory();                                           \
+        }                                                                      \
+        PyList_SET_ITEM(rc_list, 0, rc_obj);                                   \
+        PyList_SET_ITEM(rc_list, 1, err_no_obj);                               \
+        PyList_SET_ITEM(rc_list, 2, err_msg_obj);                              \
+        return rc_list;                                                        \
+    }
 
 static const char local_disk_vpd83_search_docstring[] =
     "INTERNAL USE ONLY!\n"
@@ -270,7 +272,6 @@ static const char local_disk_link_type_get_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
-
 static const char local_disk_ident_led_on_docstring[] =
     "INTERNAL USE ONLY!\n"
     "\n"
@@ -373,7 +374,6 @@ static const char local_disk_link_speed_get_docstring[] =
     "        err_msg (string)\n"
     "            Error message, empty if no error.\n";
 
-
 static PyObject *local_disk_serial_num_get(PyObject *self, PyObject *args,
                                            PyObject *kwargs);
 
@@ -406,37 +406,36 @@ _wrapper_no_output(local_disk_fault_led_off, lsm_local_disk_fault_led_off,
                    const char *, disk_path);
 
 static PyMethodDef _methods[] = {
-    {"_local_disk_serial_num_get",  (PyCFunction) local_disk_serial_num_get,
+    {"_local_disk_serial_num_get", (PyCFunction)local_disk_serial_num_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_serial_num_get_docstring},
-    {"_local_disk_vpd83_search",  (PyCFunction) local_disk_vpd83_search,
+    {"_local_disk_vpd83_search", (PyCFunction)local_disk_vpd83_search,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_search_docstring},
-    {"_local_disk_vpd83_get",  (PyCFunction) local_disk_vpd83_get,
+    {"_local_disk_vpd83_get", (PyCFunction)local_disk_vpd83_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_vpd83_get_docstring},
-    {"_local_disk_health_status_get",  (PyCFunction) local_disk_health_status_get,
+    {"_local_disk_health_status_get", (PyCFunction)local_disk_health_status_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_health_status_get_docstring},
-    {"_local_disk_rpm_get",  (PyCFunction) local_disk_rpm_get,
+    {"_local_disk_rpm_get", (PyCFunction)local_disk_rpm_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_rpm_get_docstring},
-    {"_local_disk_list",  (PyCFunction) local_disk_list,
-     METH_NOARGS, local_disk_list_docstring},
-    {"_local_disk_link_type_get",  (PyCFunction) local_disk_link_type_get,
+    {"_local_disk_list", (PyCFunction)local_disk_list, METH_NOARGS,
+     local_disk_list_docstring},
+    {"_local_disk_link_type_get", (PyCFunction)local_disk_link_type_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_link_type_get_docstring},
-    {"_local_disk_ident_led_on",  (PyCFunction) local_disk_ident_led_on,
+    {"_local_disk_ident_led_on", (PyCFunction)local_disk_ident_led_on,
      METH_VARARGS | METH_KEYWORDS, local_disk_ident_led_on_docstring},
-    {"_local_disk_ident_led_off",  (PyCFunction) local_disk_ident_led_off,
+    {"_local_disk_ident_led_off", (PyCFunction)local_disk_ident_led_off,
      METH_VARARGS | METH_KEYWORDS, local_disk_ident_led_off_docstring},
-    {"_local_disk_fault_led_on",  (PyCFunction) local_disk_fault_led_on,
+    {"_local_disk_fault_led_on", (PyCFunction)local_disk_fault_led_on,
      METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_on_docstring},
-    {"_local_disk_fault_led_off",  (PyCFunction) local_disk_fault_led_off,
+    {"_local_disk_fault_led_off", (PyCFunction)local_disk_fault_led_off,
      METH_VARARGS | METH_KEYWORDS, local_disk_fault_led_off_docstring},
-    {"_local_disk_led_status_get",  (PyCFunction) local_disk_led_status_get,
+    {"_local_disk_led_status_get", (PyCFunction)local_disk_led_status_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_led_status_get_docstring},
-    {"_local_disk_link_speed_get",  (PyCFunction) local_disk_link_speed_get,
+    {"_local_disk_link_speed_get", (PyCFunction)local_disk_link_speed_get,
      METH_VARARGS | METH_KEYWORDS, local_disk_link_speed_get_docstring},
-    {NULL, NULL, 0, NULL}        /* Sentinel */
+    {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
-{
+static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list) {
     PyObject *rc_list = NULL;
     PyObject *str_obj = NULL;
     uint32_t i = 0;
@@ -452,46 +451,41 @@ static PyObject *_lsm_string_list_to_pylist(lsm_string_list *str_list)
             Py_XDECREF(rc_list);
             return NULL;
         }
-        PyList_SET_ITEM(rc_list, i, str_obj); \
+        PyList_SET_ITEM(rc_list, i, str_obj);
     }
     return rc_list;
 }
 
-static PyObject *_c_str_to_py_str(const char *str)
-{
+static PyObject *_c_str_to_py_str(const char *str) {
     if (str == NULL)
         return PyUnicode_FromString("");
     return PyUnicode_FromString(str);
 }
 
-_wrapper(local_disk_serial_num_get, lsm_local_disk_serial_num_get,
-         const char *, disk_path, char *, NULL,
-         _c_str_to_py_str, free);
-_wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search,
-         const char *, vpd83, lsm_string_list *, NULL,
-         _lsm_string_list_to_pylist, lsm_string_list_free);
-_wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get,
-         const char *, disk_path, char *, NULL,
-         _c_str_to_py_str, free);
+_wrapper(local_disk_serial_num_get, lsm_local_disk_serial_num_get, const char *,
+         disk_path, char *, NULL, _c_str_to_py_str, free);
+_wrapper(local_disk_vpd83_search, lsm_local_disk_vpd83_search, const char *,
+         vpd83, lsm_string_list *, NULL, _lsm_string_list_to_pylist,
+         lsm_string_list_free);
+_wrapper(local_disk_vpd83_get, lsm_local_disk_vpd83_get, const char *,
+         disk_path, char *, NULL, _c_str_to_py_str, free);
 _wrapper(local_disk_health_status_get, lsm_local_disk_health_status_get,
          const char *, disk_path, int32_t, LSM_DISK_HEALTH_STATUS_UNKNOWN,
          PyInt_FromLong, _NO_NEED_TO_FREE);
-_wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get,
-         const char *, disk_path, int32_t, LSM_DISK_RPM_UNKNOWN,
+_wrapper(local_disk_rpm_get, lsm_local_disk_rpm_get, const char *, disk_path,
+         int32_t, LSM_DISK_RPM_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
+_wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get, const char *,
+         disk_path, lsm_disk_link_type, LSM_DISK_LINK_TYPE_UNKNOWN,
          PyInt_FromLong, _NO_NEED_TO_FREE);
-_wrapper(local_disk_link_type_get, lsm_local_disk_link_type_get,
-         const char *, disk_path, lsm_disk_link_type,
-         LSM_DISK_LINK_TYPE_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
-_wrapper(local_disk_led_status_get, lsm_local_disk_led_status_get,
-         const char *, disk_path, uint32_t,
-         LSM_DISK_LED_STATUS_UNKNOWN, PyInt_FromLong, _NO_NEED_TO_FREE);
-_wrapper(local_disk_link_speed_get, lsm_local_disk_link_speed_get,
-         const char *, disk_path, uint32_t, LSM_DISK_LINK_SPEED_UNKNOWN,
-         PyInt_FromLong, _NO_NEED_TO_FREE);
+_wrapper(local_disk_led_status_get, lsm_local_disk_led_status_get, const char *,
+         disk_path, uint32_t, LSM_DISK_LED_STATUS_UNKNOWN, PyInt_FromLong,
+         _NO_NEED_TO_FREE);
+_wrapper(local_disk_link_speed_get, lsm_local_disk_link_speed_get, const char *,
+         disk_path, uint32_t, LSM_DISK_LINK_SPEED_UNKNOWN, PyInt_FromLong,
+         _NO_NEED_TO_FREE);
 
 static PyObject *local_disk_list(PyObject *self, PyObject *args,
-                                 PyObject *kwargs)
-{
+                                 PyObject *kwargs) {
     lsm_error *lsm_err = NULL;
     int rc = LSM_ERR_OK;
     lsm_string_list *disk_paths = NULL;
@@ -521,7 +515,7 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
         err_msg_obj = PyUnicode_FromString("");
         _alloc_check(err_msg_obj, flag_no_mem, out);
     }
- out:
+out:
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
     if (disk_paths != NULL)
@@ -540,14 +534,19 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
 }
 
 #if PY_MAJOR_VERSION >= 3
-    #define MOD_DEF(name, methods) \
-        static struct PyModuleDef moduledef = { \
-            PyModuleDef_HEAD_INIT, name, NULL, -1, methods, NULL, NULL, NULL, \
-            NULL}; \
-        return PyModule_Create(&moduledef);
+#define MOD_DEF(name, methods)                                                 \
+    static struct PyModuleDef moduledef = {PyModuleDef_HEAD_INIT,              \
+                                           name,                               \
+                                           NULL,                               \
+                                           -1,                                 \
+                                           methods,                            \
+                                           NULL,                               \
+                                           NULL,                               \
+                                           NULL,                               \
+                                           NULL};                              \
+    return PyModule_Create(&moduledef);
 #else
-    #define MOD_DEF(name, methods) \
-        Py_InitModule(name, methods);
+#define MOD_DEF(name, methods) Py_InitModule(name, methods);
 #endif
 
 #if PY_MAJOR_VERSION >= 3

@@ -21,8 +21,8 @@
 
 #include "db.h"
 
-#define _LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED_STR    "7"
-#define _LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN_STR             "0"
+#define _LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED_STR "7"
+#define _LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN_STR          "0"
 
 static const char *_TABLE_INIT =
     "PRAGMA foreign_keys = ON;\n"
@@ -33,7 +33,7 @@ static const char *_TABLE_INIT =
     "    status_info TEXT,\n"
     "    read_cache_pct INTEGER,\n"
     "    version TEXT NOT NULL);\n"
-    "CREATE TABLE " _DB_TABLE_TGTS  " (\n"
+    "CREATE TABLE " _DB_TABLE_TGTS " (\n"
     "    id INTEGER PRIMARY KEY,\n"
     "    port_type INTEGER NOT NULL,\n"
     "    service_address TEXT NOT NULL,\n"
@@ -432,12 +432,13 @@ static const char *_TABLE_INIT =
     "                        WHEN count(DISTINCT init.init_type) = 1\n"
     "                            THEN init.init_type\n"
     "                        WHEN count(DISTINCT init.init_type) = 2\n"
-    "                            THEN "
-    _LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED_STR "\n"
+    "                            "
+    "THEN " _LSM_ACCESS_GROUP_INIT_TYPE_ISCSI_WWPN_MIXED_STR "\n"
     "                        ELSE " _LSM_ACCESS_GROUP_INIT_TYPE_UNKNOWN_STR "\n"
     "                    END\n"
     "                init_type,\n"
-    "                group_concat(init.id, '" _DB_LIST_SPLITTER "') init_ids_str\n"
+    "                group_concat(init.id, '" _DB_LIST_SPLITTER
+    "') init_ids_str\n"
     "            FROM\n"
     "                ags ag\n"
     "                    LEFT JOIN " _DB_TABLE_INITS " init\n"
@@ -514,7 +515,6 @@ static const char *_TABLE_INIT =
     "            ) exp4\n"
     "                ON exp.id = exp4.id\n"
     "    GROUP BY\n"
-    "        exp.id;\n"
-;
+    "        exp.id;\n";
 
-#endif  /* End of _SIMC_DB_TABLE_INIT_H_ */
+#endif /* End of _SIMC_DB_TABLE_INIT_H_ */

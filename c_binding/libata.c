@@ -111,10 +111,9 @@ int _ata_cur_speed_get(char *err_msg, uint8_t *id_dev_data,
 }
 
 int32_t _ata_health_status(uint8_t status, uint8_t lba_mid, uint8_t lba_high) {
-    if
-        _bit_field_extract(
-            status, _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT,
-            _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT) return LSM_DISK_HEALTH_STATUS_FAIL;
+    if _bit_field_extract (status, _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT,
+                           _ATA_SMART_RETURN_STATUS_DEVICE_FAULT_BIT)
+        return LSM_DISK_HEALTH_STATUS_FAIL;
 
     if ((lba_mid == _ATA_SMART_RETURN_STATUS_LBA_MID_NO_ERR) &&
         (lba_high == _ATA_SMART_RETURN_STATUS_LBA_HIGH_NO_ERR))

@@ -18,17 +18,17 @@
 
 #include <assert.h>
 #include <inttypes.h>
-#include <stdint.h>
 #include <sqlite3.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
-#include "utils.h"
 #include "db.h"
 #include "ops_v1_3.h"
+#include "utils.h"
 
 static lsm_battery *_sim_bat_to_lsm(char *err_msg, lsm_hash *sim_bat);
 static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
@@ -38,23 +38,22 @@ _xxx_list_func_gen(battery_list, lsm_battery, _sim_bat_to_lsm,
                    lsm_plug_battery_search_filter, _DB_TABLE_BATS_VIEW,
                    lsm_battery_record_array_free);
 
-static lsm_battery *_sim_bat_to_lsm(char *err_msg, lsm_hash *sim_bat)
-{
+static lsm_battery *_sim_bat_to_lsm(char *err_msg, lsm_hash *sim_bat) {
     const char *plugin_data = NULL;
     lsm_battery *lsm_bat = NULL;
     uint64_t status = LSM_BATTERY_STATUS_UNKNOWN;
     lsm_battery_type type = LSM_BATTERY_TYPE_UNKNOWN;
 
     if ((_str_to_int(err_msg, lsm_hash_string_get(sim_bat, "type"),
-                     (int *) &type) != LSM_ERR_OK) ||
+                     (int *)&type) != LSM_ERR_OK) ||
         (_str_to_uint64(err_msg, lsm_hash_string_get(sim_bat, "status"),
                         &status) != LSM_ERR_OK))
         return NULL;
 
-    lsm_bat = lsm_battery_record_alloc
-        (lsm_hash_string_get(sim_bat, "lsm_bat_id"),
-         lsm_hash_string_get(sim_bat, "name"),
-         type, status, _SYS_ID, plugin_data);
+    lsm_bat =
+        lsm_battery_record_alloc(lsm_hash_string_get(sim_bat, "lsm_bat_id"),
+                                 lsm_hash_string_get(sim_bat, "name"), type,
+                                 status, _SYS_ID, plugin_data);
 
     if (lsm_bat == NULL)
         _lsm_err_msg_set(err_msg, "No memory");
@@ -63,8 +62,7 @@ static lsm_battery *_sim_bat_to_lsm(char *err_msg, lsm_hash *sim_bat)
 }
 
 static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
-                             const char *key_name, uint32_t value)
-{
+                             const char *key_name, uint32_t value) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     uint64_t sim_vol_id = 0;
@@ -75,8 +73,7 @@ static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
     assert(key_name != NULL);
 
     _lsm_err_msg_clear(err_msg);
-    _good(_check_null_ptr(err_msg, 1 /* argument count */, volume),
-          rc, out);
+    _good(_check_null_ptr(err_msg, 1 /* argument count */, volume), rc, out);
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
     _good(_db_sql_trans_begin(err_msg, db), rc, out);
 
@@ -85,13 +82,13 @@ static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
 
     _snprintf_buff(err_msg, rc, out, value_str, "%" PRIu32, value);
 
-    _good(_db_data_update(err_msg, db, _DB_TABLE_VOLS, sim_vol_id,
-                          key_name, value_str),
+    _good(_db_data_update(err_msg, db, _DB_TABLE_VOLS, sim_vol_id, key_name,
+                          value_str),
           rc, out);
 
     _good(_db_sql_trans_commit(err_msg, db), rc, out);
 
- out:
+out:
     if (sim_vol != NULL)
         lsm_hash_free(sim_vol);
 
@@ -100,11 +97,9 @@ static int _vol_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
         lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;
-
 }
 
-int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
-{
+int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume *volume, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -121,7 +116,7 @@ int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
     sim_vol_id = _db_lsm_id_to_sim_id(lsm_volume_id_get(volume));
     _good(_db_sim_vol_of_sim_id(err_msg, db, sim_vol_id, &sim_vol), rc, out);
 
- out:
+out:
     _db_sql_trans_rollback(db);
     if (sim_vol != NULL)
         lsm_hash_free(sim_vol);
@@ -130,14 +125,12 @@ int volume_ident_led_on(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
     return rc;
 }
 
-int volume_ident_led_off(lsm_plugin_ptr c, lsm_volume * volume, lsm_flag flags)
-{
+int volume_ident_led_off(lsm_plugin_ptr c, lsm_volume *volume, lsm_flag flags) {
     return volume_ident_led_on(c, volume, flags);
 }
 
 int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
-                                 uint32_t read_pct, lsm_flag flags)
-{
+                                 uint32_t read_pct, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     sqlite3 *db = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
@@ -160,15 +153,16 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
 
     _snprintf_buff(err_msg, rc, out, sql_cmd,
                    "UPDATE " _DB_TABLE_SYS " SET read_cache_pct=%" PRIu32
-                   " WHERE id='" _SYS_ID "';", read_pct);
+                   " WHERE id='" _SYS_ID "';",
+                   read_pct);
 
-    _good(_db_sql_exec(err_msg, db, sql_cmd,
-                       NULL /* no need to parse output */),
-          rc, out);
+    _good(
+        _db_sql_exec(err_msg, db, sql_cmd, NULL /* no need to parse output */),
+        rc, out);
 
     _good(_db_sql_trans_commit(err_msg, db), rc, out);
 
- out:
+out:
     if (rc != LSM_ERR_OK) {
         _db_sql_trans_rollback(db);
         lsm_log_error_basic(c, rc, err_msg);
@@ -178,11 +172,9 @@ int system_read_cache_pct_update(lsm_plugin_ptr c, lsm_system *system,
 
 int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
                       uint32_t *write_cache_policy,
-                      uint32_t *write_cache_status,
-                      uint32_t *read_cache_policy,
+                      uint32_t *write_cache_status, uint32_t *read_cache_policy,
                       uint32_t *read_cache_status,
-                      uint32_t *physical_disk_cache, lsm_flag flags)
-{
+                      uint32_t *physical_disk_cache, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     uint64_t sim_vol_id = 0;
@@ -226,7 +218,7 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
     if (_vector_size(vec) > 0)
         battery_ok = true;
 
-    switch(*write_cache_policy) {
+    switch (*write_cache_policy) {
     case LSM_VOLUME_WRITE_CACHE_POLICY_AUTO:
         if (battery_ok == true)
             *write_cache_status = LSM_VOLUME_WRITE_CACHE_STATUS_WRITE_BACK;
@@ -244,12 +236,13 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
         break;
     default:
         rc = LSM_ERR_PLUGIN_BUG;
-        _lsm_err_msg_set(err_msg, "BUG: Got unknown write_cache_policy %"
-                         PRIu32, *write_cache_policy);
+        _lsm_err_msg_set(err_msg,
+                         "BUG: Got unknown write_cache_policy %" PRIu32,
+                         *write_cache_policy);
         goto out;
     }
 
-    switch(*read_cache_policy) {
+    switch (*read_cache_policy) {
     case LSM_VOLUME_READ_CACHE_POLICY_DISABLED:
         *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_DISABLED;
         break;
@@ -261,12 +254,12 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
         break;
     default:
         rc = LSM_ERR_PLUGIN_BUG;
-        _lsm_err_msg_set(err_msg, "BUG: Got unknown read_cache_policy %"
-                         PRIu32, *read_cache_policy);
+        _lsm_err_msg_set(err_msg, "BUG: Got unknown read_cache_policy %" PRIu32,
+                         *read_cache_policy);
         goto out;
     }
 
- out:
+out:
     _db_sql_exec_vec_free(vec);
     _db_sql_trans_rollback(db);
     if (sim_vol != NULL)
@@ -289,22 +282,19 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
 }
 
 int volume_physical_disk_cache_update(lsm_plugin_ptr c, lsm_volume *volume,
-                                      uint32_t pdc, lsm_flag flags)
-{
+                                      uint32_t pdc, lsm_flag flags) {
     _UNUSED(flags);
     return _vol_cache_update(c, volume, "phy_disk_cache", pdc);
 }
 
 int volume_write_cache_policy_update(lsm_plugin_ptr c, lsm_volume *volume,
-                                     uint32_t wcp, lsm_flag flags)
-{
+                                     uint32_t wcp, lsm_flag flags) {
     _UNUSED(flags);
     return _vol_cache_update(c, volume, "write_cache_policy", wcp);
 }
 
 int volume_read_cache_policy_update(lsm_plugin_ptr c, lsm_volume *volume,
-                                    uint32_t rcp, lsm_flag flags)
-{
+                                    uint32_t rcp, lsm_flag flags) {
     _UNUSED(flags);
     return _vol_cache_update(c, volume, "read_cache_policy", rcp);
 }

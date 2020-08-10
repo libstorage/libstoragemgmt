@@ -17,47 +17,47 @@
  */
 
 #define _GNU_SOURCE
+#include <assert.h>
+#include <ctype.h>
+#include <dirent.h>
+#include <errno.h>
+#include <getopt.h>
+#include <grp.h>
+#include <libconfig.h>
+#include <libgen.h>
+#include <limits.h>
+#include <pwd.h>
+#include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
-#include <ctype.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <syslog.h>
-#include <stdarg.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <sys/queue.h>
-#include <sys/wait.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/time.h>
-#include <libgen.h>
-#include <assert.h>
-#include <grp.h>
-#include <limits.h>
-#include <libconfig.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <syslog.h>
+#include <unistd.h>
 
-#define BASE_DIR  "/var/run/lsm"
-#define SOCKET_DIR BASE_DIR"/ipc"
-#define PLUGIN_DIR "/usr/bin"
-#define LSM_USER "libstoragemgmt"
-#define LSM_CONF_DIR "/etc/lsm/"
-#define LSM_PLUGIN_CONF_DIR_NAME "pluginconf.d"
-#define LSMD_CONF_FILE "lsmd.conf"
-#define LSM_CONF_ALLOW_ROOT_OPT_NAME "allow-plugin-root-privilege"
+#define BASE_DIR                       "/var/run/lsm"
+#define SOCKET_DIR                     BASE_DIR "/ipc"
+#define PLUGIN_DIR                     "/usr/bin"
+#define LSM_USER                       "libstoragemgmt"
+#define LSM_CONF_DIR                   "/etc/lsm/"
+#define LSM_PLUGIN_CONF_DIR_NAME       "pluginconf.d"
+#define LSMD_CONF_FILE                 "lsmd.conf"
+#define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 
-#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
-       __typeof__ (b) _b = (b); \
-     _a > _b ? _a : _b; })
+#define max(a, b)                                                              \
+    ({                                                                         \
+        __typeof__(a) _a = (a);                                                \
+        __typeof__(b) _b = (b);                                                \
+        _a > _b ? _a : _b;                                                     \
+    })
 
 int verbose_flag = 0;
 int systemd = 0;
@@ -99,8 +99,7 @@ LIST_HEAD(plugin_list, plugin) head;
  * @param fmt           String with format
  * @param ...           Format parameters
  */
-void logger(int severity, const char *fmt, ...)
-{
+void logger(int severity, const char *fmt, ...) {
     char buf[2048];
 
     if (verbose_flag || LOG_WARNING == severity || LOG_ERR == severity) {
@@ -126,16 +125,15 @@ void logger(int severity, const char *fmt, ...)
     }
 }
 
-#define log_and_exit(fmt, ...)  logger(LOG_ERR, fmt, ##__VA_ARGS__)
-#define warn(fmt, ...)  logger(LOG_WARNING, fmt, ##__VA_ARGS__)
-#define info(fmt, ...)  logger(LOG_INFO, fmt, ##__VA_ARGS__)
+#define log_and_exit(fmt, ...) logger(LOG_ERR, fmt, ##__VA_ARGS__)
+#define warn(fmt, ...)         logger(LOG_WARNING, fmt, ##__VA_ARGS__)
+#define info(fmt, ...)         logger(LOG_INFO, fmt, ##__VA_ARGS__)
 
 /**
  * Our signal handler.
  * @param s     Received signal
  */
-void signal_handler(int s)
-{
+void signal_handler(int s) {
     if (SIGTERM == s) {
         serve_state = EXIT;
     } else if (SIGHUP == s) {
@@ -146,8 +144,7 @@ void signal_handler(int s)
 /**
  * Installs our signal handler
  */
-void install_sh(void)
-{
+void install_sh(void) {
     if (signal(SIGTERM, signal_handler) == SIG_ERR) {
         log_and_exit("Can't catch signal SIGTERM\n");
     }
@@ -161,8 +158,7 @@ void install_sh(void)
  * If we are running as root, we will try to drop our privs. to our default
  * user.
  */
-void drop_privileges(void)
-{
+void drop_privileges(void) {
     int err = 0;
     struct passwd *pw = NULL;
 
@@ -195,8 +191,7 @@ void drop_privileges(void)
 /**
  * Check to make sure we have access to the directories of interest
  */
-void flight_check(void)
-{
+void flight_check(void) {
     int err = 0;
     if (-1 == access(socket_dir, R_OK | W_OK)) {
         err = errno;
@@ -214,15 +209,15 @@ void flight_check(void)
 /**
  * Print help.
  */
-void usage(void)
-{
+void usage(void) {
     printf("libStorageMgmt plug-in daemon.\n");
     printf("lsmd [--plugindir <directory>] [--socketdir <dir>] [-v] [-d]\n");
     printf("     --plugindir = The directory where the plugins are located\n");
-    printf("     --socketdir = The directory where the Unix domain sockets will "
-                                "be created\n");
+    printf(
+        "     --socketdir = The directory where the Unix domain sockets will "
+        "be created\n");
     printf("     --confdir   = The directory where the config files are "
-                               "located\n");
+           "located\n");
     printf("     -v          = Verbose logging\n");
     printf("     -d          = New style daemon (systemd)\n");
 }
@@ -233,8 +228,7 @@ void usage(void)
  * @param name      File name
  * @return Concatenated string, caller must call free when done
  */
-char *path_form(const char *path, const char *name)
-{
+char *path_form(const char *path, const char *name) {
     size_t s = strlen(path) + strlen(name) + 2;
     char *full = calloc(1, s);
     if (full) {
@@ -246,7 +240,7 @@ char *path_form(const char *path, const char *name)
 }
 
 /* Call back signature */
-typedef int (*file_op) (void *p, char *full_file_path);
+typedef int (*file_op)(void *p, char *full_file_path);
 
 /**
  * For a given directory iterate through each directory item and exec the
@@ -256,8 +250,7 @@ typedef int (*file_op) (void *p, char *full_file_path);
  * @param   call_back   Function to call against file
  * @return
  */
-void process_directory(const char *dir, void *p, file_op call_back)
-{
+void process_directory(const char *dir, void *p, file_op call_back) {
     int err = 0;
 
     if (call_back && dir && strlen(dir)) {
@@ -309,8 +302,7 @@ void process_directory(const char *dir, void *p, file_op call_back)
  * @param full_name     Full path an and file name
  * @return 0 to continue processing, anything else to stop.
  */
-int delete_socket(void *p, char *full_name)
-{
+int delete_socket(void *p, char *full_name) {
     struct stat statbuf;
     int err;
 
@@ -320,8 +312,8 @@ int delete_socket(void *p, char *full_name)
         if (S_ISSOCK(statbuf.st_mode)) {
             if (unlink(full_name)) {
                 err = errno;
-                log_and_exit("Error on unlinking file %s: %s\n",
-                             full_name, strerror(err));
+                log_and_exit("Error on unlinking file %s: %s\n", full_name,
+                             strerror(err));
             }
         }
     }
@@ -331,19 +323,14 @@ int delete_socket(void *p, char *full_name)
 /**
  * Walk the IPC socket directory and remove the socket files.
  */
-void clean_sockets(void)
-{
-    process_directory(socket_dir, NULL, delete_socket);
-}
-
+void clean_sockets(void) { process_directory(socket_dir, NULL, delete_socket); }
 
 /**
  * Given a socket file name, create the IPC socket.
  * @param name     socket file name for plug-in
  * @return  listening socket descriptor for IPC
  */
-int setup_socket(char *name)
-{
+int setup_socket(char *name) {
     int err = 0;
 
     char *socket_file = path_form(socket_dir, name);
@@ -358,14 +345,14 @@ int setup_socket(char *name)
         strncpy(addr.sun_path, socket_file, sizeof(addr.sun_path) - 1);
 
         if (-1 ==
-            bind(fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un))) {
+            bind(fd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un))) {
             err = errno;
             log_and_exit("Error on binding socket %s: %s\n", socket_file,
                          strerror(err));
         }
 
-        if (-1 == chmod(socket_file, S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP
-                        | S_IROTH | S_IWOTH)) {
+        if (-1 == chmod(socket_file, S_IREAD | S_IWRITE | S_IRGRP | S_IWGRP |
+                                         S_IROTH | S_IWOTH)) {
             err = errno;
             log_and_exit("Error on chmod socket file %s: %s\n", socket_file,
                          strerror(err));
@@ -379,8 +366,8 @@ int setup_socket(char *name)
 
     } else {
         err = errno;
-        log_and_exit("Error on socket create %s: %s\n",
-                     socket_file, strerror(err));
+        log_and_exit("Error on socket create %s: %s\n", socket_file,
+                     strerror(err));
     }
 
     free(socket_file);
@@ -391,8 +378,7 @@ int setup_socket(char *name)
  * Closes all the listening sockets and re-claims memory in linked list.
  * @param list
  */
-void empty_plugin_list(struct plugin_list *list)
-{
+void empty_plugin_list(struct plugin_list *list) {
     int err;
     struct plugin *item = NULL;
 
@@ -424,13 +410,12 @@ void empty_plugin_list(struct plugin_list *list)
  * @param value         int, output, value of this config key
  */
 
-void parse_conf_bool(const char *conf_path, const char *key_name, int *value)
-{
+void parse_conf_bool(const char *conf_path, const char *key_name, int *value) {
     if (access(conf_path, F_OK) == -1) {
         /* file not exist. */
         return;
     }
-    config_t *cfg = (config_t *) malloc(sizeof(config_t));
+    config_t *cfg = (config_t *)malloc(sizeof(config_t));
     if (cfg) {
         config_init(cfg);
         if (CONFIG_TRUE == config_read_file(cfg, conf_path)) {
@@ -441,8 +426,8 @@ void parse_conf_bool(const char *conf_path, const char *key_name, int *value)
                          config_error_line(cfg));
         }
     } else {
-        log_and_exit
-            ("malloc failure while trying to allocate memory for config_t\n");
+        log_and_exit(
+            "malloc failure while trying to allocate memory for config_t\n");
     }
 
     config_destroy(cfg);
@@ -456,23 +441,22 @@ void parse_conf_bool(const char *conf_path, const char *key_name, int *value)
  * @return 1 for require root privilege, 0 or not.
  */
 
-int chk_pconf_root_pri(char *plugin_name)
-{
+int chk_pconf_root_pri(char *plugin_name) {
     int require_root = 0;
     size_t plugin_name_len = strlen(plugin_name);
     size_t conf_ext_len = strlen(plugin_conf_extension);
-    ssize_t conf_file_name_len = plugin_name_len  + conf_ext_len + 1;
-    char *plugin_conf_filename = (char *) malloc(conf_file_name_len);
+    ssize_t conf_file_name_len = plugin_name_len + conf_ext_len + 1;
+    char *plugin_conf_filename = (char *)malloc(conf_file_name_len);
 
     if (plugin_conf_filename) {
         snprintf(plugin_conf_filename, conf_file_name_len, "%s%s", plugin_name,
                  plugin_conf_extension);
 
-        char *plugin_conf_dir_path = path_form(conf_dir,
-                                               LSM_PLUGIN_CONF_DIR_NAME);
+        char *plugin_conf_dir_path =
+            path_form(conf_dir, LSM_PLUGIN_CONF_DIR_NAME);
 
-        char *plugin_conf_path = path_form(plugin_conf_dir_path,
-                                           plugin_conf_filename);
+        char *plugin_conf_path =
+            path_form(plugin_conf_dir_path, plugin_conf_filename);
         parse_conf_bool(plugin_conf_path, LSM_CONF_REQUIRE_ROOT_OPT_NAME,
                         &require_root);
 
@@ -485,7 +469,8 @@ int chk_pconf_root_pri(char *plugin_name)
         free(plugin_conf_path);
     } else {
         log_and_exit("malloc failure while trying to allocate %d "
-                     "bytes\n", conf_file_name_len);
+                     "bytes\n",
+                     conf_file_name_len);
     }
     return require_root;
 }
@@ -496,14 +481,13 @@ int chk_pconf_root_pri(char *plugin_name)
  * @param full_name     Full path and file name
  * @return 0 to continue, else abort directory processing
  */
-int process_plugin(void *p, char *full_name)
-{
-    char * base_nm = NULL;
+int process_plugin(void *p, char *full_name) {
+    char *base_nm = NULL;
     size_t base_nm_len = 0;
     size_t no_ext_len = 0;
     char plugin_name[128];
     size_t ext_len = strlen(plugin_extension);
-    size_t plugin_name_max_len = sizeof(plugin_name)/sizeof(char);
+    size_t plugin_name_max_len = sizeof(plugin_name) / sizeof(char);
 
     if (full_name == NULL)
         return 0;
@@ -538,8 +522,7 @@ int process_plugin(void *p, char *full_name)
     has_root_plugin |= item->require_root;
 
     if (item->file_path && item->fd >= 0) {
-        LIST_INSERT_HEAD((struct plugin_list *) p, item,
-                         pointers);
+        LIST_INSERT_HEAD((struct plugin_list *)p, item, pointers);
         info("Plugin %s added\n", full_name);
     } else {
         /* The only real way to get here is failed strdup as
@@ -554,8 +537,7 @@ int process_plugin(void *p, char *full_name)
 /**
  * Cleans up any children that have exited.
  */
-void child_cleanup(void)
-{
+void child_cleanup(void) {
     int rc;
     int err;
 
@@ -587,8 +569,7 @@ void child_cleanup(void)
 /**
  * Closes and frees memory and removes Unix domain sockets.
  */
-void clean_up(void)
-{
+void clean_up(void) {
     empty_plugin_list(&head);
     clean_sockets();
 }
@@ -597,8 +578,7 @@ void clean_up(void)
  * Walks the plugin directory creating IPC sockets for each one.
  * @return
  */
-int process_plugins(void)
-{
+int process_plugins(void) {
     clean_up();
     info("Scanning plug-in directory %s\n", plugin_dir);
     process_directory(plugin_dir, &head, process_plugin);
@@ -615,8 +595,7 @@ int process_plugins(void)
  * @param fd        Socket descriptor to lookup
  * @return struct plugin
  */
-struct plugin *plugin_lookup(int fd)
-{
+struct plugin *plugin_lookup(int fd) {
     struct plugin *plug = NULL;
     LIST_FOREACH(plug, &head, pointers) {
         if (plug->fd == fd) {
@@ -633,8 +612,7 @@ struct plugin *plugin_lookup(int fd)
  * @param require_root  int, indicate whether this plugin require root
  *                      privilege or not
  */
-void exec_plugin(char *plugin, int client_fd, int require_root)
-{
+void exec_plugin(char *plugin, int client_fd, int require_root) {
     int err = 0;
 
     info("Exec'ing plug-in = %s\n", plugin);
@@ -667,10 +645,12 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
         } else {
             if (getuid()) {
                 warn("Plugin %s require root privilege, but lsmd daemon "
-                     "is not run as root user\n", plugin);
+                     "is not run as root user\n",
+                     plugin);
             } else if (allow_root_plugin == 0) {
                 warn("Plugin %s require root privilege, but %s disabled "
-                     "it globally\n", LSMD_CONF_FILE);
+                     "it globally\n",
+                     LSMD_CONF_FILE);
                 drop_privileges();
             } else {
                 /* Check socket client uid */
@@ -680,7 +660,8 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
                 if (0 == rc_get_cli_uid) {
                     if (cli_user_cred.uid != 0) {
                         warn("Plugin %s require root privilege, but "
-                             "client is not run as root user\n", plugin);
+                             "client is not run as root user\n",
+                             plugin);
                         drop_privileges();
                     } else {
                         info("Plugin %s is running as root privilege\n",
@@ -688,11 +669,11 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
                     }
                 } else {
                     warn("Failed to get client socket uid, getsockopt() "
-                         "error: %d\n", errno);
+                         "error: %d\n",
+                         errno);
                     drop_privileges();
                 }
             }
-
         }
 
         /* Make copy of plug-in string as once we call empty_plugin_list it
@@ -715,19 +696,19 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
             plugin_argv[5] = fd_str;
             plugin_argv[6] = NULL;
 
-            exec_rc = execve("/usr/bin/valgrind", (char * const*) plugin_argv,
+            exec_rc = execve("/usr/bin/valgrind", (char *const *)plugin_argv,
                              environ);
         } else {
             plugin_argv[0] = basename(p_copy);
             plugin_argv[1] = fd_str;
             plugin_argv[2] = NULL;
-            exec_rc = execve(p_copy, (char * const*) plugin_argv, environ);
+            exec_rc = execve(p_copy, (char *const *)plugin_argv, environ);
         }
 
         if (-1 == exec_rc) {
             err = errno;
-            log_and_exit("Error on exec'ing Plugin %s: %s\n",
-                         p_copy, strerror(err));
+            log_and_exit("Error on exec'ing Plugin %s: %s\n", p_copy,
+                         strerror(err));
         }
     }
 }
@@ -735,8 +716,7 @@ void exec_plugin(char *plugin, int client_fd, int require_root)
 /**
  * Main event loop
  */
-void _serving(void)
-{
+void _serving(void) {
     struct plugin *plug = NULL;
     struct timeval tmo;
     fd_set readfds;
@@ -794,8 +774,7 @@ void _serving(void)
 /**
  * Main entry for daemon to work
  */
-void serve(void)
-{
+void serve(void) {
     while (serve_state != EXIT) {
         if (serve_state == RESTART) {
             info("Reloading plug-ins\n");
@@ -806,8 +785,7 @@ void serve(void)
     clean_up();
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     int c = 0;
 
     LIST_INIT(&head);
@@ -815,12 +793,11 @@ int main(int argc, char *argv[])
     /* Process command line arguments */
     while (1) {
         static struct option l_options[] = {
-            {"help", no_argument, 0, 'h'},  //Index 0
-            {"plugindir", required_argument, 0, 0}, //Index 1
-            {"socketdir", required_argument, 0, 0}, //Index 2
-            {"confdir", required_argument, 0, 0},   //Index 3
-            {0, 0, 0, 0}
-        };
+            {"help", no_argument, 0, 'h'},          // Index 0
+            {"plugindir", required_argument, 0, 0}, // Index 1
+            {"socketdir", required_argument, 0, 0}, // Index 2
+            {"confdir", required_argument, 0, 0},   // Index 3
+            {0, 0, 0, 0}};
 
         int option_index = 0;
         c = getopt_long(argc, argv, "hvd", l_options, &option_index);
@@ -881,7 +858,7 @@ int main(int argc, char *argv[])
 
     /* Check lsmd.conf */
     char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
-    parse_conf_bool(lsmd_conf_path, (char *) LSM_CONF_ALLOW_ROOT_OPT_NAME,
+    parse_conf_bool(lsmd_conf_path, (char *)LSM_CONF_ALLOW_ROOT_OPT_NAME,
                     &allow_root_plugin);
     free(lsmd_conf_path);
 

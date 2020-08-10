@@ -19,12 +19,12 @@
 #ifndef _SIMC_MGM_OPS_H_
 #define _SIMC_MGM_OPS_H_
 
-#include <stdio.h>
 #include <assert.h>
-#include <string.h>
-#include <stdint.h>
 #include <sqlite3.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
@@ -54,4 +54,4 @@ int _job_create(char *err_msg, sqlite3 *db, lsm_data_type data_type,
 bool _pool_has_enough_free_size(sqlite3 *db, uint64_t sim_pool_id,
                                 uint64_t size);
 
-#endif  /* End of _SIMC_MGM_OPS_H_ */
+#endif /* End of _SIMC_MGM_OPS_H_ */

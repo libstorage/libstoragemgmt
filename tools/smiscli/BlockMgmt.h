@@ -20,8 +20,8 @@
 #ifndef __BLOCKMGMT_H__
 #define __BLOCKMGMT_H__
 
-#include <Pegasus/Common/Config.h>
 #include <Pegasus/Client/CIMClient.h>
+#include <Pegasus/Common/Config.h>
 
 PEGASUS_USING_PEGASUS;
 PEGASUS_USING_STD;
@@ -30,10 +30,8 @@ PEGASUS_USING_STD;
  * A simple class used to learn about SMI-S utilizing the openpegasus library.
  * Released in hopes that other may benefit.
  */
-class BlockMgmt
-{
-public:
-
+class BlockMgmt {
+  public:
     /**
      * Class constructor.
      * Once this completes we have a connection to the SMI-S agent/proxy.
@@ -43,8 +41,8 @@ public:
      * @param   userName    User name when using authentication.
      * @param   password    Plain text password.
      */
-    BlockMgmt(  String host, Uint16 port, String smisNameSpace, String userName,
-                String password );
+    BlockMgmt(String host, Uint16 port, String smisNameSpace, String userName,
+              String password);
 
     /**
      * Class destructor which closes the connection to the SMI-S agent/proxy
@@ -58,7 +56,7 @@ public:
      * @param   size                Size of the new Lun
      * @throws  Exception
      */
-    void createLun( String storagePoolName, String name, Uint64 size);
+    void createLun(String storagePoolName, String name, Uint64 size);
 
     /**
      * Creates an initiator to reference and use.
@@ -67,14 +65,14 @@ public:
      * @param   type                Type of id [WWN|IQN]
      * @throws Exception
      */
-    void createInit( String name, String id, String type);
+    void createInit(String name, String id, String type);
 
     /**
      * Deletes an initiator.
      * @param   id  Initiator ID
      * @throws Exception
      */
-    void deleteInit( String id );
+    void deleteInit(String id);
 
     /**
      * Creates a snapshot of a lun (point in time copy)
@@ -83,15 +81,15 @@ public:
      * @param   destName    Name of new snapshot.
      * @throws  Exception
      */
-    void createSnapShot(    String sourceLun, String destStoragePool,
-                            String destName);
+    void createSnapShot(String sourceLun, String destStoragePool,
+                        String destName);
 
     /**
      * Deletes a logical unit.
      * @param   name    Name of lun to delete.
      * @throws Exception
      */
-    void deleteLun( String name );
+    void deleteLun(String name);
 
     /**
      * Resizes an existing Lun.
@@ -99,7 +97,7 @@ public:
      * @param   size    New size
      * @throws Exception
      */
-    void resizeLun( String name, Uint64 size);
+    void resizeLun(String name, Uint64 size);
 
     /**
      * Returns an array of Strings which are the names of the storage pools.
@@ -114,7 +112,6 @@ public:
      * @throws  Exception
      */
     Array<String> getLuns();
-
 
     /**
      * Returns an array of Strings which are the ID(s) of the initiators
@@ -139,17 +136,19 @@ public:
      */
     void unmapLun(String initiatorID, String lunName);
 
-
     void jobStatus(String id);
 
-private:
-    enum ElementType { UNKNOWN = 0, RESERVED = 1, STORAGE_VOLUME = 2,
-                       STORAGE_EXTENT = 3, STORAGE_POOL = 4, LOGICAL_DISK = 5
-                     };
+  private:
+    enum ElementType {
+        UNKNOWN = 0,
+        RESERVED = 1,
+        STORAGE_VOLUME = 2,
+        STORAGE_EXTENT = 3,
+        STORAGE_POOL = 4,
+        LOGICAL_DISK = 5
+    };
 
-    enum DeviceAccess { READ_WRITE = 2, READ_ONLY = 3,
-                        NO_ACCESS = 4
-                      };
+    enum DeviceAccess { READ_WRITE = 2, READ_ONLY = 3, NO_ACCESS = 4 };
 
     enum SyncType { MIRROR = 6, SNAPSHOT = 7, CLONE = 8 };
 
@@ -159,23 +158,31 @@ private:
 
     enum OperationalStatus { OK = 2, ERROR = 6, STOPPED = 10, COMPLETE = 17 };
 
-    enum JobState { JS_NEW = 2, JS_STARTING = 3, JS_RUNNING = 4,
-                    JS_SUSPENDED = 5, JS_SHUTTING_DOWN = 6, JS_COMPLETED = 7,
-                    JS_TERMINATED = 8, JS_KILLED = 9, JS_EXCEPTION = 10 };
+    enum JobState {
+        JS_NEW = 2,
+        JS_STARTING = 3,
+        JS_RUNNING = 4,
+        JS_SUSPENDED = 5,
+        JS_SHUTTING_DOWN = 6,
+        JS_COMPLETED = 7,
+        JS_TERMINATED = 8,
+        JS_KILLED = 9,
+        JS_EXCEPTION = 10
+    };
 
-    CIMClient   c;
-    CIMNamespaceName    ns;
+    CIMClient c;
+    CIMNamespaceName ns;
 
-    Array<CIMInstance>  storagePools();
-    Array<String> instancePropertyNames( String className, String prop );
+    Array<CIMInstance> storagePools();
+    Array<String> instancePropertyNames(String className, String prop);
 
     String getClassValue(CIMInstance &instance, String propName);
     CIMInstance getClassInstance(String className);
     CIMInstance getClassInstance(String className, String propertyName,
-                                 String propertyValue );
+                                 String propertyValue);
 
     Uint32 evalInvoke(Array<CIMParamValue> &out, CIMValue value,
-                    String jobKey = "Job");
+                      String jobKey = "Job");
 
     void processJob(CIMValue &job);
 
@@ -183,7 +190,7 @@ private:
 
     void printVol(const CIMValue &job);
 
-    CIMInstance getSPC( String initiator, String lun, bool &found );
+    CIMInstance getSPC(String initiator, String lun, bool &found);
 
     bool jobCompletedOk(String jobId);
 };

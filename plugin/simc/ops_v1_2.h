@@ -19,9 +19,9 @@
 #ifndef _SIMC_OPS_V1_2_H_
 #define _SIMC_OPS_V1_2_H_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
 
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 
@@ -33,8 +33,7 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
 int pool_member_info(lsm_plugin_ptr c, lsm_pool *pool,
                      lsm_volume_raid_type *raid_type,
                      lsm_pool_member_type *member_type,
-                     lsm_string_list **member_ids,
-                     lsm_flag flags);
+                     lsm_string_list **member_ids, lsm_flag flags);
 
 int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
                                uint32_t **supported_raid_types,
@@ -44,9 +43,8 @@ int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
                                lsm_flag flags);
 
 int volume_raid_create(lsm_plugin_ptr c, const char *name,
-                       lsm_volume_raid_type raid_type,
-                       lsm_disk * disks[], uint32_t disk_count,
-                       uint32_t strip_size, lsm_volume ** new_volume,
-                       lsm_flag flags);
+                       lsm_volume_raid_type raid_type, lsm_disk *disks[],
+                       uint32_t disk_count, uint32_t strip_size,
+                       lsm_volume **new_volume, lsm_flag flags);
 
-#endif  /* End of _SIMC_OPS_V1_2_H_ */
+#endif /* End of _SIMC_OPS_V1_2_H_ */

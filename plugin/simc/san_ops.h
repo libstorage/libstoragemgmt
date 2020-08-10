@@ -19,10 +19,10 @@
 #ifndef _SIMC_SAN_OPS_H_
 #define _SIMC_SAN_OPS_H_
 
+#include <sqlite3.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdint.h>
-#include <sqlite3.h>
 
 int volume_list(lsm_plugin_ptr c, const char *search_key,
                 const char *search_val, lsm_volume **vol_array[],
@@ -38,8 +38,8 @@ int volume_create(lsm_plugin_ptr c, lsm_pool *pool, const char *volume_name,
 
 int volume_replicate(lsm_plugin_ptr c, lsm_pool *pool,
                      lsm_replication_type rep_type, lsm_volume *volume_src,
-                     const char *name, lsm_volume **new_replicant,
-                     char **job, lsm_flag flags);
+                     const char *name, lsm_volume **new_replicant, char **job,
+                     lsm_flag flags);
 
 int volume_replicate_range(lsm_plugin_ptr c, lsm_replication_type rep_type,
                            lsm_volume *src_vol, lsm_volume *dst_vol,
@@ -50,7 +50,7 @@ int volume_replicate_range_block_size(lsm_plugin_ptr c, lsm_system *system,
                                       uint32_t *bs, lsm_flag flags);
 
 int volume_resize(lsm_plugin_ptr c, lsm_volume *volume, uint64_t new_size,
-               lsm_volume **resized_volume, char **job, lsm_flag flags);
+                  lsm_volume **resized_volume, char **job, lsm_flag flags);
 
 int volume_enable(lsm_plugin_ptr c, lsm_volume *v, lsm_flag flags);
 
@@ -92,13 +92,13 @@ int access_group_initiator_delete(lsm_plugin_ptr c,
 int volume_mask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
                 lsm_flag flags);
 
-int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group,
-                  lsm_volume *volume, lsm_flag flags);
+int volume_unmask(lsm_plugin_ptr c, lsm_access_group *group, lsm_volume *volume,
+                  lsm_flag flags);
 
 int volumes_accessible_by_access_group(lsm_plugin_ptr c,
                                        lsm_access_group *group,
-                                       lsm_volume **volumes[],
-                                       uint32_t *count, lsm_flag flags);
+                                       lsm_volume **volumes[], uint32_t *count,
+                                       lsm_flag flags);
 
 int access_groups_granted_to_volume(lsm_plugin_ptr c, lsm_volume *volume,
                                     lsm_access_group **groups[],
@@ -122,4 +122,4 @@ lsm_access_group *_sim_ag_to_lsm(char *err_msg, lsm_hash *sim_ag);
 int _volume_create_internal(char *err_msg, sqlite3 *db, const char *name,
                             uint64_t size, uint64_t sim_pool_id);
 
-#endif  /* End of _SIMC_SAN_OPS_H_ */
+#endif /* End of _SIMC_SAN_OPS_H_ */
