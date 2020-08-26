@@ -118,25 +118,40 @@ def _sanitize_output(output_lines, return_warning=False):
     num_lines = len(output_lines)
     sanitized = []
     i = 0
+
+    critical_msgs = ['Warning:']
+    info_msgs = ['Encryption is enabled']
     while i < num_lines:
         if output_lines[i]:
+
             # Newer versions report things like media errors
-            if output_lines[i].startswith('Warning:'):
-                start = i + 1
-                warning = output_lines[i]
+            for critical_msg in critical_msgs:
+                if output_lines[i].startswith(critical_msg):
+                    start = i + 1
+                    warning = output_lines[i]
 
-                # Append all lines until next empty
-                for z in range(start, num_lines):
-                    i += 1
-                    if output_lines[z]:
-                        warning += ' ' + output_lines[z]
-                    else:
-                        break
+                    # Append all lines until next empty
+                    for z in range(start, num_lines):
+                        i += 1
+                        if output_lines[z]:
+                            warning += ' ' + output_lines[z]
+                        else:
+                            break
 
-                if warning_msg is None:
-                    warning_msg = warning[9:]
+                    if warning_msg is None:
+                        warning_msg = warning[9:]
 
-            elif output_lines[i].startswith('Note:'):
+            for info_msg in info_msgs:
+                # Discard the whole block
+                if output_lines[i].startswith(info_msg):
+                    start = i
+
+                    for z in range(start, num_lines):
+                        i += 1
+                        if not output_lines[z]:
+                            break
+
+            if output_lines[i].startswith('Note:'):
                 # Discard
                 pass
             else:
