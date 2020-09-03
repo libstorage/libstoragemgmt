@@ -21,6 +21,7 @@
 
 #include <check.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <libstoragemgmt/libstoragemgmt.h>
 #include <libstoragemgmt/libstoragemgmt_plug_interface.h>
 #include <stdint.h>
@@ -903,7 +904,8 @@ START_TEST(test_fs) {
     ck_assert_msg(NULL != nfs, "nfs = %p", nfs);
 
     fs_free_space = lsm_fs_free_space_get(nfs);
-    ck_assert_msg(fs_free_space != 0, "fs_free_space = %lu", fs_free_space);
+    ck_assert_msg(fs_free_space != 0, "fs_free_space = %" PRIu64,
+                  fs_free_space);
 
     lsm_fs *cloned_fs = NULL;
     rc = lsm_fs_clone(c, nfs, "cloned_fs", NULL, &cloned_fs, &job,
@@ -1143,11 +1145,11 @@ START_TEST(test_disks) {
 
             ck_assert_msg(lsm_disk_type_get(d[i]) >= 1, "%d",
                           (int)lsm_disk_type_get(d[i]));
-            ck_assert_msg(lsm_disk_number_of_blocks_get(d[i]) >= 1, "%lu",
+            ck_assert_msg(lsm_disk_number_of_blocks_get(d[i]) >= 1, "%" PRIu64,
                           lsm_disk_number_of_blocks_get(d[i]));
-            ck_assert_msg(lsm_disk_block_size_get(d[i]) >= 1, "%lu",
+            ck_assert_msg(lsm_disk_block_size_get(d[i]) >= 1, "%" PRIu64,
                           lsm_disk_block_size_get(d[i]));
-            ck_assert_msg(lsm_disk_status_get(d[i]) >= 1, "%lu",
+            ck_assert_msg(lsm_disk_status_get(d[i]) >= 1, "%" PRIu64,
                           lsm_disk_status_get(d[i]));
             ck_assert_msg(lsm_disk_vpd83_get(d[i]) != NULL, "NULL");
         }
@@ -2236,7 +2238,7 @@ START_TEST(test_get_available_plugins) {
     num = lsm_string_list_size(plugins);
     for (i = 0; i < num; i++) {
         const char *info = lsm_string_list_elem_get(plugins, i);
-        ck_assert_msg(strlen(info) > 0, "%lu", strlen(info));
+        ck_assert_msg(strlen(info) > 0, "%zd", strlen(info));
         printf("%s\n", info);
     }
 
@@ -2406,9 +2408,9 @@ START_TEST(test_nfs_export_funcs) {
     ASSERT_STR_MATCH(lsm_nfs_export_auth_type_get(copy), auth);
     ASSERT_STR_MATCH(lsm_nfs_export_options_get(copy), options);
 
-    ck_assert_msg(lsm_nfs_export_anon_uid_get(copy) == anonuid, "%lu",
+    ck_assert_msg(lsm_nfs_export_anon_uid_get(copy) == anonuid, "%" PRIu64,
                   lsm_nfs_export_anon_uid_get(copy));
-    ck_assert_msg(lsm_nfs_export_anon_gid_get(copy) == anongid, "%lu",
+    ck_assert_msg(lsm_nfs_export_anon_gid_get(copy) == anongid, "%" PRIu64,
                   lsm_nfs_export_anon_gid_get(copy));
 
     ck_assert_msg(compare_string_lists(lsm_nfs_export_root_get(export),
@@ -2450,9 +2452,9 @@ START_TEST(test_nfs_export_funcs) {
     anongid = anongid + 400;
     G(rc, lsm_nfs_export_anon_gid_set, export, anongid);
 
-    ck_assert_msg(lsm_nfs_export_anon_uid_get(export) == anonuid, "%lu",
+    ck_assert_msg(lsm_nfs_export_anon_uid_get(export) == anonuid, "%" PRIu64,
                   lsm_nfs_export_anon_uid_get(export));
-    ck_assert_msg(lsm_nfs_export_anon_gid_get(export) == anongid, "%lu",
+    ck_assert_msg(lsm_nfs_export_anon_gid_get(export) == anongid, "%" PRIu64,
                   lsm_nfs_export_anon_gid_get(export));
 
     generate_random(rstring, sizeof(rstring));
@@ -3126,7 +3128,7 @@ START_TEST(test_pool_member_info) {
         for (y = 0; y < lsm_string_list_size(member_ids); y++) {
             // Simulator user reading the member id.
             const char *cur_member_id = lsm_string_list_elem_get(member_ids, y);
-            ck_assert_msg(strlen(cur_member_id), "%ld", strlen(cur_member_id));
+            ck_assert_msg(strlen(cur_member_id), "%zd", strlen(cur_member_id));
         }
         lsm_string_list_free(member_ids);
     }
@@ -3676,7 +3678,7 @@ START_TEST(test_batteries) {
                       "Incorrect battery system id: %s", id);
         ck_assert_msg(lsm_battery_type_get(bs[i]) >= 1, "%u",
                       lsm_battery_type_get(bs[i]));
-        ck_assert_msg(lsm_battery_status_get(bs[i]) >= 1, "%lu",
+        ck_assert_msg(lsm_battery_status_get(bs[i]) >= 1, "%" PRIu64,
                       lsm_battery_status_get(bs[i]));
     }
     lsm_battery_record_array_free(bs, count);
