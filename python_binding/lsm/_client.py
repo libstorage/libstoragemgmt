@@ -51,7 +51,7 @@ def _check_search_key(search_key, supported_keys):
 def _raise_no_daemon():
     raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
                    "The libStorageMgmt daemon is not running (process "
-                   "name lsmd), try 'service libstoragemgmt start'")
+                   "name lsmd), please start service")
 
 
 # Main client class for library.
