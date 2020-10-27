@@ -341,6 +341,9 @@ _HP_RAID_LEVEL_CONV = {
 _HP_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 
 
+NOT_AVAILABLE_MESSAGE = 'N/A'
+
+
 _LSM_RAID_TYPE_CONV = dict(
     list(zip(list(_HP_RAID_LEVEL_CONV.values()),
              list(_HP_RAID_LEVEL_CONV.keys()))))
@@ -725,16 +728,27 @@ class SmartArray(IPlugin):
     @staticmethod
     def _hp_disk_to_lsm_disk(hp_disk, sys_id, ctrl_num, key_name,
                              flag_free=False):
-        disk_id = hp_disk['Serial Number']
         disk_num = key_name[len("physicaldrive "):]
-        disk_name = "%s %s" % (hp_disk['Model'], disk_num)
+
+        # If the disk is in error, Serial Number will be missing, we will
+        # concat the N/A message with the disk number so that the user can
+        # have a unique disk id if more than one disk is in error.
+        disk_id = hp_disk.get('Serial Number',
+                              "%s:%s" % (NOT_AVAILABLE_MESSAGE, disk_num))
+        disk_name = "%s %s" % (hp_disk.get('Model', NOT_AVAILABLE_MESSAGE),
+                               disk_num)
         disk_type = _disk_type_of(hp_disk)
         try:
-            blk_size_str = hp_disk['Native Block Size']
+            blk_size_str = hp_disk.get('Native Block Size', '0')
         except KeyError:
-            blk_size_str = hp_disk['Logical/Physical Block Size'].split("/")[0]
+            blk_size_str = hp_disk.get('Logical/Physical Block Size', '0/0').split("/")[0]
         blk_size = int(blk_size_str)
-        blk_count = int(int_div(_hp_size_to_lsm(hp_disk['Size']), blk_size))
+        disk_size = hp_disk.get('Size', None)
+
+        if blk_size == 0 or disk_size is None:
+            blk_count = 0
+        else:
+            blk_count = int(int_div(_hp_size_to_lsm(disk_size), blk_size))
         try:
             disk_port, disk_box, disk_bay = disk_num.split(":")
         except ValueError:
@@ -754,8 +768,15 @@ class SmartArray(IPlugin):
             vpd83 = LocalDisk.vpd83_get(disk_path)
         else:
             vpd83 = ''
-        rpm = int(hp_disk.get('Rotational Speed',
-                              Disk.RPM_NON_ROTATING_MEDIUM))
+
+        # If we cannot retrieve the disk name, the RPM is missing.  However,
+        # 'Rotational Speed' is also missing when we have a functional device
+        # that's a SSD, so we need to distinguish the two cases.
+        if NOT_AVAILABLE_MESSAGE in disk_name:
+            rpm = Disk.RPM_UNKNOWN
+        else:
+            rpm = int(hp_disk.get('Rotational Speed',
+                                  Disk.RPM_NON_ROTATING_MEDIUM))
         link_type = _disk_link_type_of(hp_disk)
 
         return Disk(
@@ -874,7 +895,8 @@ class SmartArray(IPlugin):
                     elif array_key_name.startswith("physicaldrive"):
                         hp_disk = ctrl_data[key_name][array_key_name]
                         if hp_disk['Drive Type'] == 'Data Drive':
-                            disk_ids.append(hp_disk['Serial Number'])
+                            disk_ids.append(hp_disk.get('Serial Number',
+                                                        NOT_AVAILABLE_MESSAGE))
                 break
 
         if len(disk_ids) == 0:
