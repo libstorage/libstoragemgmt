@@ -461,12 +461,16 @@ class SmartArray(IPlugin):
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
         cap.set(Capabilities.SYS_MODE_GET)
-        cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         cap.set(Capabilities.DISK_LOCATION)
         cap.set(Capabilities.DISK_VPD83_GET)
         cap.set(Capabilities.BATTERIES)
-        if system.read_cache_pct >= 0:
+
+        # Read the private value instead of using the property so that
+        # we don't raise an exception here when the RAID adapter
+        # doesn't support read_cache_pct.
+        if system._read_cache_pct >= 0:
             cap.set(Capabilities.SYS_READ_CACHE_PCT_UPDATE)
+            cap.set(Capabilities.SYS_READ_CACHE_PCT_GET)
         if system.mode != System.MODE_HBA:
             cap.set(Capabilities.POOL_MEMBER_INFO)
             cap.set(Capabilities.VOLUME_RAID_INFO)
@@ -539,8 +543,15 @@ class SmartArray(IPlugin):
                 # Dynamic Smart Array does not expose a firmware version
                 fw_ver = "%s" % ctrl_data['RAID Stack Version']
             if 'Cache Ratio' in ctrl_data:
-                cache_pct = re.findall(r'\d+', ctrl_data['Cache Ratio'])
-                read_cache_pct = int(cache_pct[0])
+
+                # If Cache Status is available, check to make sure
+                # it's not set to 'Permanently Disabled'
+                if 'Cache Status' in ctrl_data and \
+                        ctrl_data['Cache Status'] == 'Permanently Disabled':
+                    read_cache_pct = System.READ_CACHE_PCT_NO_SUPPORT
+                else:
+                    cache_pct = re.findall(r'\d+', ctrl_data['Cache Ratio'])
+                    read_cache_pct = int(cache_pct[0])
             elif 'Accelerator Ratio' in ctrl_data:
                 cache_pct = re.findall(r'\d+', ctrl_data['Accelerator Ratio'])
                 read_cache_pct = int(cache_pct[0])
