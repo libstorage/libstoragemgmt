@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+1.8.6: Nov 2 2020
+    * Hpsa bug fixes
+      - https://github.com/libstorage/libstoragemgmt/issues/419
+      - https://github.com/libstorage/libstoragemgmt/issues/420
+    * Change lsmcli output for missing lsmd (daemon)
+      ref. https://bugzilla.redhat.com/show_bug.cgi?id=1872753
+
 1.8.5: Aug 10 2020
     * Fix compile issue with check >= 0.15.0
     * Fix travis CI issues
