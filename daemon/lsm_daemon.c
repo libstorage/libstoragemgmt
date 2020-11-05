@@ -234,7 +234,7 @@ char *path_form(const char *path, const char *name) {
     if (full) {
         snprintf(full, s, "%s/%s", path, name);
     } else {
-        log_and_exit("malloc failure while trying to allocate %d bytes\n", s);
+        log_and_exit("malloc failure while trying to allocate %zu bytes\n", s);
     }
     return full;
 }
@@ -445,7 +445,7 @@ int chk_pconf_root_pri(char *plugin_name) {
     int require_root = 0;
     size_t plugin_name_len = strlen(plugin_name);
     size_t conf_ext_len = strlen(plugin_conf_extension);
-    ssize_t conf_file_name_len = plugin_name_len + conf_ext_len + 1;
+    size_t conf_file_name_len = plugin_name_len + conf_ext_len + 1;
     char *plugin_conf_filename = (char *)malloc(conf_file_name_len);
 
     if (plugin_conf_filename) {
@@ -468,7 +468,7 @@ int chk_pconf_root_pri(char *plugin_name) {
         free(plugin_conf_filename);
         free(plugin_conf_path);
     } else {
-        log_and_exit("malloc failure while trying to allocate %d "
+        log_and_exit("malloc failure while trying to allocate %zu "
                      "bytes\n",
                      conf_file_name_len);
     }
@@ -650,7 +650,7 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
             } else if (allow_root_plugin == 0) {
                 warn("Plugin %s require root privilege, but %s disabled "
                      "it globally\n",
-                     LSMD_CONF_FILE);
+                     plugin, LSMD_CONF_FILE);
                 drop_privileges();
             } else {
                 /* Check socket client uid */
