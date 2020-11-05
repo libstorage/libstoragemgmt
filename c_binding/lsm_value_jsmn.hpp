@@ -225,7 +225,7 @@ int inc_token(int current, int amount, int max) {
     return amount;
 }
 
-Value jsmn_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
+Value lsm_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
                  int *consumed) {
 
     int i = start_tok;
@@ -256,7 +256,7 @@ Value jsmn_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
         for (int e = 0; e < num; ++e) {
             i += inc_token(i, 1, end_tok);
             int used = 0;
-            values.push_back(jsmn_parse(tok, i, end_tok, j, &used));
+            values.push_back(lsm_parse(tok, i, end_tok, j, &used));
             i += inc_token(i, used, end_tok);
         }
         *consumed = i - start_tok;
@@ -276,7 +276,7 @@ Value jsmn_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
                 i += inc_token(i, 1, end_tok);
                 // Get the value
                 int used = 0;
-                values[key] = jsmn_parse(tok, i, end_tok, j, &used);
+                values[key] = lsm_parse(tok, i, end_tok, j, &used);
                 i += inc_token(i, used, end_tok);
             }
         }
@@ -320,7 +320,7 @@ Value Payload::deserialize(const std::string &json_str) {
     }
 
     int used = 0;
-    Value result = jsmn_parse(tok, 0, rc, json_str.c_str(), &used);
+    Value result = lsm_parse(tok, 0, rc, json_str.c_str(), &used);
     free(tok);
     return result;
 }
