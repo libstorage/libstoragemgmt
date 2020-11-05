@@ -705,11 +705,15 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
             exec_rc = execve(p_copy, (char *const *)plugin_argv, environ);
         }
 
-        if (-1 == exec_rc) {
-            err = errno;
-            log_and_exit("Error on exec'ing Plugin %s: %s\n", p_copy,
-                         strerror(err));
-        }
+        /*
+         * The only reason we would get here is if execve fails as execve
+         * does not return on success.
+         */
+        err = errno;
+        warn("Error on exec'ing Plugin: %s: %s (execve rc: %d)\n",
+            p_copy, strerror(err), exec_rc);
+        free(p_copy);
+        exit(1);
     }
 }
 
