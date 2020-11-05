@@ -644,11 +644,11 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
             drop_privileges();
         } else {
             if (getuid()) {
-                warn("Plugin %s require root privilege, but lsmd daemon "
-                     "is not run as root user\n",
+                warn("Plugin %s requires root privileges, but lsmd daemon "
+                     "is not running as root user\n",
                      plugin);
             } else if (allow_root_plugin == 0) {
-                warn("Plugin %s require root privilege, but %s disabled "
+                warn("Plugin %s requires root privileges, but %s disables "
                      "it globally\n",
                      plugin, LSMD_CONF_FILE);
                 drop_privileges();
@@ -659,8 +659,8 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
                                &cli_user_cred, &cli_user_cred_len);
                 if (0 == rc_get_cli_uid) {
                     if (cli_user_cred.uid != 0) {
-                        warn("Plugin %s require root privilege, but "
-                             "client is not run as root user\n",
+                        warn("Plugin %s requires root privileges, but "
+                             "client is not running as root user\n",
                              plugin);
                         drop_privileges();
                     } else {
