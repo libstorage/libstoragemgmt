@@ -294,7 +294,7 @@ Value Payload::deserialize(const std::string &json_str) {
 
     while (1) {
         jsmn_init(&p);
-        tok = (jsmntok_t *)malloc(sizeof(*tok) * num_tokens);
+        tok = (jsmntok_t *)calloc(1, sizeof(*tok) * num_tokens);
         if (tok) {
             rc = jsmn_parse(&p, json_str.c_str(), json_str.length(), tok,
                             num_tokens);
