@@ -407,8 +407,10 @@ lsm_system *get_system(lsm_connect *c) {
 
     G(rc, lsm_system_list, c, &sys, &count, LSM_CLIENT_FLAG_RSVD);
 
-    if (LSM_ERR_OK == rc && count) {
-        rc_sys = lsm_system_record_copy(sys[0]);
+    if (LSM_ERR_OK == rc) {
+        if (count > 0 ) {
+            rc_sys = lsm_system_record_copy(sys[0]);
+        }
         G(rc, lsm_system_record_array_free, sys, count);
     }
     return rc_sys;
@@ -847,11 +849,14 @@ START_TEST(test_access_groups_grant_revoke) {
       LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(g_count == 1, "g_count = %d", g_count);
 
-    if (g_count >= 1) {
-        ck_assert_msg(strcmp(lsm_access_group_id_get(groups[0]),
+    if (LSM_ERR_OK == rc) {
+        if (g_count >= 1) {
+            ck_assert_msg(strcmp(lsm_access_group_id_get(groups[0]),
                              lsm_access_group_id_get(group)) == 0,
-                      "%s != %s", lsm_access_group_id_get(groups[0]),
-                      lsm_access_group_id_get(group));
+                            "%s != %s", lsm_access_group_id_get(groups[0]),
+                            lsm_access_group_id_get(group));
+        }
+
         G(rc, lsm_access_group_record_array_free, groups, g_count);
     }
 
@@ -1196,7 +1201,7 @@ START_TEST(test_disk_rpm_and_link_type) {
             rpm == LSM_DISK_RPM_UNKNOWN,
             "Should be LSM_DISK_RPM_UNKNOWN when input disk is NULL %d", rc);
         link_type = lsm_disk_link_type_get(NULL);
-        ck_assert_msg(rpm == LSM_DISK_LINK_TYPE_UNKNOWN,
+        ck_assert_msg(link_type == LSM_DISK_LINK_TYPE_UNKNOWN,
                       "Should be LSM_DISK_LINK_TYPE_UNKNOWN when input disk is "
                       "NULL %d",
                       rc);
@@ -1362,8 +1367,12 @@ START_TEST(test_invalid_input) {
     ck_assert_msg(c != NULL, "c = %p", c);
     int rc = 0;
 
-    struct bad_record bad;
-    bad.m = 0xA0A0A0A0;
+    struct bad_record *bad = malloc(sizeof(struct bad_record));
+    ck_assert_msg(bad != NULL, "Memory allocation failure");
+    if (!bad) {
+        return;
+    }
+    bad->m = 0xA0A0A0A0;
 
     printf("Testing arguments\n");
 
@@ -1380,7 +1389,13 @@ START_TEST(test_invalid_input) {
                               &test_error, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
 
-    rc = lsm_connect_close((lsm_connect *)&bad, LSM_CLIENT_FLAG_RSVD);
+    if (rc != LSM_ERR_OK && test_error != NULL) {
+        rc = lsm_error_free(test_error);
+        ck_assert_msg(LSM_ERR_OK == rc, "rc %d", rc);
+        test_error = NULL;
+    }
+
+    rc = lsm_connect_close((lsm_connect *)bad, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     rc = lsm_connect_close((lsm_connect *)NULL, LSM_CLIENT_FLAG_RSVD);
@@ -1390,6 +1405,7 @@ START_TEST(test_invalid_input) {
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     char *job = NULL;
+    char *not_null_msg = "NOT_NULL";
     rc = lsm_job_status_get(c, job, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
@@ -1446,7 +1462,7 @@ START_TEST(test_invalid_input) {
     ck_assert_msg(LSM_ERR_NOT_FOUND_JOB == rc, "rc %d", rc);
 
     /* lsmJobStatusFsGet */
-    lsm_fs_ss *ss = (lsm_fs_ss *)&bad;
+    lsm_fs_ss *ss = (lsm_fs_ss *)bad;
 
     rc = lsm_job_status_ss_get(c, NULL, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
@@ -1504,7 +1520,7 @@ START_TEST(test_invalid_input) {
     rc = lsm_pool_list(c, NULL, NULL, NULL, &count, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    pools = (lsm_pool **)&bad;
+    pools = (lsm_pool **)bad;
     rc = lsm_pool_list(c, NULL, NULL, &pools, &count, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
@@ -1528,7 +1544,7 @@ START_TEST(test_invalid_input) {
     rc = lsm_volume_list(c, NULL, NULL, NULL, &count, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    vols = (lsm_volume **)&bad;
+    vols = (lsm_volume **)bad;
     rc = lsm_volume_list(c, NULL, NULL, &vols, &count, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
@@ -1549,27 +1565,45 @@ START_TEST(test_invalid_input) {
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    rc = lsm_volume_create(c, (lsm_pool *)&bad, "BAD_POOL", 10000000,
+    rc = lsm_volume_create(c, (lsm_pool *)bad, "BAD_POOL", 10000000,
                            LSM_VOLUME_PROVISION_DEFAULT, &new_vol, &job,
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
+
+    if (job != NULL) {
+        rc = lsm_job_free(c, &job, LSM_CLIENT_FLAG_RSVD);
+        ck_assert_msg(LSM_ERR_OK == rc, "rc %d", rc);
+        job = NULL;
+    }
 
     rc = lsm_volume_create(c, test_pool, "", 10000000,
                            LSM_VOLUME_PROVISION_DEFAULT, &new_vol, &job,
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
+    if (job != NULL) {
+        rc = lsm_job_free(c, &job, LSM_CLIENT_FLAG_RSVD);
+        ck_assert_msg(LSM_ERR_OK == rc, "rc %d", rc);
+        job = NULL;
+    }
+
     rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000,
                            LSM_VOLUME_PROVISION_DEFAULT, NULL, &job,
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
+
+    if (job != NULL) {
+        rc = lsm_job_free(c, &job, LSM_CLIENT_FLAG_RSVD);
+        ck_assert_msg(LSM_ERR_OK == rc, "rc %d", rc);
+        job = NULL;
+    }
 
     rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000,
                            LSM_VOLUME_PROVISION_DEFAULT, &new_vol, NULL,
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    job = "NOT_NULL";
+    job = not_null_msg;
     rc = lsm_volume_create(c, test_pool, "ARG_TESTING", 10000000,
                            LSM_VOLUME_PROVISION_DEFAULT, &new_vol, &job,
                            LSM_CLIENT_FLAG_RSVD);
@@ -1590,7 +1624,7 @@ START_TEST(test_invalid_input) {
     rc = lsm_volume_resize(c, NULL, 0, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
-    lsm_volume *resized = (lsm_volume *)&bad;
+    lsm_volume *resized = (lsm_volume *)bad;
     rc = lsm_volume_resize(c, new_vol, 20000000, &resized, NULL,
                            LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
@@ -1639,16 +1673,16 @@ START_TEST(test_invalid_input) {
     ck_assert_msg(num_systems >= 1, "num_systems %d", num_systems);
 
     rc = lsm_capabilities(c, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
-    ck_assert_msg(LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
+    ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
 
     if (num_systems) {
         rc = lsm_capabilities(c, sys[0], NULL, LSM_CLIENT_FLAG_RSVD);
-        ck_assert_msg(LSM_ERR_INVALID_ARGUMENT, "rc %d", rc);
+        ck_assert_msg(LSM_ERR_INVALID_ARGUMENT == rc, "rc %d", rc);
     }
 
     /* lsmVolumeReplicate */
     lsm_volume *cloned = NULL;
-    rc = lsm_volume_replicate(c, (lsm_pool *)&bad, 0, NULL, NULL, NULL, NULL,
+    rc = lsm_volume_replicate(c, (lsm_pool *)bad, 0, NULL, NULL, NULL, NULL,
                               LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
@@ -1847,7 +1881,7 @@ START_TEST(test_invalid_input) {
     rc = lsm_fs_child_dependency(c, NULL, NULL, NULL, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
-    lsm_string_list *badf = (lsm_string_list *)&bad;
+    lsm_string_list *badf = (lsm_string_list *)bad;
     rc = lsm_fs_child_dependency(c, arg_fs, badf, NULL, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT, "rc = %d", rc);
 
@@ -1976,6 +2010,9 @@ START_TEST(test_invalid_input) {
     system = NULL;
     G(rc, lsm_string_list_free, f);
     f = NULL;
+
+    free(bad);
+    bad = NULL;
 }
 END_TEST
 
@@ -1999,10 +2036,11 @@ START_TEST(test_capabilities) {
     G(rc, lsm_system_list, c, &sys, &sys_count, LSM_CLIENT_FLAG_RSVD);
     ck_assert_msg(sys_count >= 1, "count = %d", sys_count);
 
-    if (sys_count > 0) {
-        G(rc, lsm_capabilities, c, sys[0], &cap, LSM_CLIENT_FLAG_RSVD);
+    if (rc == LSM_ERR_OK) {
 
-        if (LSM_ERR_OK == rc) {
+        if (sys_count > 0) {
+            G(rc, lsm_capabilities, c, sys[0], &cap, LSM_CLIENT_FLAG_RSVD);
+
             cap_test(cap, LSM_CAP_VOLUMES);
             cap_test(cap, LSM_CAP_VOLUME_CREATE);
             cap_test(cap, LSM_CAP_VOLUME_RESIZE);
