@@ -401,7 +401,7 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
 
     *bsg_count = lsm_string_list_size(bsg_name_list);
     *bsg_paths = (char **)malloc(sizeof(char *) * (*bsg_count));
-    _alloc_null_check(err_msg, bsg_name_list, rc, out);
+    _alloc_null_check(err_msg, *bsg_paths, rc, out);
 
     /* Initialize *bsg_paths */
     for (i = 0; i < *bsg_count; ++i)
