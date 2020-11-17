@@ -234,7 +234,7 @@ char *path_form(const char *path, const char *name) {
     if (full) {
         snprintf(full, s, "%s/%s", path, name);
     } else {
-        log_and_exit("malloc failure while trying to allocate %d bytes\n", s);
+        log_and_exit("malloc failure while trying to allocate %zu bytes\n", s);
     }
     return full;
 }
@@ -445,7 +445,7 @@ int chk_pconf_root_pri(char *plugin_name) {
     int require_root = 0;
     size_t plugin_name_len = strlen(plugin_name);
     size_t conf_ext_len = strlen(plugin_conf_extension);
-    ssize_t conf_file_name_len = plugin_name_len + conf_ext_len + 1;
+    size_t conf_file_name_len = plugin_name_len + conf_ext_len + 1;
     char *plugin_conf_filename = (char *)malloc(conf_file_name_len);
 
     if (plugin_conf_filename) {
@@ -468,7 +468,7 @@ int chk_pconf_root_pri(char *plugin_name) {
         free(plugin_conf_filename);
         free(plugin_conf_path);
     } else {
-        log_and_exit("malloc failure while trying to allocate %d "
+        log_and_exit("malloc failure while trying to allocate %zu "
                      "bytes\n",
                      conf_file_name_len);
     }
@@ -644,13 +644,13 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
             drop_privileges();
         } else {
             if (getuid()) {
-                warn("Plugin %s require root privilege, but lsmd daemon "
-                     "is not run as root user\n",
+                warn("Plugin %s requires root privileges, but lsmd daemon "
+                     "is not running as root user\n",
                      plugin);
             } else if (allow_root_plugin == 0) {
-                warn("Plugin %s require root privilege, but %s disabled "
+                warn("Plugin %s requires root privileges, but %s disables "
                      "it globally\n",
-                     LSMD_CONF_FILE);
+                     plugin, LSMD_CONF_FILE);
                 drop_privileges();
             } else {
                 /* Check socket client uid */
@@ -659,8 +659,8 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
                                &cli_user_cred, &cli_user_cred_len);
                 if (0 == rc_get_cli_uid) {
                     if (cli_user_cred.uid != 0) {
-                        warn("Plugin %s require root privilege, but "
-                             "client is not run as root user\n",
+                        warn("Plugin %s requires root privileges, but "
+                             "client is not running as root user\n",
                              plugin);
                         drop_privileges();
                     } else {
@@ -705,11 +705,15 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
             exec_rc = execve(p_copy, (char *const *)plugin_argv, environ);
         }
 
-        if (-1 == exec_rc) {
-            err = errno;
-            log_and_exit("Error on exec'ing Plugin %s: %s\n", p_copy,
-                         strerror(err));
-        }
+        /*
+         * The only reason we would get here is if execve fails as execve
+         * does not return on success.
+         */
+        err = errno;
+        warn("Error on exec'ing Plugin: %s: %s (execve rc: %d)\n",
+            p_copy, strerror(err), exec_rc);
+        free(p_copy);
+        exit(1);
     }
 }
 

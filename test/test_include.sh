@@ -228,11 +228,13 @@ function lsm_test_base_install
 
     # libtool 'install' mode does not work against python C extension,
     # use manual copy instead
+    CLIB_FOUND=0
     if [ -e "${build_dir}/python_binding/lsm/.libs/_clib.so" ]
     then
         _good cp "${build_dir}/python_binding/lsm/.libs/_clib.so" \
             "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib.so"
         _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib.so"
+        CLIB_FOUND=1
     fi
 
     if [ -e "${build_dir}/python_binding/lsm/.libs/_clib3.so" ]
@@ -240,6 +242,11 @@ function lsm_test_base_install
         _good cp "${build_dir}/python_binding/lsm/.libs/_clib3.so" \
             "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib3.so"
         _good chrpath -d "${LSM_TEST_PY_MODULE_DIR}/lsm/_clib3.so"
+        CLIB_FOUND=1
+    fi
+
+    if [ $CLIB_FOUND -eq 0 ]; then
+        _fail "Unable to find _clib.so or _clib3.so python C extension"
     fi
 
     _good find "${src_dir}/python_binding/lsm/" -maxdepth 1 \

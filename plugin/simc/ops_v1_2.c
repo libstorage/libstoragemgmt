@@ -228,11 +228,12 @@ int volume_raid_create_cap_get(lsm_plugin_ptr c, lsm_system *system,
     if ((sys_id == NULL) || (strcmp(sys_id, _SYS_ID) != 0)) {
         rc = LSM_ERR_NOT_FOUND_SYSTEM;
         _lsm_err_msg_set(err_msg, "System not found");
-    }
-    _good(_db_volume_raid_create_cap_get(
+    } else {
+	_good(_db_volume_raid_create_cap_get(
               err_msg, supported_raid_types, supported_raid_type_count,
               supported_strip_sizes, supported_strip_size_count),
-          rc, out);
+              rc, out);
+    }
 
 out:
     if (rc != LSM_ERR_OK)
