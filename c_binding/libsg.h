@@ -62,6 +62,9 @@
 
 /* SPC-5 rev 7, Table 142 - INQUIRY command */
 #define _SG_T10_SPC_INQUIRY_MAX_LEN 0xffff
+
+/* Some Areca RAID cards take issue with inquiry data length */
+#define _DEFAULT_INQUIRY_MAX_LEN 0x4000
 /* VPD is a INQUIRY */
 #define _SG_T10_SPC_VPD_MAX_LEN _SG_T10_SPC_INQUIRY_MAX_LEN
 

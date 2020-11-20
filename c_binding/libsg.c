@@ -454,6 +454,30 @@ static int _sg_io_v4(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
     return rc;
 }
 
+static ssize_t max_inquiry_len() {
+    static ssize_t max_inq = -1;  /* getenv possibly not reentrant, this isn't */
+    long int alt_len = 0;
+    char *alt_len_str = NULL;
+
+    if (max_inq != -1) {
+        return max_inq;
+    }
+
+    max_inq = _DEFAULT_INQUIRY_MAX_LEN;
+    alt_len_str =  getenv("LSM_MAX_INQUIRY_LEN");
+
+    if (alt_len_str) {
+        alt_len = strtol(alt_len_str, NULL, 10);
+        /* Some values won't work, but we will not limit them */
+        if (alt_len > 0 && alt_len <= _SG_T10_SPC_VPD_MAX_LEN) {
+            max_inq = alt_len;
+        }
+    }
+
+    return max_inq;
+}
+
+
 int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
     int rc = LSM_ERR_OK;
     uint8_t vpd_00_data[_SG_T10_SPC_VPD_MAX_LEN];
@@ -470,6 +494,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
     assert(fd >= 0);
     assert(data != NULL);
 
+    memset(vpd_00_data, 0, _SG_T10_SPC_VPD_MAX_LEN);
     memset(sense_err_msg, 0, sizeof(sense_err_msg));
 
     switch (page_code) {
@@ -480,7 +505,7 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
         data_len = _T10_SBC_VPD_BLK_DEV_CHA_MAX_LEN;
         break;
     default:
-        data_len = _SG_T10_SPC_VPD_MAX_LEN;
+        data_len = max_inquiry_len();
     }
 
     /* SPC-5 Table 142 - INQUIRY command */
