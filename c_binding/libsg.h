@@ -64,6 +64,8 @@
 #define _SG_T10_SPC_INQUIRY_MAX_LEN 0xffff
 /* VPD is a INQUIRY */
 #define _SG_T10_SPC_VPD_MAX_LEN _SG_T10_SPC_INQUIRY_MAX_LEN
+/* some controller/drives don't like a two-byte length for VPD pages 0, 0x80, 0x83 */
+#define _SG_T10_SPC_VPD_SMALL_MAX_LEN 0xfc
 
 /* SPC-5 Table 444 - PROTOCOL IDENTIFIER field values */
 #define _SG_T10_SPC_PROTOCOL_ID_OBSOLETE 1

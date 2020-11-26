@@ -479,6 +479,11 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
     case _SG_T10_SBC_VPD_BLK_DEV_CHA:
         data_len = _T10_SBC_VPD_BLK_DEV_CHA_MAX_LEN;
         break;
+    case _SG_T10_SPC_VPD_SUP_VPD_PGS:
+    case _SG_T10_SPC_VPD_UNIT_SN:
+    case _SG_T10_SPC_VPD_DI:
+        data_len = _SG_T10_SPC_VPD_SMALL_MAX_LEN;
+        break;
     default:
         data_len = _SG_T10_SPC_VPD_MAX_LEN;
     }
