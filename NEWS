@@ -1,5 +1,11 @@
 News for libStorageMgmt
 
+1.8.7: Dec 2 2020
+    * Fix for Areca RAID cards
+      - https://github.com/libstorage/libstoragemgmt/pull/444
+    * Static code analysis fixes
+      - https://github.com/libstorage/libstoragemgmt/pull/441
+
 1.8.6: Nov 2 2020
     * Hpsa bug fixes
       - https://github.com/libstorage/libstoragemgmt/issues/419
