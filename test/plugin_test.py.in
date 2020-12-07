@@ -1716,11 +1716,11 @@ class TestPlugin(unittest.TestCase):
 
         # Make sure we are getting an exception
         self.assertRaises(lsm.LsmError, lsm.Client,
-                          "ontap//root@na-sim", "some_password")
+                          "targetd//root@na-sim", "some_password")
 
         # Make sure exception has the correct error code
         try:
-            lsm.Client("ontap//root@na-sim", "some_password")
+            lsm.Client("targetd//root@na-sim", "some_password")
         except lsm.LsmError as le:
             self.assertTrue(le.code == lsm.ErrorNumber.INVALID_ARGUMENT)
 

@@ -16,6 +16,10 @@ License:        LGPLv2+
 URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
+
+# Netapp 7 mode plugin is no more.
+Obsoletes:      %{name}-netapp-plugin <= 1.8.7-1
+
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
 BuildRequires:  openssl-devel
@@ -127,21 +131,6 @@ Requires(postun): python3-%{name} = %{version}
 %description    smis-plugin
 The %{name}-smis-plugin package contains plug-in for generic SMI-S array
 support.
-
-
-%package        netapp-plugin
-Summary:        Files for NetApp array support for %{name}
-Group:          System Environment/Libraries
-Requires:       python3-%{name} = %{version}
-Requires(post): python3-%{name} = %{version}
-Requires(postun): python3-%{name} = %{version}
-Requires:       python3-%{name} = %{version}-%{release}
-BuildArch:      noarch
-
-%description    netapp-plugin
-The %{name}-netapp-plugin package contains plug-in for NetApp array
-support.
-
 
 %package        targetd-plugin
 Summary:        Files for targetd array support for %{name}
@@ -342,19 +331,6 @@ if [ $1 -eq 0 ]; then
 fi
 
 # Need to restart lsmd if plugin is new installed or removed.
-%post netapp-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
-fi
-
-%postun netapp-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
-fi
-
-# Need to restart lsmd if plugin is new installed or removed.
 %post targetd-plugin
 if [ $1 -eq 1 ]; then
     # New install.
@@ -548,16 +524,6 @@ fi
 %{python3_sitelib}/lsm/plugin/smispy/smis_ag.*
 %{_bindir}/smispy_lsmplugin
 %{_mandir}/man1/smispy_lsmplugin.1*
-
-%files netapp-plugin
-%dir %{python3_sitelib}/lsm/plugin/ontap
-%dir %{python3_sitelib}/lsm/plugin/ontap/__pycache__
-%{python3_sitelib}/lsm/plugin/ontap/__pycache__/*
-%{python3_sitelib}/lsm/plugin/ontap/__init__.*
-%{python3_sitelib}/lsm/plugin/ontap/na.*
-%{python3_sitelib}/lsm/plugin/ontap/ontap.*
-%{_bindir}/ontap_lsmplugin
-%{_mandir}/man1/ontap_lsmplugin.1*
 
 %files targetd-plugin
 %dir %{python3_sitelib}/lsm/plugin/targetd

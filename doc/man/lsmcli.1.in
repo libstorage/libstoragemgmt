@@ -36,13 +36,6 @@ Examples, please refer to "LibStorageMgmt User Guide" for more details:
 \fBsimc://\fR
 .RE 1
 .RS 12
-* NetApp ONTAP:
-.RS 4
-\fBontap://username@host\fR
-.br
-\fBontap+ssl://username@host\fR
-.RE 1
-.RS 12
 * SMI-S supported arrays (eg. EMC CX/VNX, HDS AMS, IBM SVC/DS, LSI
 MegaRAID and others):
 .RS 4
@@ -811,7 +804,7 @@ These prefixes are supported also, but not recommended:
 ~/.lsmcli
 lsmcli configuration file, containing name-value pairs separated
 by '='. The only currently supported configuration option is 'uri',
-such as 'uri=ontap://user@filer.example.com'.
+such as 'uri=targetd://user@storage.example.com'.
 
 Configuration options in .lsmcli are only used if not overridden by
 command-line option or environment variable.
@@ -821,8 +814,8 @@ command-line option or environment variable.
 Simulator, list pools (no password required)
 $ lsmcli -u sim:// -l POOLS
 .TP 15
-NetApp, list volumes (prompting for password)
-$ lsmcli -u ontap://root@host/ -l VOLUMES -P
+Targetd, list volumes (prompting for password)
+$ lsmcli -u targetd://root@host/ -l VOLUMES -P
 .TP 15
 SMI-S, list systems (prompting for password)
 .nf
