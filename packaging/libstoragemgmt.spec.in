@@ -81,6 +81,11 @@ framework support and open source plug-ins written in python.
 Summary:        Python2 C extension module for %{name}
 Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
+
+# If obsoleted plugins are installed, we need to meet it's requirement
+# of having the correct version of this package functionality installed too as
+# the update occurs first, before the obsolete removes the obsoleted package.
+Provides:       python2-%{name} < %{version}-%{release}
 %{?python_provide:%python_provide python2-%{name}-clibs}
 # Remove before F30
 Provides: %{name}-python-clibs = %{version}-%{release}
@@ -98,6 +103,11 @@ Group:          System Environment/Libraries
 Requires:       %{name} = %{version}-%{release}
 BuildArch:      noarch
 Requires:       python3-%{name}-clibs
+
+# If obsoleted plugins are installed, we need to meet it's requirement
+# of having the correct version of this package functionality installed too as
+# the update occurs first, before the obsolete removes the obsoleted package.
+Provides:       python3-%{name} < %{version}-%{release}
 %{?python_provide:%python_provide python3-%{name}}
 
 %description    -n python3-%{name}
