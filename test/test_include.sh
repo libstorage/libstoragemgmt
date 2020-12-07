@@ -146,7 +146,7 @@ function _fail
 
 #
 # Usage:
-#   Install required files into certain folder for test purpose.
+#   Install required files into specific folder for test purposes.
 # Argument:
 #   $dst_dir
 #       Destination folder.
@@ -183,7 +183,7 @@ function lsm_test_base_install
     LSM_TEST_LOG_DIR="${dst_dir}/logs/"
     LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX="${LSM_TEST_LOG_DIR}/mem_leak_"
 
-    export PYTHONPATH="${LSM_TEST_PY_MODULE_DIR}"
+    export PYTHONPATH="${LSM_TEST_PY_MODULE_DIR}:${LSM_TEST_PY_MODULE_DIR=}lsm/plugin"
     export LD_LIBRARY_PATH="${LSM_TEST_C_LIB_DIR}"
     export LSM_SIM_DATA="${LSM_TEST_DST_DIR}/plugin_data/lsm_sim_data"
     export LSM_UDS_PATH="${dst_dir}/ipc"

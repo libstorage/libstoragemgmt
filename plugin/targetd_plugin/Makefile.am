@@ -1,7 +1,6 @@
 if WITH_TARGETD
 
-plugindir = $(pythondir)/lsm/plugin
-targetddir = $(plugindir)/targetd
+targetddir = $(pythondir)/targetd_plugin
 
 targetd_PYTHON = \
 	__init__.py \

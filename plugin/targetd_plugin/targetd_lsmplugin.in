@@ -22,7 +22,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.targetd.targetd import TargetdStorage
+    from targetd_plugin import TargetdStorage
 
     if __name__ == '__main__':
         PluginRunner(TargetdStorage, sys.argv).run()

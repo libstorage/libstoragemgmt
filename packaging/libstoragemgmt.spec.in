@@ -511,11 +511,11 @@ fi
 %{_mandir}/man1/smispy_lsmplugin.1*
 
 %files targetd-plugin
-%dir %{python3_sitelib}/lsm/plugin/targetd
-%dir %{python3_sitelib}/lsm/plugin/targetd/__pycache__
-%{python3_sitelib}/lsm/plugin/targetd/__pycache__/*
-%{python3_sitelib}/lsm/plugin/targetd/__init__.*
-%{python3_sitelib}/lsm/plugin/targetd/targetd.*
+%dir %{python3_sitelib}/targetd_plugin
+%dir %{python3_sitelib}/targetd_plugin/__pycache__
+%{python3_sitelib}/targetd_plugin/__pycache__/*
+%{python3_sitelib}/targetd_plugin/__init__.*
+%{python3_sitelib}/targetd_plugin/targetd.*
 %{_bindir}/targetd_lsmplugin
 %{_mandir}/man1/targetd_lsmplugin.1*
 
