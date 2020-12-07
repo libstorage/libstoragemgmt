@@ -328,18 +328,6 @@ AC_ARG_WITH([local],
 AM_CONDITIONAL([WITH_LOCAL], [test "x$with_local" = "xyes"])
 
 dnl ==========================================================================
-dnl Add option '--without-nstor' to exclude nstor plugin.
-dnl ==========================================================================
-
-AC_ARG_WITH([nstor],
-    [AS_HELP_STRING([--without-nstor],
-        [Do not build the nstor plugin])],
-    [],
-    [with_nstor=yes])
-
-AM_CONDITIONAL([WITH_NSTOR], [test "x$with_nstor" = "xyes"])
-
-dnl ==========================================================================
 dnl Add option '--without-smispy' to exclude SMI-S python plugin.
 dnl ==========================================================================
 
@@ -481,7 +469,6 @@ AC_CONFIG_FILES([
     plugin/arcconf/Makefile
     plugin/nfs/Makefile
     plugin/local/Makefile
-    plugin/nstor/Makefile
     plugin/smispy/Makefile
     plugin/targetd/Makefile
     plugin/sim/Makefile
@@ -494,7 +481,6 @@ AC_CONFIG_FILES([
     doc/man/simc_lsmplugin.1
     doc/man/smispy_lsmplugin.1
     doc/man/targetd_lsmplugin.1
-    doc/man/nstor_lsmplugin.1
     doc/man/nfs_lsmplugin.1
     doc/man/lsmd.conf.5
     doc/man/arcconf_lsmplugin.1
@@ -525,8 +511,6 @@ AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],
     [chmod +x plugin/hpsa/hpsa_lsmplugin])
 AC_CONFIG_FILES([plugin/arcconf/arcconf_lsmplugin],
     [chmod +x plugin/arcconf/arcconf_lsmplugin])
-AC_CONFIG_FILES([plugin/nstor/nstor_lsmplugin],
-    [chmod +x plugin/nstor/nstor_lsmplugin])
 AC_CONFIG_FILES([plugin/targetd/targetd_lsmplugin],
     [chmod +x plugin/targetd/targetd_lsmplugin])
 AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],

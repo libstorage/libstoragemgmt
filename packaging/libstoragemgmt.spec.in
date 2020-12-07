@@ -19,6 +19,7 @@ Requires:       python3-%{name}
 
 # Netapp 7 mode plugin is no more.
 Obsoletes:      %{name}-netapp-plugin <= 1.8.7-1
+Obsoletes:      %{name}-nstor-plugin <= 1.8.7-1
 
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
@@ -142,19 +143,6 @@ BuildArch:      noarch
 
 %description    targetd-plugin
 The %{name}-targetd-plugin package contains plug-in for targetd array
-support.
-
-
-%package        nstor-plugin
-Summary:        Files for NexentaStor array support for %{name}
-Group:          System Environment/Libraries
-Requires:       python3-%{name} = %{version}
-Requires(post): python3-%{name} = %{version}
-Requires(postun): python3-%{name} = %{version}
-BuildArch:      noarch
-
-%description    nstor-plugin
-The %{name}-nstor-plugin package contains plug-in for NexentaStor array
 support.
 
 %package        udev
@@ -344,19 +332,6 @@ if [ $1 -eq 0 ]; then
 fi
 
 # Need to restart lsmd if plugin is new installed or removed.
-%post nstor-plugin
-if [ $1 -eq 1 ]; then
-    # New install.
-    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
-fi
-
-%postun nstor-plugin
-if [ $1 -eq 0 ]; then
-    # Remove
-    /usr/bin/systemctl try-restart %{name}.service >/dev/null 2>&1 || :
-fi
-
-# Need to restart lsmd if plugin is new installed or removed.
 %post megaraid-plugin
 if [ $1 -eq 1 ]; then
     # New install.
@@ -533,15 +508,6 @@ fi
 %{python3_sitelib}/lsm/plugin/targetd/targetd.*
 %{_bindir}/targetd_lsmplugin
 %{_mandir}/man1/targetd_lsmplugin.1*
-
-%files nstor-plugin
-%dir %{python3_sitelib}/lsm/plugin/nstor
-%dir %{python3_sitelib}/lsm/plugin/nstor/__pycache__
-%{python3_sitelib}/lsm/plugin/nstor/__pycache__/*
-%{python3_sitelib}/lsm/plugin/nstor/__init__.*
-%{python3_sitelib}/lsm/plugin/nstor/nstor.*
-%{_bindir}/nstor_lsmplugin
-%{_mandir}/man1/nstor_lsmplugin.1*
 
 %files udev
 %{_udevrulesdir}/../scan-scsi-target

@@ -830,13 +830,6 @@ $ export LSMCLI_PASSWORD=\fI<password>\fR
 .br
 $ lsmcli -l POOLS
 .TP 15
-NexentaStor, create volume (using environment variables for URI and password)
-.nf
-$ export LSMCLI_URI='nstor://user@host'
-$ export LSMCLI_PASSWORD=\fI<password>\fR
-$ lsmcli volume-create --name volume_name --size 1TiB --pool default
-.fi
-.TP 15
 SMI-S, create volume (using environment variables for URI and password)
 .nf
 $ export LSMCLI_URI='smispy+ssl://user@host:5989?namespace=root/emc'
