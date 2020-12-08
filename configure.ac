@@ -471,7 +471,7 @@ AC_CONFIG_FILES([
     plugin/local/Makefile
     plugin/smispy/Makefile
     plugin/targetd_plugin/Makefile
-    plugin/sim/Makefile
+    plugin/sim_plugin/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
@@ -503,8 +503,8 @@ if test "x${with_test}" = "xyes"; then
     AC_CONFIG_FILES([test/runtests.sh], [chmod +x test/runtests.sh])
 fi
 
-AC_CONFIG_FILES([plugin/sim/sim_lsmplugin],
-    [chmod +x plugin/sim/sim_lsmplugin])
+AC_CONFIG_FILES([plugin/sim_plugin/sim_lsmplugin],
+    [chmod +x plugin/sim_plugin/sim_lsmplugin])
 AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
     [chmod +x plugin/megaraid/megaraid_lsmplugin])
 AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],

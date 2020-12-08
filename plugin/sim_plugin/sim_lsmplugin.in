@@ -22,7 +22,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.sim.simulator import SimPlugin
+    from sim_plugin import SimPlugin
 
     if __name__ == '__main__':
         PluginRunner(SimPlugin, sys.argv).run()

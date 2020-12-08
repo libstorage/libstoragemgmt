@@ -472,11 +472,11 @@ fi
 %dir %{python3_sitelib}/lsm/plugin
 %{python3_sitelib}/lsm/plugin/__init__.*
 %{python3_sitelib}/lsm/plugin/__pycache__/
-%dir %{python3_sitelib}/lsm/plugin/sim
-%{python3_sitelib}/lsm/plugin/sim/__pycache__/
-%{python3_sitelib}/lsm/plugin/sim/__init__.*
-%{python3_sitelib}/lsm/plugin/sim/simulator.*
-%{python3_sitelib}/lsm/plugin/sim/simarray.*
+%dir %{python3_sitelib}/sim_plugin
+%{python3_sitelib}/sim_plugin/__pycache__/
+%{python3_sitelib}/sim_plugin/__init__.*
+%{python3_sitelib}/sim_plugin/simulator.*
+%{python3_sitelib}/sim_plugin/simarray.*
 %dir %{python3_sitelib}/lsm/lsmcli
 %{python3_sitelib}/lsm/lsmcli/__init__.*
 %{python3_sitelib}/lsm/lsmcli/__pycache__/

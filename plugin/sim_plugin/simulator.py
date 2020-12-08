@@ -19,7 +19,7 @@ from lsm import (uri_parse, VERSION, Capabilities, INfs,
                  IStorageAreaNetwork, search_property, Client, LsmError,
                  ErrorNumber)
 
-from lsm.plugin.sim.simarray import SimArray
+from sim_plugin.simarray import SimArray
 
 
 class SimPlugin(INfs, IStorageAreaNetwork):

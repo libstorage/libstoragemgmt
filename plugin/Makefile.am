@@ -1,4 +1,4 @@
-SUBDIRS=simc megaraid hpsa arcconf nfs local smispy targetd_plugin sim
+SUBDIRS=simc megaraid hpsa arcconf nfs local smispy targetd_plugin sim_plugin
 
 plugindir = $(pythondir)/lsm/plugin
 plugin_PYTHON= __init__.py
