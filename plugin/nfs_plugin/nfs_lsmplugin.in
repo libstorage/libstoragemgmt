@@ -22,7 +22,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.nfs.nfs import NFSPlugin
+    from nfs_plugin import NFSPlugin
 
     if __name__ == '__main__':
         PluginRunner(NFSPlugin, sys.argv).run()

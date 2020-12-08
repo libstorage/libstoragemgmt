@@ -1,7 +1,6 @@
 
-plugindir = $(pythondir)/lsm/plugin
-nfsdir = $(plugindir)/nfs
-pyexecdir = $(pythondir)/lsm/plugin/nfs
+nfsdir = $(pythondir)/nfs_plugin
+pyexecdir = $(pythondir)/nfs_plugin
 
 if WITH_NFS
 

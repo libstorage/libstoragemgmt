@@ -28,7 +28,7 @@ from lsm import (Capabilities, ErrorNumber, FileSystem, INfs,
                  IStorageAreaNetwork, LsmError, NfsExport,
                  System, Pool, VERSION, search_property)
 
-from lsm.plugin.nfs.nfs_clib import (get_fsid, list_mounts)
+from nfs_plugin.nfs_clib import (get_fsid, list_mounts)
 
 
 class NFSPlugin(INfs, IStorageAreaNetwork):

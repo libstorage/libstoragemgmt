@@ -546,17 +546,17 @@ fi
 %{_mandir}/man1/hpsa_lsmplugin.1*
 
 %files nfs-plugin
-%dir %{python3_sitelib}/lsm/plugin/nfs
-%dir %{python3_sitelib}/lsm/plugin/nfs/__pycache__
-%{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
-%{python3_sitelib}/lsm/plugin/nfs/__init__.*
-%{python3_sitelib}/lsm/plugin/nfs/nfs.*
+%dir %{python3_sitelib}/nfs_plugin
+%dir %{python3_sitelib}/nfs_plugin/__pycache__
+%{python3_sitelib}/nfs_plugin/__pycache__/*
+%{python3_sitelib}/nfs_plugin/__init__.*
+%{python3_sitelib}/nfs_plugin/nfs.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
 %files nfs-plugin-clibs
-%{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
+%{python3_sitelib}/nfs_plugin/nfs_clib.*
 
 %files arcconf-plugin
 %dir %{python3_sitelib}/lsm/plugin/arcconf
