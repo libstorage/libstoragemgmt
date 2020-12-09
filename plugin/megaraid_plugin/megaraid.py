@@ -26,7 +26,7 @@ from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client,
                  Disk, VERSION, IPlugin, Pool, Volume, Battery, int_div)
 
-from lsm.plugin.megaraid.utils import cmd_exec, ExecError
+from megaraid_plugin.utils import cmd_exec, ExecError
 
 # Naming scheme
 #   mega_sys_path   /c0

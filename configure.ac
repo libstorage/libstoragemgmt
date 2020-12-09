@@ -464,7 +464,7 @@ AC_CONFIG_FILES([
     python_binding/lsm/version.py
     plugin/Makefile
     plugin/simc/Makefile
-    plugin/megaraid/Makefile
+    plugin/megaraid_plugin/Makefile
     plugin/hpsa_plugin/Makefile
     plugin/arcconf_plugin/Makefile
     plugin/nfs_plugin/Makefile
@@ -505,8 +505,8 @@ fi
 
 AC_CONFIG_FILES([plugin/sim_plugin/sim_lsmplugin],
     [chmod +x plugin/sim_plugin/sim_lsmplugin])
-AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
-    [chmod +x plugin/megaraid/megaraid_lsmplugin])
+AC_CONFIG_FILES([plugin/megaraid_plugin/megaraid_lsmplugin],
+    [chmod +x plugin/megaraid_plugin/megaraid_lsmplugin])
 AC_CONFIG_FILES([plugin/hpsa_plugin/hpsa_lsmplugin],
     [chmod +x plugin/hpsa_plugin/hpsa_lsmplugin])
 AC_CONFIG_FILES([plugin/arcconf_plugin/arcconf_lsmplugin],

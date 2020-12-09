@@ -1,6 +1,5 @@
 if WITH_MEGARAID
-plugindir = $(pythondir)/lsm/plugin
-megaraiddir = $(plugindir)/megaraid
+megaraiddir = $(pythondir)/megaraid_plugin
 
 megaraid_PYTHON = __init__.py megaraid.py utils.py
 

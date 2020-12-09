@@ -524,12 +524,12 @@ fi
 %{_udevrulesdir}/90-scsi-ua.rules
 
 %files megaraid-plugin
-%dir %{python3_sitelib}/lsm/plugin/megaraid
-%dir %{python3_sitelib}/lsm/plugin/megaraid/__pycache__
-%{python3_sitelib}/lsm/plugin/megaraid/__pycache__/*
-%{python3_sitelib}/lsm/plugin/megaraid/__init__.*
-%{python3_sitelib}/lsm/plugin/megaraid/megaraid.*
-%{python3_sitelib}/lsm/plugin/megaraid/utils.*
+%dir %{python3_sitelib}/megaraid_plugin
+%dir %{python3_sitelib}/megaraid_plugin/__pycache__
+%{python3_sitelib}/megaraid_plugin/__pycache__/*
+%{python3_sitelib}/megaraid_plugin/__init__.*
+%{python3_sitelib}/megaraid_plugin/megaraid.*
+%{python3_sitelib}/megaraid_plugin/utils.*
 %{_bindir}/megaraid_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
 %{_mandir}/man1/megaraid_lsmplugin.1*
