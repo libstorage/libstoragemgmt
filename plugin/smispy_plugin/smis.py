@@ -23,16 +23,16 @@ from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
                  JobStatus, md5, Volume, AccessGroup, Pool,
                  VERSION, TargetPort,
                  search_property)
-from lsm.plugin.smispy.smis_common import SmisCommon
-from lsm.plugin.smispy import smis_cap
-from lsm.plugin.smispy import smis_sys
-from lsm.plugin.smispy import smis_pool
-from lsm.plugin.smispy import smis_disk
-from lsm.plugin.smispy import smis_vol
-from lsm.plugin.smispy import smis_ag
-from lsm.plugin.smispy import dmtf
-from lsm.plugin.smispy.utils import (merge_list, handle_cim_errors,
-                                     hex_string_format)
+from smispy_plugin.smis_common import SmisCommon
+from smispy_plugin import smis_cap
+from smispy_plugin import smis_sys
+from smispy_plugin import smis_pool
+from smispy_plugin import smis_disk
+from smispy_plugin import smis_vol
+from smispy_plugin import smis_ag
+from smispy_plugin import dmtf
+from smispy_plugin.utils import (merge_list, handle_cim_errors,
+                                 hex_string_format)
 import pywbem
 
 

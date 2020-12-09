@@ -30,8 +30,8 @@ import six
 from lsm import LsmError, ErrorNumber, md5
 
 import pywbem
-from lsm.plugin.smispy.utils import merge_list
-from lsm.plugin.smispy import dmtf
+from smispy_plugin.utils import merge_list
+from smispy_plugin import dmtf
 
 
 def _profile_register_load(wbem_conn):

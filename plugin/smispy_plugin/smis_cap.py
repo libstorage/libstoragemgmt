@@ -15,8 +15,8 @@
 
 from lsm import Capabilities, LsmError, ErrorNumber
 
-from lsm.plugin.smispy import dmtf
-from lsm.plugin.smispy.smis_common import SmisCommon
+from smispy_plugin import dmtf
+from smispy_plugin.smis_common import SmisCommon
 
 
 MASK_TYPE_NO_SUPPORT = 0

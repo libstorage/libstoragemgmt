@@ -14,9 +14,9 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from lsm.plugin.smispy.utils import (merge_list, path_str_to_cim_path,
+from smispy_plugin.utils import (merge_list, path_str_to_cim_path,
                                      cim_path_to_path_str)
-from lsm.plugin.smispy import dmtf
+from smispy_plugin import dmtf
 
 
 from lsm import LsmError, ErrorNumber, Pool

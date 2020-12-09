@@ -15,9 +15,9 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from lsm import Disk, md5, LsmError, ErrorNumber
-from lsm.plugin.smispy.smis_common import SmisCommon
-from lsm.plugin.smispy.utils import merge_list
-from lsm.plugin.smispy import dmtf
+from smispy_plugin.smis_common import SmisCommon
+from smispy_plugin.utils import merge_list
+from smispy_plugin import dmtf
 
 
 _LSM_DISK_OP_STATUS_CONV = {

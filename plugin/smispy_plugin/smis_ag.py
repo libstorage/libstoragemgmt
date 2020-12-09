@@ -21,9 +21,9 @@ volume masking/unmasking.
 import pywbem
 
 from lsm import AccessGroup, md5, LsmError, ErrorNumber
-from lsm.plugin.smispy.smis_common import SmisCommon
-from lsm.plugin.smispy import dmtf
-from lsm.plugin.smispy.utils import cim_path_to_path_str, path_str_to_cim_path
+from smispy_plugin.smis_common import SmisCommon
+from smispy_plugin import dmtf
+from smispy_plugin.utils import cim_path_to_path_str, path_str_to_cim_path
 
 _CIM_INIT_PROS = ['StorageID', 'IDType']
 

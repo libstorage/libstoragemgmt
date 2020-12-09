@@ -1,7 +1,6 @@
 if WITH_SMISPY
 
-plugindir = $(pythondir)/lsm/plugin
-smispydir = $(plugindir)/smispy
+smispydir = $(pythondir)/smispy_plugin
 
 smispy_PYTHON = \
 	__init__.py \

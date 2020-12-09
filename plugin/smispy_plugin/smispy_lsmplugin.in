@@ -22,7 +22,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.smispy.smis import Smis
+    from smispy_plugin import Smis
 
     if __name__ == '__main__':
         PluginRunner(Smis, sys.argv).run()

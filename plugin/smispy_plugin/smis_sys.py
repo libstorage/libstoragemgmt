@@ -15,8 +15,8 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from lsm import System, LsmError, ErrorNumber
-from lsm.plugin.smispy.utils import merge_list
-from lsm.plugin.smispy import dmtf
+from smispy_plugin.utils import merge_list
+from smispy_plugin import dmtf
 
 
 def cim_sys_id_pros():

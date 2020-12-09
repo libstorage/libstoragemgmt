@@ -23,9 +23,9 @@ import sys
 import six
 
 from lsm import md5, Volume, LsmError, ErrorNumber
-from lsm.plugin.smispy.utils import (
+from smispy_plugin.utils import (
     merge_list, cim_path_to_path_str, path_str_to_cim_path)
-from lsm.plugin.smispy import dmtf
+from smispy_plugin import dmtf
 
 
 def cim_vol_id_pros():

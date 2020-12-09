@@ -493,20 +493,20 @@ fi
 %{python3_sitelib}/lsm/_clib.*
 
 %files smis-plugin
-%dir %{python3_sitelib}/lsm/plugin/smispy
-%dir %{python3_sitelib}/lsm/plugin/smispy/__pycache__
-%{python3_sitelib}/lsm/plugin/smispy/__pycache__/*
-%{python3_sitelib}/lsm/plugin/smispy/__init__.*
-%{python3_sitelib}/lsm/plugin/smispy/smis.*
-%{python3_sitelib}/lsm/plugin/smispy/dmtf.*
-%{python3_sitelib}/lsm/plugin/smispy/utils.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_common.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_cap.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_sys.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_pool.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_disk.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_vol.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_ag.*
+%dir %{python3_sitelib}/smispy_plugin
+%dir %{python3_sitelib}/smispy_plugin/__pycache__
+%{python3_sitelib}/smispy_plugin/__pycache__/*
+%{python3_sitelib}/smispy_plugin/__init__.*
+%{python3_sitelib}/smispy_plugin/smis.*
+%{python3_sitelib}/smispy_plugin/dmtf.*
+%{python3_sitelib}/smispy_plugin/utils.*
+%{python3_sitelib}/smispy_plugin/smis_common.*
+%{python3_sitelib}/smispy_plugin/smis_cap.*
+%{python3_sitelib}/smispy_plugin/smis_sys.*
+%{python3_sitelib}/smispy_plugin/smis_pool.*
+%{python3_sitelib}/smispy_plugin/smis_disk.*
+%{python3_sitelib}/smispy_plugin/smis_vol.*
+%{python3_sitelib}/smispy_plugin/smis_ag.*
 %{_bindir}/smispy_lsmplugin
 %{_mandir}/man1/smispy_lsmplugin.1*
 

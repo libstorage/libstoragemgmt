@@ -469,7 +469,7 @@ AC_CONFIG_FILES([
     plugin/arcconf_plugin/Makefile
     plugin/nfs_plugin/Makefile
     plugin/local_plugin/Makefile
-    plugin/smispy/Makefile
+    plugin/smispy_plugin/Makefile
     plugin/targetd_plugin/Makefile
     plugin/sim_plugin/Makefile
     daemon/Makefile
@@ -513,8 +513,8 @@ AC_CONFIG_FILES([plugin/arcconf_plugin/arcconf_lsmplugin],
     [chmod +x plugin/arcconf_plugin/arcconf_lsmplugin])
 AC_CONFIG_FILES([plugin/targetd_plugin/targetd_lsmplugin],
     [chmod +x plugin/targetd_plugin/targetd_lsmplugin])
-AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
-    [chmod +x plugin/smispy/smispy_lsmplugin])
+AC_CONFIG_FILES([plugin/smispy_plugin/smispy_lsmplugin],
+    [chmod +x plugin/smispy_plugin/smispy_lsmplugin])
 AC_CONFIG_FILES([plugin/nfs_plugin/nfs_lsmplugin],
     [chmod +x plugin/nfs_plugin/nfs_lsmplugin])
 AC_CONFIG_FILES([plugin/local_plugin/local_lsmplugin],
