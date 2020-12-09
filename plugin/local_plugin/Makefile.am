@@ -1,6 +1,5 @@
 if WITH_LOCAL
-plugindir = $(pythondir)/lsm/plugin
-localdir = $(plugindir)/local
+localdir = $(pythondir)/local_plugin
 
 local_PYTHON = __init__.py local.py
 

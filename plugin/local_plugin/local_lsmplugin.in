@@ -23,7 +23,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.local.local import LocalPlugin
+    from local_plugin import LocalPlugin
 
     if __name__ == '__main__':
         PluginRunner(LocalPlugin, sys.argv).run()

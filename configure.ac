@@ -468,7 +468,7 @@ AC_CONFIG_FILES([
     plugin/hpsa_plugin/Makefile
     plugin/arcconf_plugin/Makefile
     plugin/nfs_plugin/Makefile
-    plugin/local/Makefile
+    plugin/local_plugin/Makefile
     plugin/smispy/Makefile
     plugin/targetd_plugin/Makefile
     plugin/sim_plugin/Makefile
@@ -517,8 +517,8 @@ AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
     [chmod +x plugin/smispy/smispy_lsmplugin])
 AC_CONFIG_FILES([plugin/nfs_plugin/nfs_lsmplugin],
     [chmod +x plugin/nfs_plugin/nfs_lsmplugin])
-AC_CONFIG_FILES([plugin/local/local_lsmplugin],
-    [chmod +x plugin/local/local_lsmplugin])
+AC_CONFIG_FILES([plugin/local_plugin/local_lsmplugin],
+    [chmod +x plugin/local_plugin/local_lsmplugin])
 AC_CONFIG_FILES([tools/lsmcli/lsmcli],
     [chmod +x tools/lsmcli/lsmcli])
 AC_CONFIG_FILES([test/plugin_test.py],

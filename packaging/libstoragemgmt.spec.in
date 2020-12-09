@@ -570,11 +570,11 @@ fi
 %{_mandir}/man1/arcconf_lsmplugin.1*
 
 %files local-plugin
-%dir %{python3_sitelib}/lsm/plugin/local
-%dir %{python3_sitelib}/lsm/plugin/local/__pycache__
-%{python3_sitelib}/lsm/plugin/local/__pycache__/*
-%{python3_sitelib}/lsm/plugin/local/__init__.*
-%{python3_sitelib}/lsm/plugin/local/local.*
+%dir %{python3_sitelib}/local_plugin
+%dir %{python3_sitelib}/local_plugin/__pycache__
+%{python3_sitelib}/local_plugin/__pycache__/*
+%{python3_sitelib}/local_plugin/__init__.*
+%{python3_sitelib}/local_plugin/local.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/local.conf
 %{_bindir}/local_lsmplugin
 %{_mandir}/man1/local_lsmplugin.1*
