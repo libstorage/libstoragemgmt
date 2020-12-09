@@ -24,7 +24,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.arcconf import Arcconf
+    from arcconf_plugin import Arcconf
 
     if __name__ == '__main__':
         PluginRunner(Arcconf, sys.argv).run()

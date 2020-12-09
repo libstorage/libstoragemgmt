@@ -1,6 +1,5 @@
 if WITH_ARCCONF
-plugindir = $(pythondir)/lsm/plugin
-arcconfdir = $(plugindir)/arcconf
+arcconfdir = $(pythondir)/arcconf_plugin
 
 arcconf_PYTHON = __init__.py arcconf.py utils.py
 

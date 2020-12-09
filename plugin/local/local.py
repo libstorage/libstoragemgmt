@@ -20,7 +20,8 @@ from lsm import (uri_parse, search_property, LsmError, ErrorNumber, Client,
                  VERSION, IPlugin, NfsExport)
 
 from lsm.plugin.hpsa.hpsa import SmartArray
-from lsm.plugin.arcconf.arcconf import Arcconf
+from arcconf_plugin import Arcconf
+
 
 def _handle_errors(method):
     def _wrapper(*args, **kwargs):

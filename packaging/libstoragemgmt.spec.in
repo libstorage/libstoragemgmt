@@ -559,12 +559,12 @@ fi
 %{python3_sitelib}/nfs_plugin/nfs_clib.*
 
 %files arcconf-plugin
-%dir %{python3_sitelib}/lsm/plugin/arcconf
-%dir %{python3_sitelib}/lsm/plugin/arcconf/__pycache__
-%{python3_sitelib}/lsm/plugin/arcconf/__pycache__/*
-%{python3_sitelib}/lsm/plugin/arcconf/__init__.*
-%{python3_sitelib}/lsm/plugin/arcconf/arcconf.*
-%{python3_sitelib}/lsm/plugin/arcconf/utils.*
+%dir %{python3_sitelib}/arcconf_plugin
+%dir %{python3_sitelib}/arcconf_plugin/__pycache__
+%{python3_sitelib}/arcconf_plugin/__pycache__/*
+%{python3_sitelib}/arcconf_plugin/__init__.*
+%{python3_sitelib}/arcconf_plugin/arcconf.*
+%{python3_sitelib}/arcconf_plugin/utils.*
 %{_bindir}/arcconf_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/arcconf.conf
 %{_mandir}/man1/arcconf_lsmplugin.1*

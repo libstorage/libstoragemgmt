@@ -297,14 +297,14 @@ function lsm_test_base_install
             fi
         done
 
-        # NFS plugin is a python plugin, but with C extention.
-        if [ -e "${build_dir}/plugin/nfs/.libs/nfs_clib.so" ]
+        # NFS plugin is a python plugin, but with C extension.
+        if [ -e "${build_dir}/plugin/nfs_plugin/.libs/nfs_clib.so" ]
         then
             find ${LSM_TEST_PY_MODULE_DIR} -type d -exec chmod +w {} \;
-            _good cp -fv "${build_dir}/plugin/nfs/.libs/nfs_clib.so" \
-                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+            _good cp -fv "${build_dir}/plugin/nfs_plugin/.libs/nfs_clib.so" \
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs_plugin/nfs_clib.so"
             _good chrpath -d \
-                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs_plugin/nfs_clib.so"
         fi
 
         legal_plugin_type=1

@@ -30,7 +30,7 @@ from lsm import (
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
     LocalDisk, Battery)
 
-from lsm.plugin.arcconf.utils import cmd_exec, ExecError
+from arcconf_plugin.utils import cmd_exec, ExecError
 
 
 ZERO = 0
@@ -493,7 +493,7 @@ class Arcconf(IPlugin):
             admin_status = Volume.ADMIN_STATE_DISABLED
         else:
             admin_status = Volume.ADMIN_STATE_ENABLED
-        
+
         stripe_size = arcconf_ld['StripeSize']
         full_stripe_size = arcconf_ld['fullStripeSize']
         ld_state = arcconf_ld['state']
