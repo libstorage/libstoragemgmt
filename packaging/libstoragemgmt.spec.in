@@ -469,9 +469,6 @@ fi
 %{python3_sitelib}/lsm/_transport.*
 %{python3_sitelib}/lsm/__pycache__/
 %{python3_sitelib}/lsm/version.*
-%dir %{python3_sitelib}/lsm/plugin
-%{python3_sitelib}/lsm/plugin/__init__.*
-%{python3_sitelib}/lsm/plugin/__pycache__/
 %dir %{python3_sitelib}/sim_plugin
 %{python3_sitelib}/sim_plugin/__pycache__/
 %{python3_sitelib}/sim_plugin/__init__.*
