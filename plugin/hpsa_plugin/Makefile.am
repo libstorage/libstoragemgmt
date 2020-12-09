@@ -1,6 +1,5 @@
 if WITH_HPSA
-plugindir = $(pythondir)/lsm/plugin
-hpsadir = $(plugindir)/hpsa
+hpsadir = $(pythondir)/hpsa_plugin
 
 hpsa_PYTHON = __init__.py hpsa.py utils.py
 

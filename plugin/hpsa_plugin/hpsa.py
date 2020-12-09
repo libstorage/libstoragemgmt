@@ -25,7 +25,8 @@ from lsm import (
     System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
     LocalDisk, Battery, int_div)
 
-from lsm.plugin.hpsa.utils import cmd_exec, ExecError
+from hpsa_plugin.utils import cmd_exec, ExecError
+
 
 def _handle_errors(method):
     def _wrapper(*args, **kwargs):

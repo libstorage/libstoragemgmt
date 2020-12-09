@@ -19,7 +19,7 @@ import os
 from lsm import (uri_parse, search_property, LsmError, ErrorNumber, Client,
                  VERSION, IPlugin, NfsExport)
 
-from lsm.plugin.hpsa.hpsa import SmartArray
+from hpsa_plugin import SmartArray
 from arcconf_plugin import Arcconf
 
 

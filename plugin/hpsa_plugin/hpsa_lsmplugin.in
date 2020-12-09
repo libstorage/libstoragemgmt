@@ -22,7 +22,7 @@ import traceback
 
 try:
     from lsm import PluginRunner
-    from lsm.plugin.hpsa import SmartArray
+    from hpsa_plugin import SmartArray
 
     if __name__ == '__main__':
         PluginRunner(SmartArray, sys.argv).run()

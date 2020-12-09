@@ -465,7 +465,7 @@ AC_CONFIG_FILES([
     plugin/Makefile
     plugin/simc/Makefile
     plugin/megaraid/Makefile
-    plugin/hpsa/Makefile
+    plugin/hpsa_plugin/Makefile
     plugin/arcconf_plugin/Makefile
     plugin/nfs_plugin/Makefile
     plugin/local/Makefile
@@ -507,8 +507,8 @@ AC_CONFIG_FILES([plugin/sim_plugin/sim_lsmplugin],
     [chmod +x plugin/sim_plugin/sim_lsmplugin])
 AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
     [chmod +x plugin/megaraid/megaraid_lsmplugin])
-AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],
-    [chmod +x plugin/hpsa/hpsa_lsmplugin])
+AC_CONFIG_FILES([plugin/hpsa_plugin/hpsa_lsmplugin],
+    [chmod +x plugin/hpsa_plugin/hpsa_lsmplugin])
 AC_CONFIG_FILES([plugin/arcconf_plugin/arcconf_lsmplugin],
     [chmod +x plugin/arcconf_plugin/arcconf_lsmplugin])
 AC_CONFIG_FILES([plugin/targetd_plugin/targetd_lsmplugin],

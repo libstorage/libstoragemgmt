@@ -535,12 +535,12 @@ fi
 %{_mandir}/man1/megaraid_lsmplugin.1*
 
 %files hpsa-plugin
-%dir %{python3_sitelib}/lsm/plugin/hpsa
-%dir %{python3_sitelib}/lsm/plugin/hpsa/__pycache__
-%{python3_sitelib}/lsm/plugin/hpsa/__pycache__/*
-%{python3_sitelib}/lsm/plugin/hpsa/__init__.*
-%{python3_sitelib}/lsm/plugin/hpsa/hpsa.*
-%{python3_sitelib}/lsm/plugin/hpsa/utils.*
+%dir %{python3_sitelib}/hpsa_plugin
+%dir %{python3_sitelib}/hpsa_plugin/__pycache__
+%{python3_sitelib}/hpsa_plugin/__pycache__/*
+%{python3_sitelib}/hpsa_plugin/__init__.*
+%{python3_sitelib}/hpsa_plugin/hpsa.*
+%{python3_sitelib}/hpsa_plugin/utils.*
 %{_bindir}/hpsa_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*
