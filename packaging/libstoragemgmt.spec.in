@@ -433,52 +433,54 @@ fi
 %if %{with python2}
 %files -n python2-%{name}
 #Python library files
-%dir %{python_sitelib}/lsm
-%{python2_sitelib}/lsm/__init__.*
-%dir %{python_sitelib}/lsm/external
-%{python2_sitelib}/lsm/external/*
-%{python2_sitelib}/lsm/_client.*
-%{python2_sitelib}/lsm/_common.*
-%{python2_sitelib}/lsm/_local_disk.*
-%{python2_sitelib}/lsm/_data.*
-%{python2_sitelib}/lsm/_iplugin.*
-%{python2_sitelib}/lsm/_pluginrunner.*
-%{python2_sitelib}/lsm/_transport.*
-%{python2_sitelib}/lsm/version.*
-%dir %{python_sitelib}/lsm/lsmcli
-%{python2_sitelib}/lsm/lsmcli/__init__.*
-%{python2_sitelib}/lsm/lsmcli/data_display.*
-%{python2_sitelib}/lsm/lsmcli/cmdline.*
+%dir %{python2_sitearch}/lsm
+%{python2_sitearch}/lsm/__init__.*
+%dir %{python2_sitearch}/lsm/external
+%{python2_sitearch}/lsm/external/*
+%{python2_sitearch}/lsm/_client.*
+%{python2_sitearch}/lsm/_common.*
+%{python2_sitearch}/lsm/_local_disk.*
+%{python2_sitearch}/lsm/_data.*
+%{python2_sitearch}/lsm/_iplugin.*
+%{python2_sitearch}/lsm/_pluginrunner.*
+%{python2_sitearch}/lsm/_transport.*
+%{python2_sitearch}/lsm/version.*
+%dir %{python2_sitearch}/lsm/lsmcli
+%{python2_sitearch}/lsm/lsmcli/__init__.*
+%{python2_sitearch}/lsm/lsmcli/data_display.*
+%{python2_sitearch}/lsm/lsmcli/cmdline.*
 
 # Compiled C files for python library
 %files -n python2-%{name}-clibs
-%{python2_sitelib}/lsm/_clib.*
+%{python2_sitearch}/lsm/_clib.*
 %endif
 
 %files -n python3-%{name}
-%dir %{python3_sitelib}/lsm
-%{python3_sitelib}/lsm/__init__.*
-%dir %{python3_sitelib}/lsm/external
-%{python3_sitelib}/lsm/external/*
-%{python3_sitelib}/lsm/_client.*
-%{python3_sitelib}/lsm/_common.*
-%{python3_sitelib}/lsm/_local_disk.*
-%{python3_sitelib}/lsm/_data.*
-%{python3_sitelib}/lsm/_iplugin.*
-%{python3_sitelib}/lsm/_pluginrunner.*
-%{python3_sitelib}/lsm/_transport.*
-%{python3_sitelib}/lsm/__pycache__/
-%{python3_sitelib}/lsm/version.*
+%dir %{python3_sitearch}/lsm
+%{python3_sitearch}/lsm/__init__.*
+%dir %{python3_sitearch}/lsm/external
+%{python3_sitearch}/lsm/external/*
+%{python3_sitearch}/lsm/_client.*
+%{python3_sitearch}/lsm/_common.*
+%{python3_sitearch}/lsm/_local_disk.*
+%{python3_sitearch}/lsm/_data.*
+%{python3_sitearch}/lsm/_iplugin.*
+%{python3_sitearch}/lsm/_pluginrunner.*
+%{python3_sitearch}/lsm/_transport.*
+%{python3_sitearch}/lsm/__pycache__/
+%{python3_sitearch}/lsm/version.*
+%dir %{python3_sitearch}/lsm/lsmcli
+%{python3_sitearch}/lsm/lsmcli/__init__.*
+%{python3_sitearch}/lsm/lsmcli/__pycache__/
+%{python3_sitearch}/lsm/lsmcli/data_display.*
+%{python3_sitearch}/lsm/lsmcli/cmdline.*
+
 %dir %{python3_sitelib}/sim_plugin
 %{python3_sitelib}/sim_plugin/__pycache__/
 %{python3_sitelib}/sim_plugin/__init__.*
 %{python3_sitelib}/sim_plugin/simulator.*
 %{python3_sitelib}/sim_plugin/simarray.*
-%dir %{python3_sitelib}/lsm/lsmcli
-%{python3_sitelib}/lsm/lsmcli/__init__.*
-%{python3_sitelib}/lsm/lsmcli/__pycache__/
-%{python3_sitelib}/lsm/lsmcli/data_display.*
-%{python3_sitelib}/lsm/lsmcli/cmdline.*
+
 %{_bindir}/sim_lsmplugin
 %dir %{_libexecdir}/lsm.d
 %{_libexecdir}/lsm.d/find_unused_lun.py*
@@ -487,7 +489,7 @@ fi
 %{_mandir}/man1/sim_lsmplugin.1*
 
 %files -n python3-%{name}-clibs
-%{python3_sitelib}/lsm/_clib.*
+%{python3_sitearch}/lsm/_clib.*
 
 %files smis-plugin
 %dir %{python3_sitelib}/smispy_plugin
@@ -543,17 +545,17 @@ fi
 %{_mandir}/man1/hpsa_lsmplugin.1*
 
 %files nfs-plugin
-%dir %{python3_sitelib}/nfs_plugin
-%dir %{python3_sitelib}/nfs_plugin/__pycache__
-%{python3_sitelib}/nfs_plugin/__pycache__/*
-%{python3_sitelib}/nfs_plugin/__init__.*
-%{python3_sitelib}/nfs_plugin/nfs.*
+%dir %{python3_sitearch}/nfs_plugin
+%dir %{python3_sitearch}/nfs_plugin/__pycache__
+%{python3_sitearch}/nfs_plugin/__pycache__/*
+%{python3_sitearch}/nfs_plugin/__init__.*
+%{python3_sitearch}/nfs_plugin/nfs.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
 %files nfs-plugin-clibs
-%{python3_sitelib}/nfs_plugin/nfs_clib.*
+%{python3_sitearch}/nfs_plugin/nfs_clib.*
 
 %files arcconf-plugin
 %dir %{python3_sitelib}/arcconf_plugin

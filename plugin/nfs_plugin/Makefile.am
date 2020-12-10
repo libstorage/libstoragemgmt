@@ -1,8 +1,7 @@
-
-nfsdir = $(pythondir)/nfs_plugin
-pyexecdir = $(pythondir)/nfs_plugin
-
 if WITH_NFS
+
+nfsdir = $(LSM_PYSO_DIR)/nfs_plugin
+pyexecdir = $(LSM_PYSO_DIR)/nfs_plugin
 
 nfs_PYTHON = __init__.py nfs.py
 

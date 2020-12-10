@@ -225,6 +225,7 @@ if test "x$with_python3" = "xyes"; then
         AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
     fi
     AC_SUBST(PY_VERSION, 3)
+    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 else
     AC_SUBST(WITH_PYTHON3, no)
     AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
@@ -272,6 +273,7 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
         fi
     fi
     AC_SUBST(PY_VERSION, 2)
+    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 fi
 
 AC_MSG_NOTICE([PYTHON_CFLAGS])
