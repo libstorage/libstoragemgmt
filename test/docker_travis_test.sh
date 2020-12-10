@@ -8,9 +8,9 @@
 if [ -e "/etc/debian_version" ];then
     IS_DEB=1
 elif [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then
-    IS_FEDORA=1
+    IS_PY3=1
 elif [ "CHK$(rpm -E "%{?el8}")" != "CHK" ];then
-    IS_FEDORA=1
+    IS_PY3=1
     IS_RHEL8=1
 elif [ "CHK$(rpm -E "%{?el7}")" != "CHK" ];then
     IS_RHEL=1
@@ -41,11 +41,11 @@ getent passwd libstoragemgmt >/dev/null || \
 # to allow enabling.
 if [ "CHK$IS_RHEL8" == "CHK1" ];then
     dnf install dnf-plugins-core -y || exit 1
-    dnf config-manager --set-enabled PowerTools -y || exit 1
+    dnf config-manager --set-enabled powertools -y || exit 1
 fi
 
 
-if [ "CHK$IS_FEDORA" == "CHK1" ];then
+if [ "CHK$IS_PY3" == "CHK1" ];then
     # shellcheck disable=SC2046
     dnf install $(cat ./rh_py3_rpm_dependency) rpm-build -y || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
@@ -81,7 +81,7 @@ fi
 make || exit 1
 make check || { cat test-suite.log; exit 1; }
 
-if [ "CHK$IS_FEDORA" == "CHK1" ];then
+if [ "CHK$IS_PY3" == "CHK1" ];then
     make rpm || exit 1
 fi
 
