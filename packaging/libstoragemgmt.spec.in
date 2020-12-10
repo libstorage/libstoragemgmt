@@ -17,9 +17,13 @@ URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
 
-# Netapp 7 mode plugin is no more.
+# Packages that have been removed
 Obsoletes:      %{name}-netapp-plugin < %{version}-%{release}
 Obsoletes:      %{name}-nstor-plugin < %{version}-%{release}
+Obsoletes:      python2-%{name}-clibs < %{version}-%{release}
+Obsoletes:      python3-%{name}-clibs < %{version}-%{release}
+Obsoletes:      %{name}-nfs-plugin-clibs < %{version}-%{release}
+
 
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
@@ -65,44 +69,25 @@ developing applications that use %{name}.
 %package        -n python2-%{name}
 Summary:        Python2 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-Requires:       python2-%{name}-clibs
-BuildArch:      noarch
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 %{?python_provide:%python_provide python2-%{name}}
-# Remove before F30
-Provides: %{name}-python = %{version}-%{release}
-Obsoletes: %{name}-python < %{version}-%{release}
 
 %description    -n python2-%{name}
 This package contains python client libraries as well as python
 framework support and open source plug-ins written in python.
-
-%package        -n python2-%{name}-clibs
-Summary:        Python2 C extension module for %{name}
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
 
 # If obsoleted plugins are installed, we need to meet it's requirement
 # of having the correct version of this package functionality installed too as
 # the update occurs first, before the obsolete removes the obsoleted package.
 Provides:       python2-%{name} < %{version}-%{release}
 %{?python_provide:%python_provide python2-%{name}-clibs}
-# Remove before F30
-Provides: %{name}-python-clibs = %{version}-%{release}
-Provides: %{name}-python-clibs%{?_isa} = %{version}-%{release}
-Obsoletes: %{name}-python-clibs < %{version}-%{release}
-
-%description    -n python2-%{name}-clibs
-This package contains python2 client C extension libraries.
 
 %endif
 
 %package        -n python3-%{name}
 Summary:        Python 3 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-BuildArch:      noarch
-Requires:       python3-%{name}-clibs
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 # If obsoleted plugins are installed, we need to meet it's requirement
 # of having the correct version of this package functionality installed too as
@@ -113,15 +98,6 @@ Provides:       python3-%{name} < %{version}-%{release}
 %description    -n python3-%{name}
 This contains python 3 client libraries as well as python framework
 support and open source plug-ins written in python 3.
-
-%package        -n python3-%{name}-clibs
-Summary:        Python 3 C extension module for %{name}
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-%{?python_provide:%python_provide python3-%{name}-clibs}
-
-%description    -n python3-%{name}-clibs
-This package contains python 3 client C extension libraries.
 
 %package        smis-plugin
 Summary:        Files for SMI-S generic array support for %{name}
@@ -203,24 +179,13 @@ Adaptec RAID and Smart Family Controller storage management.
 Summary:        Files for NFS local filesystem support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
-Requires:       %{name}-nfs-plugin-clibs = %{version}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       nfs-utils
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
-BuildArch:      noarch
 
 %description    nfs-plugin
 The nfs-plugin package contains plug-in for local NFS exports support.
-
-%package        nfs-plugin-clibs
-Summary:        Python C extension module for %{name} NFS plugin
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-
-%description    nfs-plugin-clibs
-The %{name}-nfs-plugin-clibs package contains python C
-extension for %{name} NFS plugin.
-
 
 %package        local-plugin
 Summary:        Files for local pseudo plugin of %{name}
@@ -445,14 +410,12 @@ fi
 %{python2_sitearch}/lsm/_pluginrunner.*
 %{python2_sitearch}/lsm/_transport.*
 %{python2_sitearch}/lsm/version.*
+%{python2_sitearch}/lsm/_clib.*
 %dir %{python2_sitearch}/lsm/lsmcli
 %{python2_sitearch}/lsm/lsmcli/__init__.*
 %{python2_sitearch}/lsm/lsmcli/data_display.*
 %{python2_sitearch}/lsm/lsmcli/cmdline.*
 
-# Compiled C files for python library
-%files -n python2-%{name}-clibs
-%{python2_sitearch}/lsm/_clib.*
 %endif
 
 %files -n python3-%{name}
@@ -474,6 +437,7 @@ fi
 %{python3_sitearch}/lsm/lsmcli/__pycache__/
 %{python3_sitearch}/lsm/lsmcli/data_display.*
 %{python3_sitearch}/lsm/lsmcli/cmdline.*
+%{python3_sitearch}/lsm/_clib.*
 
 %dir %{python3_sitelib}/sim_plugin
 %{python3_sitelib}/sim_plugin/__pycache__/
@@ -487,9 +451,6 @@ fi
 %{_libexecdir}/lsm.d/local_check.py*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
-
-%files -n python3-%{name}-clibs
-%{python3_sitearch}/lsm/_clib.*
 
 %files smis-plugin
 %dir %{python3_sitelib}/smispy_plugin
@@ -550,12 +511,10 @@ fi
 %{python3_sitearch}/nfs_plugin/__pycache__/*
 %{python3_sitearch}/nfs_plugin/__init__.*
 %{python3_sitearch}/nfs_plugin/nfs.*
+%{python3_sitearch}/nfs_plugin/nfs_clib.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
-
-%files nfs-plugin-clibs
-%{python3_sitearch}/nfs_plugin/nfs_clib.*
 
 %files arcconf-plugin
 %dir %{python3_sitelib}/arcconf_plugin
