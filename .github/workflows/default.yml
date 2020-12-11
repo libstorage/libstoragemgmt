@@ -1,0 +1,11 @@
+name: libStorageMgmt distro tests
+on:
+  pull_request:
+jobs:
+  fedora-latest:
+    runs-on: ubuntu-latest
+    container: fedora
+    steps:
+      - uses: actions/checkout@v2
+      - run: $GITHUB_WORKSPACE/test/docker_travis_test.sh $GITHUB_WORKSPACE
+        name: Fedora test build

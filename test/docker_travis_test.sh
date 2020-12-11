@@ -22,12 +22,9 @@ else
     exit 1;
 fi
 
-if [ "CHK$IS_DEB" == "CHK1" ] ;then
-    cp -a /libstoragemgmt-code /tmp/ || exit 1
-    cd /tmp/libstoragemgmt-code || exit 1
-else
-    cd /libstoragemgmt-code || exit 1
-fi
+# We're expecting the source directory on first arg.
+echo "Passed arg: $1"
+cd $1 || exit 1
 
 getent group libstoragemgmt >/dev/null || \
     groupadd -r libstoragemgmt || exit 1
