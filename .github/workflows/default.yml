@@ -7,26 +7,26 @@ jobs:
     container: fedora
     steps:
       - uses: actions/checkout@v2
-      - run: $GITHUB_WORKSPACE/test/docker_travis_test.sh $GITHUB_WORKSPACE
-        name: Fedora test build
+      - run: $GITHUB_WORKSPACE/test/docker_ci_test.sh $GITHUB_WORKSPACE
+        name: Fedora build & test
   ubuntu-18:
     runs-on: ubuntu-latest
     container: ubuntu:18.04
     steps:
       - uses: actions/checkout@v2
-      - run: $GITHUB_WORKSPACE/test/docker_travis_test.sh $GITHUB_WORKSPACE
-        name: Ubuntu test build & test
+      - run: $GITHUB_WORKSPACE/test/docker_ci_test.sh $GITHUB_WORKSPACE
+        name: Ubuntu build & test
   centos7:
     runs-on: ubuntu-latest
     container: centos:7
     steps:
       - uses: actions/checkout@v2
-      - run: $GITHUB_WORKSPACE/test/docker_travis_test.sh $GITHUB_WORKSPACE
-        name: CentOS7 test build & test
+      - run: $GITHUB_WORKSPACE/test/docker_ci_test.sh $GITHUB_WORKSPACE
+        name: CentOS7 build & test
   centos8:
     runs-on: ubuntu-latest
     container: centos:8
     steps:
       - uses: actions/checkout@v2
-      - run: $GITHUB_WORKSPACE/test/docker_travis_test.sh $GITHUB_WORKSPACE
-        name: CentOS8 test build & test
+      - run: $GITHUB_WORKSPACE/test/docker_ci_test.sh $GITHUB_WORKSPACE
+        name: CentOS8 build & test
