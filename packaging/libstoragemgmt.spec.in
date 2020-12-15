@@ -17,9 +17,13 @@ URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
 
-# Netapp 7 mode plugin is no more.
+# Packages that have been removed
 Obsoletes:      %{name}-netapp-plugin < %{version}-%{release}
 Obsoletes:      %{name}-nstor-plugin < %{version}-%{release}
+Obsoletes:      python2-%{name}-clibs < %{version}-%{release}
+Obsoletes:      python3-%{name}-clibs < %{version}-%{release}
+Obsoletes:      %{name}-nfs-plugin-clibs < %{version}-%{release}
+
 
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
@@ -65,44 +69,25 @@ developing applications that use %{name}.
 %package        -n python2-%{name}
 Summary:        Python2 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-Requires:       python2-%{name}-clibs
-BuildArch:      noarch
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 %{?python_provide:%python_provide python2-%{name}}
-# Remove before F30
-Provides: %{name}-python = %{version}-%{release}
-Obsoletes: %{name}-python < %{version}-%{release}
 
 %description    -n python2-%{name}
 This package contains python client libraries as well as python
 framework support and open source plug-ins written in python.
-
-%package        -n python2-%{name}-clibs
-Summary:        Python2 C extension module for %{name}
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
 
 # If obsoleted plugins are installed, we need to meet it's requirement
 # of having the correct version of this package functionality installed too as
 # the update occurs first, before the obsolete removes the obsoleted package.
 Provides:       python2-%{name} < %{version}-%{release}
 %{?python_provide:%python_provide python2-%{name}-clibs}
-# Remove before F30
-Provides: %{name}-python-clibs = %{version}-%{release}
-Provides: %{name}-python-clibs%{?_isa} = %{version}-%{release}
-Obsoletes: %{name}-python-clibs < %{version}-%{release}
-
-%description    -n python2-%{name}-clibs
-This package contains python2 client C extension libraries.
 
 %endif
 
 %package        -n python3-%{name}
 Summary:        Python 3 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-BuildArch:      noarch
-Requires:       python3-%{name}-clibs
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 # If obsoleted plugins are installed, we need to meet it's requirement
 # of having the correct version of this package functionality installed too as
@@ -113,15 +98,6 @@ Provides:       python3-%{name} < %{version}-%{release}
 %description    -n python3-%{name}
 This contains python 3 client libraries as well as python framework
 support and open source plug-ins written in python 3.
-
-%package        -n python3-%{name}-clibs
-Summary:        Python 3 C extension module for %{name}
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-%{?python_provide:%python_provide python3-%{name}-clibs}
-
-%description    -n python3-%{name}-clibs
-This package contains python 3 client C extension libraries.
 
 %package        smis-plugin
 Summary:        Files for SMI-S generic array support for %{name}
@@ -203,24 +179,13 @@ Adaptec RAID and Smart Family Controller storage management.
 Summary:        Files for NFS local filesystem support for %{name}
 Group:          System Environment/Libraries
 Requires:       python3-%{name} = %{version}
-Requires:       %{name}-nfs-plugin-clibs = %{version}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       nfs-utils
 Requires(post): python3-%{name} = %{version}
 Requires(postun): python3-%{name} = %{version}
-BuildArch:      noarch
 
 %description    nfs-plugin
 The nfs-plugin package contains plug-in for local NFS exports support.
-
-%package        nfs-plugin-clibs
-Summary:        Python C extension module for %{name} NFS plugin
-Group:          System Environment/Libraries
-Requires:       %{name} = %{version}-%{release}
-
-%description    nfs-plugin-clibs
-The %{name}-nfs-plugin-clibs package contains python C
-extension for %{name} NFS plugin.
-
 
 %package        local-plugin
 Summary:        Files for local pseudo plugin of %{name}
@@ -433,55 +398,53 @@ fi
 %if %{with python2}
 %files -n python2-%{name}
 #Python library files
-%dir %{python_sitelib}/lsm
-%{python2_sitelib}/lsm/__init__.*
-%dir %{python_sitelib}/lsm/external
-%{python2_sitelib}/lsm/external/*
-%{python2_sitelib}/lsm/_client.*
-%{python2_sitelib}/lsm/_common.*
-%{python2_sitelib}/lsm/_local_disk.*
-%{python2_sitelib}/lsm/_data.*
-%{python2_sitelib}/lsm/_iplugin.*
-%{python2_sitelib}/lsm/_pluginrunner.*
-%{python2_sitelib}/lsm/_transport.*
-%{python2_sitelib}/lsm/version.*
-%dir %{python_sitelib}/lsm/lsmcli
-%{python2_sitelib}/lsm/lsmcli/__init__.*
-%{python2_sitelib}/lsm/lsmcli/data_display.*
-%{python2_sitelib}/lsm/lsmcli/cmdline.*
+%dir %{python2_sitearch}/lsm
+%{python2_sitearch}/lsm/__init__.*
+%dir %{python2_sitearch}/lsm/external
+%{python2_sitearch}/lsm/external/*
+%{python2_sitearch}/lsm/_client.*
+%{python2_sitearch}/lsm/_common.*
+%{python2_sitearch}/lsm/_local_disk.*
+%{python2_sitearch}/lsm/_data.*
+%{python2_sitearch}/lsm/_iplugin.*
+%{python2_sitearch}/lsm/_pluginrunner.*
+%{python2_sitearch}/lsm/_transport.*
+%{python2_sitearch}/lsm/version.*
+%{python2_sitearch}/lsm/_clib.*
+%dir %{python2_sitearch}/lsm/lsmcli
+%{python2_sitearch}/lsm/lsmcli/__init__.*
+%{python2_sitearch}/lsm/lsmcli/data_display.*
+%{python2_sitearch}/lsm/lsmcli/cmdline.*
 
-# Compiled C files for python library
-%files -n python2-%{name}-clibs
-%{python2_sitelib}/lsm/_clib.*
 %endif
 
 %files -n python3-%{name}
-%dir %{python3_sitelib}/lsm
-%{python3_sitelib}/lsm/__init__.*
-%dir %{python3_sitelib}/lsm/external
-%{python3_sitelib}/lsm/external/*
-%{python3_sitelib}/lsm/_client.*
-%{python3_sitelib}/lsm/_common.*
-%{python3_sitelib}/lsm/_local_disk.*
-%{python3_sitelib}/lsm/_data.*
-%{python3_sitelib}/lsm/_iplugin.*
-%{python3_sitelib}/lsm/_pluginrunner.*
-%{python3_sitelib}/lsm/_transport.*
-%{python3_sitelib}/lsm/__pycache__/
-%{python3_sitelib}/lsm/version.*
-%dir %{python3_sitelib}/lsm/plugin
-%{python3_sitelib}/lsm/plugin/__init__.*
-%{python3_sitelib}/lsm/plugin/__pycache__/
-%dir %{python3_sitelib}/lsm/plugin/sim
-%{python3_sitelib}/lsm/plugin/sim/__pycache__/
-%{python3_sitelib}/lsm/plugin/sim/__init__.*
-%{python3_sitelib}/lsm/plugin/sim/simulator.*
-%{python3_sitelib}/lsm/plugin/sim/simarray.*
-%dir %{python3_sitelib}/lsm/lsmcli
-%{python3_sitelib}/lsm/lsmcli/__init__.*
-%{python3_sitelib}/lsm/lsmcli/__pycache__/
-%{python3_sitelib}/lsm/lsmcli/data_display.*
-%{python3_sitelib}/lsm/lsmcli/cmdline.*
+%dir %{python3_sitearch}/lsm
+%{python3_sitearch}/lsm/__init__.*
+%dir %{python3_sitearch}/lsm/external
+%{python3_sitearch}/lsm/external/*
+%{python3_sitearch}/lsm/_client.*
+%{python3_sitearch}/lsm/_common.*
+%{python3_sitearch}/lsm/_local_disk.*
+%{python3_sitearch}/lsm/_data.*
+%{python3_sitearch}/lsm/_iplugin.*
+%{python3_sitearch}/lsm/_pluginrunner.*
+%{python3_sitearch}/lsm/_transport.*
+%{python3_sitearch}/lsm/__pycache__/
+%{python3_sitearch}/lsm/version.*
+%dir %{python3_sitearch}/lsm/lsmcli
+%{python3_sitearch}/lsm/lsmcli/__init__.*
+%{python3_sitearch}/lsm/lsmcli/__pycache__/
+%{python3_sitearch}/lsm/lsmcli/data_display.*
+%{python3_sitearch}/lsm/lsmcli/cmdline.*
+%{python3_sitearch}/lsm/_clib.*
+
+%dir %{python3_sitelib}/sim_plugin
+%{python3_sitelib}/sim_plugin/__pycache__/
+%{python3_sitelib}/sim_plugin/__init__.*
+%{python3_sitelib}/sim_plugin/simulator.*
+%{python3_sitelib}/sim_plugin/simarray.*
+
 %{_bindir}/sim_lsmplugin
 %dir %{_libexecdir}/lsm.d
 %{_libexecdir}/lsm.d/find_unused_lun.py*
@@ -489,33 +452,30 @@ fi
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/sim.conf
 %{_mandir}/man1/sim_lsmplugin.1*
 
-%files -n python3-%{name}-clibs
-%{python3_sitelib}/lsm/_clib.*
-
 %files smis-plugin
-%dir %{python3_sitelib}/lsm/plugin/smispy
-%dir %{python3_sitelib}/lsm/plugin/smispy/__pycache__
-%{python3_sitelib}/lsm/plugin/smispy/__pycache__/*
-%{python3_sitelib}/lsm/plugin/smispy/__init__.*
-%{python3_sitelib}/lsm/plugin/smispy/smis.*
-%{python3_sitelib}/lsm/plugin/smispy/dmtf.*
-%{python3_sitelib}/lsm/plugin/smispy/utils.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_common.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_cap.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_sys.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_pool.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_disk.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_vol.*
-%{python3_sitelib}/lsm/plugin/smispy/smis_ag.*
+%dir %{python3_sitelib}/smispy_plugin
+%dir %{python3_sitelib}/smispy_plugin/__pycache__
+%{python3_sitelib}/smispy_plugin/__pycache__/*
+%{python3_sitelib}/smispy_plugin/__init__.*
+%{python3_sitelib}/smispy_plugin/smis.*
+%{python3_sitelib}/smispy_plugin/dmtf.*
+%{python3_sitelib}/smispy_plugin/utils.*
+%{python3_sitelib}/smispy_plugin/smis_common.*
+%{python3_sitelib}/smispy_plugin/smis_cap.*
+%{python3_sitelib}/smispy_plugin/smis_sys.*
+%{python3_sitelib}/smispy_plugin/smis_pool.*
+%{python3_sitelib}/smispy_plugin/smis_disk.*
+%{python3_sitelib}/smispy_plugin/smis_vol.*
+%{python3_sitelib}/smispy_plugin/smis_ag.*
 %{_bindir}/smispy_lsmplugin
 %{_mandir}/man1/smispy_lsmplugin.1*
 
 %files targetd-plugin
-%dir %{python3_sitelib}/lsm/plugin/targetd
-%dir %{python3_sitelib}/lsm/plugin/targetd/__pycache__
-%{python3_sitelib}/lsm/plugin/targetd/__pycache__/*
-%{python3_sitelib}/lsm/plugin/targetd/__init__.*
-%{python3_sitelib}/lsm/plugin/targetd/targetd.*
+%dir %{python3_sitelib}/targetd_plugin
+%dir %{python3_sitelib}/targetd_plugin/__pycache__
+%{python3_sitelib}/targetd_plugin/__pycache__/*
+%{python3_sitelib}/targetd_plugin/__init__.*
+%{python3_sitelib}/targetd_plugin/targetd.*
 %{_bindir}/targetd_lsmplugin
 %{_mandir}/man1/targetd_lsmplugin.1*
 
@@ -524,57 +484,55 @@ fi
 %{_udevrulesdir}/90-scsi-ua.rules
 
 %files megaraid-plugin
-%dir %{python3_sitelib}/lsm/plugin/megaraid
-%dir %{python3_sitelib}/lsm/plugin/megaraid/__pycache__
-%{python3_sitelib}/lsm/plugin/megaraid/__pycache__/*
-%{python3_sitelib}/lsm/plugin/megaraid/__init__.*
-%{python3_sitelib}/lsm/plugin/megaraid/megaraid.*
-%{python3_sitelib}/lsm/plugin/megaraid/utils.*
+%dir %{python3_sitelib}/megaraid_plugin
+%dir %{python3_sitelib}/megaraid_plugin/__pycache__
+%{python3_sitelib}/megaraid_plugin/__pycache__/*
+%{python3_sitelib}/megaraid_plugin/__init__.*
+%{python3_sitelib}/megaraid_plugin/megaraid.*
+%{python3_sitelib}/megaraid_plugin/utils.*
 %{_bindir}/megaraid_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/megaraid.conf
 %{_mandir}/man1/megaraid_lsmplugin.1*
 
 %files hpsa-plugin
-%dir %{python3_sitelib}/lsm/plugin/hpsa
-%dir %{python3_sitelib}/lsm/plugin/hpsa/__pycache__
-%{python3_sitelib}/lsm/plugin/hpsa/__pycache__/*
-%{python3_sitelib}/lsm/plugin/hpsa/__init__.*
-%{python3_sitelib}/lsm/plugin/hpsa/hpsa.*
-%{python3_sitelib}/lsm/plugin/hpsa/utils.*
+%dir %{python3_sitelib}/hpsa_plugin
+%dir %{python3_sitelib}/hpsa_plugin/__pycache__
+%{python3_sitelib}/hpsa_plugin/__pycache__/*
+%{python3_sitelib}/hpsa_plugin/__init__.*
+%{python3_sitelib}/hpsa_plugin/hpsa.*
+%{python3_sitelib}/hpsa_plugin/utils.*
 %{_bindir}/hpsa_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/hpsa.conf
 %{_mandir}/man1/hpsa_lsmplugin.1*
 
 %files nfs-plugin
-%dir %{python3_sitelib}/lsm/plugin/nfs
-%dir %{python3_sitelib}/lsm/plugin/nfs/__pycache__
-%{python3_sitelib}/lsm/plugin/nfs/__pycache__/*
-%{python3_sitelib}/lsm/plugin/nfs/__init__.*
-%{python3_sitelib}/lsm/plugin/nfs/nfs.*
+%dir %{python3_sitearch}/nfs_plugin
+%dir %{python3_sitearch}/nfs_plugin/__pycache__
+%{python3_sitearch}/nfs_plugin/__pycache__/*
+%{python3_sitearch}/nfs_plugin/__init__.*
+%{python3_sitearch}/nfs_plugin/nfs.*
+%{python3_sitearch}/nfs_plugin/nfs_clib.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/nfs.conf
 %{_bindir}/nfs_lsmplugin
 %{_mandir}/man1/nfs_lsmplugin.1*
 
-%files nfs-plugin-clibs
-%{python3_sitelib}/lsm/plugin/nfs/nfs_clib.*
-
 %files arcconf-plugin
-%dir %{python3_sitelib}/lsm/plugin/arcconf
-%dir %{python3_sitelib}/lsm/plugin/arcconf/__pycache__
-%{python3_sitelib}/lsm/plugin/arcconf/__pycache__/*
-%{python3_sitelib}/lsm/plugin/arcconf/__init__.*
-%{python3_sitelib}/lsm/plugin/arcconf/arcconf.*
-%{python3_sitelib}/lsm/plugin/arcconf/utils.*
+%dir %{python3_sitelib}/arcconf_plugin
+%dir %{python3_sitelib}/arcconf_plugin/__pycache__
+%{python3_sitelib}/arcconf_plugin/__pycache__/*
+%{python3_sitelib}/arcconf_plugin/__init__.*
+%{python3_sitelib}/arcconf_plugin/arcconf.*
+%{python3_sitelib}/arcconf_plugin/utils.*
 %{_bindir}/arcconf_lsmplugin
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/arcconf.conf
 %{_mandir}/man1/arcconf_lsmplugin.1*
 
 %files local-plugin
-%dir %{python3_sitelib}/lsm/plugin/local
-%dir %{python3_sitelib}/lsm/plugin/local/__pycache__
-%{python3_sitelib}/lsm/plugin/local/__pycache__/*
-%{python3_sitelib}/lsm/plugin/local/__init__.*
-%{python3_sitelib}/lsm/plugin/local/local.*
+%dir %{python3_sitelib}/local_plugin
+%dir %{python3_sitelib}/local_plugin/__pycache__
+%{python3_sitelib}/local_plugin/__pycache__/*
+%{python3_sitelib}/local_plugin/__init__.*
+%{python3_sitelib}/local_plugin/local.*
 %config(noreplace) %{_sysconfdir}/lsm/pluginconf.d/local.conf
 %{_bindir}/local_lsmplugin
 %{_mandir}/man1/local_lsmplugin.1*

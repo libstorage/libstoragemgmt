@@ -1,5 +1,5 @@
 
-lsmdir = $(pythondir)/lsm
+lsmdir = $(LSM_PYSO_DIR)/lsm
 externaldir = $(lsmdir)/external
 
 lsm_PYTHON = \
@@ -20,7 +20,7 @@ _PY_CLIB_INIT_NAME = "init_clib"
 endif
 
 pyexec_LTLIBRARIES = lsm/_clib.la
-pyexecdir = $(pythondir)/lsm
+pyexecdir = $(LSM_PYSO_DIR)/lsm
 lsm__clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include \
 		      -Wno-cast-function-type
 lsm__clib_la_SOURCES = lsm/_clib.c

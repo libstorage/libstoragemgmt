@@ -146,7 +146,7 @@ function _fail
 
 #
 # Usage:
-#   Install required files into certain folder for test purpose.
+#   Install required files into specific folder for test purposes.
 # Argument:
 #   $dst_dir
 #       Destination folder.
@@ -183,7 +183,7 @@ function lsm_test_base_install
     LSM_TEST_LOG_DIR="${dst_dir}/logs/"
     LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX="${LSM_TEST_LOG_DIR}/mem_leak_"
 
-    export PYTHONPATH="${LSM_TEST_PY_MODULE_DIR}"
+    export PYTHONPATH="${LSM_TEST_PY_MODULE_DIR}:${LSM_TEST_PY_MODULE_DIR=}lsm/plugin"
     export LD_LIBRARY_PATH="${LSM_TEST_C_LIB_DIR}"
     export LSM_SIM_DATA="${LSM_TEST_DST_DIR}/plugin_data/lsm_sim_data"
     export LSM_UDS_PATH="${dst_dir}/ipc"
@@ -297,14 +297,14 @@ function lsm_test_base_install
             fi
         done
 
-        # NFS plugin is a python plugin, but with C extention.
-        if [ -e "${build_dir}/plugin/nfs/.libs/nfs_clib.so" ]
+        # NFS plugin is a python plugin, but with C extension.
+        if [ -e "${build_dir}/plugin/nfs_plugin/.libs/nfs_clib.so" ]
         then
             find ${LSM_TEST_PY_MODULE_DIR} -type d -exec chmod +w {} \;
-            _good cp -fv "${build_dir}/plugin/nfs/.libs/nfs_clib.so" \
-                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+            _good cp -fv "${build_dir}/plugin/nfs_plugin/.libs/nfs_clib.so" \
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs_plugin/nfs_clib.so"
             _good chrpath -d \
-                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs/nfs_clib.so"
+                "${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/nfs_plugin/nfs_clib.so"
         fi
 
         legal_plugin_type=1

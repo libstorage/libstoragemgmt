@@ -1,6 +1,6 @@
 dist_bin_SCRIPTS = lsmcli
 
-lsmclidir = $(pythondir)/lsm/lsmcli
+lsmclidir = $(LSM_PYSO_DIR)/lsm/lsmcli
 
 lsmcli_PYTHON = \
 	data_display.py \

@@ -225,6 +225,7 @@ if test "x$with_python3" = "xyes"; then
         AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
     fi
     AC_SUBST(PY_VERSION, 3)
+    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 else
     AC_SUBST(WITH_PYTHON3, no)
     AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
@@ -272,6 +273,7 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
         fi
     fi
     AC_SUBST(PY_VERSION, 2)
+    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 fi
 
 AC_MSG_NOTICE([PYTHON_CFLAGS])
@@ -464,14 +466,14 @@ AC_CONFIG_FILES([
     python_binding/lsm/version.py
     plugin/Makefile
     plugin/simc/Makefile
-    plugin/megaraid/Makefile
-    plugin/hpsa/Makefile
-    plugin/arcconf/Makefile
-    plugin/nfs/Makefile
-    plugin/local/Makefile
-    plugin/smispy/Makefile
-    plugin/targetd/Makefile
-    plugin/sim/Makefile
+    plugin/megaraid_plugin/Makefile
+    plugin/hpsa_plugin/Makefile
+    plugin/arcconf_plugin/Makefile
+    plugin/nfs_plugin/Makefile
+    plugin/local_plugin/Makefile
+    plugin/smispy_plugin/Makefile
+    plugin/targetd_plugin/Makefile
+    plugin/sim_plugin/Makefile
     daemon/Makefile
     config/Makefile
     doc/Makefile
@@ -503,22 +505,22 @@ if test "x${with_test}" = "xyes"; then
     AC_CONFIG_FILES([test/runtests.sh], [chmod +x test/runtests.sh])
 fi
 
-AC_CONFIG_FILES([plugin/sim/sim_lsmplugin],
-    [chmod +x plugin/sim/sim_lsmplugin])
-AC_CONFIG_FILES([plugin/megaraid/megaraid_lsmplugin],
-    [chmod +x plugin/megaraid/megaraid_lsmplugin])
-AC_CONFIG_FILES([plugin/hpsa/hpsa_lsmplugin],
-    [chmod +x plugin/hpsa/hpsa_lsmplugin])
-AC_CONFIG_FILES([plugin/arcconf/arcconf_lsmplugin],
-    [chmod +x plugin/arcconf/arcconf_lsmplugin])
-AC_CONFIG_FILES([plugin/targetd/targetd_lsmplugin],
-    [chmod +x plugin/targetd/targetd_lsmplugin])
-AC_CONFIG_FILES([plugin/smispy/smispy_lsmplugin],
-    [chmod +x plugin/smispy/smispy_lsmplugin])
-AC_CONFIG_FILES([plugin/nfs/nfs_lsmplugin],
-    [chmod +x plugin/nfs/nfs_lsmplugin])
-AC_CONFIG_FILES([plugin/local/local_lsmplugin],
-    [chmod +x plugin/local/local_lsmplugin])
+AC_CONFIG_FILES([plugin/sim_plugin/sim_lsmplugin],
+    [chmod +x plugin/sim_plugin/sim_lsmplugin])
+AC_CONFIG_FILES([plugin/megaraid_plugin/megaraid_lsmplugin],
+    [chmod +x plugin/megaraid_plugin/megaraid_lsmplugin])
+AC_CONFIG_FILES([plugin/hpsa_plugin/hpsa_lsmplugin],
+    [chmod +x plugin/hpsa_plugin/hpsa_lsmplugin])
+AC_CONFIG_FILES([plugin/arcconf_plugin/arcconf_lsmplugin],
+    [chmod +x plugin/arcconf_plugin/arcconf_lsmplugin])
+AC_CONFIG_FILES([plugin/targetd_plugin/targetd_lsmplugin],
+    [chmod +x plugin/targetd_plugin/targetd_lsmplugin])
+AC_CONFIG_FILES([plugin/smispy_plugin/smispy_lsmplugin],
+    [chmod +x plugin/smispy_plugin/smispy_lsmplugin])
+AC_CONFIG_FILES([plugin/nfs_plugin/nfs_lsmplugin],
+    [chmod +x plugin/nfs_plugin/nfs_lsmplugin])
+AC_CONFIG_FILES([plugin/local_plugin/local_lsmplugin],
+    [chmod +x plugin/local_plugin/local_lsmplugin])
 AC_CONFIG_FILES([tools/lsmcli/lsmcli],
     [chmod +x tools/lsmcli/lsmcli])
 AC_CONFIG_FILES([test/plugin_test.py],
