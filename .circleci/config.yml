@@ -4,6 +4,40 @@ jobs:
     docker:
       - image: fedora
     steps:
-      - checkout # check out the code in the project directory
-      - run: cd libstoragemgmt
-      - run: ./test/docker_ci_test.sh
+      - checkout
+      - run:
+         command: ./test/docker_ci_test.sh
+         no_output_timeout: 20m
+  el7:
+    docker:
+      - image: centos:7
+    steps:
+      - checkout
+      - run:
+         command: ./test/docker_ci_test.sh
+         no_output_timeout: 20m
+  el8:
+    docker:
+      - image: centos:8
+    steps:
+      - checkout
+      - run:
+         command: ./test/docker_ci_test.sh
+         no_output_timeout: 20m
+  ubuntu:
+    docker:
+      - image: ubuntu:18.04
+    steps:
+      - checkout
+      - run:
+         command: ./test/docker_ci_test.sh
+         no_output_timeout: 20m
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - fedora
+    - el7
+    - el8
+    - ubuntu
