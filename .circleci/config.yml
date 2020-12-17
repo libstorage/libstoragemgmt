@@ -6,4 +6,4 @@ jobs:
     steps:
       - checkout # check out the code in the project directory
       - run: cd libstoragemgmt
-      - run: ./test/docker_travis_test.sh
+      - run: ./test/docker_ci_test.sh
