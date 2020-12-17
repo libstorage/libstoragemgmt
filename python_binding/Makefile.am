@@ -19,8 +19,8 @@ else
 _PY_CLIB_INIT_NAME = "init_clib"
 endif
 
-pyexec_LTLIBRARIES = lsm/_clib.la
-pyexecdir = $(LSM_PYSO_DIR)/lsm
+pyso_LTLIBRARIES = lsm/_clib.la
+pysodir = $(LSM_PYSO_DIR)/lsm
 lsm__clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include \
 		      -Wno-cast-function-type
 lsm__clib_la_SOURCES = lsm/_clib.c
