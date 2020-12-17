@@ -22,13 +22,6 @@ else
     exit 1;
 fi
 
-if [ "CHK$IS_DEB" == "CHK1" ] ;then
-    cp -a /libstoragemgmt-code /tmp/ || exit 1
-    cd /tmp/libstoragemgmt-code || exit 1
-else
-    cd /libstoragemgmt-code || exit 1
-fi
-
 getent group libstoragemgmt >/dev/null || \
     groupadd -r libstoragemgmt || exit 1
 getent passwd libstoragemgmt >/dev/null || \
