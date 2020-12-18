@@ -1,7 +1,7 @@
 if WITH_NFS
 
 nfsdir = $(LSM_PYSO_DIR)/nfs_plugin
-pyexecdir = $(LSM_PYSO_DIR)/nfs_plugin
+pysodir = $(LSM_PYSO_DIR)/nfs_plugin
 
 nfs_PYTHON = __init__.py nfs.py
 
@@ -11,7 +11,7 @@ else
 _PY_CLIB_INIT_NAME = "initnfs_clib"
 endif
 
-pyexec_LTLIBRARIES = nfs_clib.la
+pyso_LTLIBRARIES = nfs_clib.la
 
 nfs_clib_la_CFLAGS = $(PYTHON_CFLAGS) -I$(top_srcdir)/c_binding/include
 nfs_clib_la_SOURCES = nfs_clib.c

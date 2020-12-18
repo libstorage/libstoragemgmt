@@ -66,9 +66,9 @@ fi
 # Configure is almost doing the "right thing" by default in most cases,
 # but not for all.
 if [ "CHK$IS_DEB" = "CHK1" ];then
-    ./configure --with-python2 || exit 1
+    ./configure --with-python2 --without-mem-leak-test || exit 1
 else
-    ./configure || exit 1
+    ./configure --without-mem-leak-test || exit 1
 fi
 
 make || exit 1
