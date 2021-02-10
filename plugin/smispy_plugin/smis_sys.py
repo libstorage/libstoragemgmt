@@ -24,28 +24,29 @@ def cim_sys_id_pros():
     Return the property of CIM_ComputerSystem required to generate
     lsm.System.id
     """
-    return ['Name']
+    return ["Name"]
 
 
 def sys_id_of_cim_sys(cim_sys):
-    if 'Name' in cim_sys:
-        return cim_sys['Name']
+    if "Name" in cim_sys:
+        return cim_sys["Name"]
     else:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_id_of_cim_sys(): Got a CIM_ComputerSystem does not have "
-            "'Name' property: %s, %s" % (list(cim_sys.items()), cim_sys.path))
+            "'Name' property: %s, %s" % (list(cim_sys.items()), cim_sys.path),
+        )
 
 
 def sys_id_of_cim_vol(cim_vol):
-    if 'SystemName' in cim_vol:
-        return cim_vol['SystemName']
+    if "SystemName" in cim_vol:
+        return cim_vol["SystemName"]
     else:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_id_of_cim_vol(): Got a CIM_StorageVolume does not have "
-            "'SystemName' property: %s, %s" %
-            (list(cim_vol.items()), cim_vol.path))
+            "'SystemName' property: %s, %s" % (list(cim_vol.items()), cim_vol.path),
+        )
 
 
 def root_cim_sys(smis_common, property_list=None):
@@ -65,19 +66,23 @@ def root_cim_sys(smis_common, property_list=None):
 
     if smis_common.is_megaraid():
         cim_syss = smis_common.EnumerateInstances(
-            'CIM_ComputerSystem', PropertyList=property_list)
+            "CIM_ComputerSystem", PropertyList=property_list
+        )
     else:
         cim_syss = smis_common.Associators(
             smis_common.root_blk_cim_rp.path,
-            ResultClass='CIM_ComputerSystem',
-            AssocClass='CIM_ElementConformsToProfile',
-            PropertyList=property_list)
+            ResultClass="CIM_ComputerSystem",
+            AssocClass="CIM_ElementConformsToProfile",
+            PropertyList=property_list,
+        )
 
         if len(cim_syss) == 0:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Current SMI-S provider does not provide "
-                           "the root CIM_ComputerSystem associated "
-                           "to 'Array' CIM_RegisteredProfile.")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Current SMI-S provider does not provide "
+                "the root CIM_ComputerSystem associated "
+                "to 'Array' CIM_RegisteredProfile.",
+            )
 
     # System URI Filtering
     if smis_common.system_list:
@@ -95,7 +100,7 @@ def cim_sys_pros():
     Return a list of properties required to create a LSM System
     """
     cim_sys_properties = cim_sys_id_pros()
-    cim_sys_properties.extend(['ElementName', 'OperationalStatus'])
+    cim_sys_properties.extend(["ElementName", "OperationalStatus"])
     return cim_sys_properties
 
 
@@ -114,26 +119,30 @@ def _sys_status_of_cim_sys(cim_sys):
     """
     Convert CIM_ComputerSystem['OperationalStatus']
     """
-    if 'OperationalStatus' not in cim_sys:
+    if "OperationalStatus" not in cim_sys:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "sys_status_of_cim_sys(): Got a CIM_ComputerSystem with no "
-            "OperationalStatus: %s, %s" % (list(cim_sys.items()), cim_sys.path))
+            "OperationalStatus: %s, %s" % (list(cim_sys.items()), cim_sys.path),
+        )
 
     return dmtf.op_status_list_conv(
-        _LSM_SYS_OP_STATUS_CONV, cim_sys['OperationalStatus'],
-        System.STATUS_UNKNOWN, System.STATUS_OTHER)
+        _LSM_SYS_OP_STATUS_CONV,
+        cim_sys["OperationalStatus"],
+        System.STATUS_UNKNOWN,
+        System.STATUS_OTHER,
+    )
 
 
 def cim_sys_to_lsm_sys(cim_sys):
     status = System.STATUS_UNKNOWN
-    status_info = ''
+    status_info = ""
 
-    if 'OperationalStatus' in cim_sys:
+    if "OperationalStatus" in cim_sys:
         (status, status_info) = _sys_status_of_cim_sys(cim_sys)
 
     sys_id = sys_id_of_cim_sys(cim_sys)
-    sys_name = cim_sys['ElementName']
+    sys_name = cim_sys["ElementName"]
 
     return System(sys_id, sys_name, status, status_info)
 
@@ -153,6 +162,4 @@ def cim_sys_of_sys_id(smis_common, sys_id, property_list=None):
     for cim_sys in cim_syss:
         if sys_id_of_cim_sys(cim_sys) == sys_id:
             return cim_sys
-    raise LsmError(
-        ErrorNumber.NOT_FOUND_SYSTEM,
-        "Not found System")
+    raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "Not found System")

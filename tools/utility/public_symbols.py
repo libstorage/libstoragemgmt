@@ -23,12 +23,12 @@ import lsm
 
 nesting = 0
 visited_module = {}
-visited_class = {'ABCMeta': True}
+visited_class = {"ABCMeta": True}
 visited_function = {}
 
 
 def o_p(msg):
-    print("%s%s" % (' ' * nesting, msg))
+    print("%s%s" % (" " * nesting, msg))
 
 
 def handle_data(c, a):
@@ -41,18 +41,19 @@ def handle_property(c, a):
 
 
 def handle_method(c, a):
-    o_p("%s: %s %s" % (a[1].upper(), a[0],
-                       inspect.getargspec(getattr(c, a[0]))))
+    o_p("%s: %s %s" % (a[1].upper(), a[0], inspect.getargspec(getattr(c, a[0]))))
 
 
 def handle_other(c, a):
     o_p("OTHER: %s: %s" % (a[0], a[1]))
 
 
-f_map = {'data': handle_data,
-         'property': handle_property,
-         'method': handle_method,
-         'static method': handle_method}
+f_map = {
+    "data": handle_data,
+    "property": handle_property,
+    "method": handle_method,
+    "static method": handle_method,
+}
 
 
 def h_class(c):
@@ -61,8 +62,7 @@ def h_class(c):
 
     nesting += 4
 
-    info = [x for x in inspect.classify_class_attrs(c)
-            if not x[0].startswith('_')]
+    info = [x for x in inspect.classify_class_attrs(c) if not x[0].startswith("_")]
 
     s = sorted(info, key=lambda x: (x[1], x[0]))
 
@@ -86,21 +86,26 @@ def h_module(mod):
     else:
         visited_module[str(mod.__name__)] = True
 
-    class_list = [x for x in inspect.getmembers(mod, inspect.isclass)
-                  if not x[0].startswith('_')]
+    class_list = [
+        x for x in inspect.getmembers(mod, inspect.isclass) if not x[0].startswith("_")
+    ]
 
-    function_list = [x for x in inspect.getmembers(mod, inspect.isfunction)
-                     if not x[0].startswith('_')]
+    function_list = [
+        x
+        for x in inspect.getmembers(mod, inspect.isfunction)
+        if not x[0].startswith("_")
+    ]
 
-    module_list = [x for x in inspect.getmembers(mod, inspect.ismodule)
-                   if not x[0].startswith('_')]
+    module_list = [
+        x for x in inspect.getmembers(mod, inspect.ismodule) if not x[0].startswith("_")
+    ]
 
-    print('%sModule: %s' % (' ' * nesting, str(mod.__name__)))
+    print("%sModule: %s" % (" " * nesting, str(mod.__name__)))
     nesting += 4
     for m in function_list:
         if not m[0] in visited_function:
             visited_function[m[0]] = True
-            print('%sf: %s' % (' ' * nesting, m[0]))
+            print("%sf: %s" % (" " * nesting, m[0]))
 
     nesting -= 4
 
@@ -108,12 +113,13 @@ def h_module(mod):
         if not c[0] in visited_class:
             visited_class[c[0]] = True
             nesting += 4
-            print('%sClass: %s' % (' ' * nesting, c[0]))
+            print("%sClass: %s" % (" " * nesting, c[0]))
             h_class(c[1])
             nesting -= 4
 
     for m in module_list:
         h_module(m[1])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     h_module(lsm)

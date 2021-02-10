@@ -32,28 +32,37 @@ def _rs_supported_capabilities(smis_common, system_id, cap):
     if cim_rs:
         rs_cap = smis_common.Associators(
             cim_rs.path,
-            AssocClass='CIM_ElementCapabilities',
-            ResultClass='CIM_ReplicationServiceCapabilities',
-            PropertyList=['SupportedReplicationTypes',
-                          'SupportedAsynchronousActions',
-                          'SupportedSynchronousActions'])[0]
+            AssocClass="CIM_ElementCapabilities",
+            ResultClass="CIM_ReplicationServiceCapabilities",
+            PropertyList=[
+                "SupportedReplicationTypes",
+                "SupportedAsynchronousActions",
+                "SupportedSynchronousActions",
+            ],
+        )[0]
 
-        s_rt = rs_cap['SupportedReplicationTypes']
-        async_actions = rs_cap['SupportedAsynchronousActions']
-        sync_actions = rs_cap['SupportedSynchronousActions']
+        s_rt = rs_cap["SupportedReplicationTypes"]
+        async_actions = rs_cap["SupportedAsynchronousActions"]
+        sync_actions = rs_cap["SupportedSynchronousActions"]
 
-        if dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in async_actions or \
-           dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in sync_actions:
+        if (
+            dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in async_actions
+            or dmtf.REPLICA_CAP_ACTION_CREATE_ELEMENT in sync_actions
+        ):
             cap.set(Capabilities.VOLUME_REPLICATE)
         else:
             return
 
-        if dmtf.REPLICA_CAP_TYPE_SYNC_SNAPSHOT_LOCAL in s_rt or \
-           dmtf.REPLICA_CAP_TYPE_ASYNC_SNAPSHOT_LOCAL in s_rt:
+        if (
+            dmtf.REPLICA_CAP_TYPE_SYNC_SNAPSHOT_LOCAL in s_rt
+            or dmtf.REPLICA_CAP_TYPE_ASYNC_SNAPSHOT_LOCAL in s_rt
+        ):
             cap.set(Capabilities.VOLUME_REPLICATE_CLONE)
 
-        if dmtf.REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL in s_rt or \
-           dmtf.REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL in s_rt:
+        if (
+            dmtf.REPLICA_CAP_TYPE_SYNC_CLONE_LOCAL in s_rt
+            or dmtf.REPLICA_CAP_TYPE_ASYNC_CLONE_LOCAL in s_rt
+        ):
             cap.set(Capabilities.VOLUME_REPLICATE_COPY)
     else:
         # Try older storage configuration service
@@ -63,12 +72,13 @@ def _rs_supported_capabilities(smis_common, system_id, cap):
         if cim_scs:
             cim_sc_cap = smis_common.Associators(
                 cim_scs.path,
-                AssocClass='CIM_ElementCapabilities',
-                ResultClass='CIM_StorageConfigurationCapabilities',
-                PropertyList=['SupportedCopyTypes'])[0]
+                AssocClass="CIM_ElementCapabilities",
+                ResultClass="CIM_StorageConfigurationCapabilities",
+                PropertyList=["SupportedCopyTypes"],
+            )[0]
 
-            if cim_sc_cap is not None and 'SupportedCopyTypes' in cim_sc_cap:
-                sct = cim_sc_cap['SupportedCopyTypes']
+            if cim_sc_cap is not None and "SupportedCopyTypes" in cim_sc_cap:
+                sct = cim_sc_cap["SupportedCopyTypes"]
 
                 if sct and len(sct):
                     cap.set(Capabilities.VOLUME_REPLICATE)
@@ -103,25 +113,30 @@ def _bsp_cap_set(smis_common, system_id, cap):
     # which is mandatory if CIM_StorageConfigurationService is supported.
     cim_scs_cap = smis_common.Associators(
         cim_scs.path,
-        AssocClass='CIM_ElementCapabilities',
-        ResultClass='CIM_StorageConfigurationCapabilities',
-        PropertyList=['SupportedAsynchronousActions',
-                      'SupportedSynchronousActions',
-                      'SupportedStorageElementTypes'])[0]
+        AssocClass="CIM_ElementCapabilities",
+        ResultClass="CIM_StorageConfigurationCapabilities",
+        PropertyList=[
+            "SupportedAsynchronousActions",
+            "SupportedSynchronousActions",
+            "SupportedStorageElementTypes",
+        ],
+    )[0]
 
-    element_types = cim_scs_cap['SupportedStorageElementTypes']
+    element_types = cim_scs_cap["SupportedStorageElementTypes"]
     sup_actions = []
 
-    if 'SupportedSynchronousActions' in cim_scs_cap:
-        if cim_scs_cap['SupportedSynchronousActions']:
-            sup_actions.extend(cim_scs_cap['SupportedSynchronousActions'])
+    if "SupportedSynchronousActions" in cim_scs_cap:
+        if cim_scs_cap["SupportedSynchronousActions"]:
+            sup_actions.extend(cim_scs_cap["SupportedSynchronousActions"])
 
-    if 'SupportedAsynchronousActions' in cim_scs_cap:
-        if cim_scs_cap['SupportedAsynchronousActions']:
-            sup_actions.extend(cim_scs_cap['SupportedAsynchronousActions'])
+    if "SupportedAsynchronousActions" in cim_scs_cap:
+        if cim_scs_cap["SupportedAsynchronousActions"]:
+            sup_actions.extend(cim_scs_cap["SupportedAsynchronousActions"])
 
-    if dmtf.SCS_CAP_SUP_ST_VOLUME in element_types or \
-       dmtf.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
+    if (
+        dmtf.SCS_CAP_SUP_ST_VOLUME in element_types
+        or dmtf.SCS_CAP_SUP_THIN_ST_VOLUME in element_types
+    ):
         cap.set(Capabilities.VOLUMES)
         if dmtf.SCS_CAP_SUP_THIN_ST_VOLUME in element_types:
             cap.set(Capabilities.VOLUME_THIN)
@@ -139,9 +154,11 @@ def _bsp_cap_set(smis_common, system_id, cap):
 
 
 def _disk_cap_set(smis_common, cap):
-    if not smis_common.profile_check(SmisCommon.SNIA_DISK_LITE_PROFILE,
-                                     SmisCommon.SMIS_SPEC_VER_1_4,
-                                     raise_error=False):
+    if not smis_common.profile_check(
+        SmisCommon.SNIA_DISK_LITE_PROFILE,
+        SmisCommon.SMIS_SPEC_VER_1_4,
+        raise_error=False,
+    ):
         return
 
     cap.set(Capabilities.DISKS)
@@ -178,35 +195,37 @@ def _group_mask_map_cap_set(smis_common, cim_sys_path, cap):
     cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
 
     cim_gmm_cap_pros = [
-        'SupportedAsynchronousActions',
-        'SupportedSynchronousActions',
-        'SupportedDeviceGroupFeatures']
+        "SupportedAsynchronousActions",
+        "SupportedSynchronousActions",
+        "SupportedDeviceGroupFeatures",
+    ]
 
     cim_gmm_cap = smis_common.Associators(
         cim_sys_path,
-        AssocClass='CIM_ElementCapabilities',
-        ResultClass='CIM_GroupMaskingMappingCapabilities',
-        PropertyList=cim_gmm_cap_pros)[0]
+        AssocClass="CIM_ElementCapabilities",
+        ResultClass="CIM_GroupMaskingMappingCapabilities",
+        PropertyList=cim_gmm_cap_pros,
+    )[0]
 
     # if empty dev group in spc is allowed, RemoveMembers() is enough
     # to do volume_unmask(). RemoveMembers() is mandatory.
-    if dmtf.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC in \
-       cim_gmm_cap['SupportedDeviceGroupFeatures']:
+    if (
+        dmtf.GMM_CAP_DEV_MG_ALLOW_EMPTY_W_SPC
+        in cim_gmm_cap["SupportedDeviceGroupFeatures"]
+    ):
         cap.set(Capabilities.VOLUME_UNMASK)
 
     # DeleteMaskingView() is optional, this is required by volume_unmask()
     # when empty dev group in spc not allowed.
-    elif ((dmtf.GMM_CAP_DELETE_SPC in
-           cim_gmm_cap['SupportedSynchronousActions']) or
-          (dmtf.GMM_CAP_DELETE_SPC in
-           cim_gmm_cap['SupportedAsynchronousActions'])):
+    elif (dmtf.GMM_CAP_DELETE_SPC in cim_gmm_cap["SupportedSynchronousActions"]) or (
+        dmtf.GMM_CAP_DELETE_SPC in cim_gmm_cap["SupportedAsynchronousActions"]
+    ):
         cap.set(Capabilities.VOLUME_UNMASK)
 
     # DeleteGroup is optional, this is required by access_group_delete()
-    if ((dmtf.GMM_CAP_DELETE_GROUP in
-         cim_gmm_cap['SupportedSynchronousActions']) or
-        (dmtf.GMM_CAP_DELETE_GROUP in
-         cim_gmm_cap['SupportedAsynchronousActions'])):
+    if (dmtf.GMM_CAP_DELETE_GROUP in cim_gmm_cap["SupportedSynchronousActions"]) or (
+        dmtf.GMM_CAP_DELETE_GROUP in cim_gmm_cap["SupportedAsynchronousActions"]
+    ):
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
     return None
 
@@ -217,9 +236,9 @@ def _mask_map_cap_set(smis_common, cim_sys_path, cap):
     CIM_ControllerConfigurationService is mandatory
     and it's ExposePaths() and HidePaths() are mandatory
     """
-    if not smis_common.profile_check(SmisCommon.SNIA_MASK_PROFILE,
-                                     SmisCommon.SMIS_SPEC_VER_1_4,
-                                     raise_error=False):
+    if not smis_common.profile_check(
+        SmisCommon.SNIA_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_4, raise_error=False
+    ):
         return
 
     cap.set(Capabilities.ACCESS_GROUPS)
@@ -231,7 +250,7 @@ def _mask_map_cap_set(smis_common, cim_sys_path, cap):
 
     # EMC VNX does not support CreateStorageHardwareID for iSCSI
     # and require WWNN for WWPN. Hence both are not supported.
-    if cim_sys_path.classname == 'Clar_StorageSystem':
+    if cim_sys_path.classname == "Clar_StorageSystem":
         return
 
     if fc_tgt_is_supported(smis_common):
@@ -245,7 +264,7 @@ def _tgt_cap_set(smis_common, cim_sys_path, cap):
 
     # LSI MegaRAID actually not support FC Target and iSCSI target,
     # They expose empty list of CIM_FCPort
-    if cim_sys_path.classname == 'LSIESG_MegaRAIDHBA':
+    if cim_sys_path.classname == "LSIESG_MegaRAIDHBA":
         return
 
     flag_fc_support = fc_tgt_is_supported(smis_common)
@@ -265,22 +284,28 @@ def mask_type(smis_common, raise_error=False):
     If raise_error == False, just return MASK_TYPE_NO_SUPPORT
     or, raise NO_SUPPORT error.
     """
-    if smis_common.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
-                                 SmisCommon.SMIS_SPEC_VER_1_5,
-                                 raise_error=False):
+    if smis_common.profile_check(
+        SmisCommon.SNIA_GROUP_MASK_PROFILE,
+        SmisCommon.SMIS_SPEC_VER_1_5,
+        raise_error=False,
+    ):
         return MASK_TYPE_GROUP
-    if smis_common.profile_check(SmisCommon.SNIA_MASK_PROFILE,
-                                 SmisCommon.SMIS_SPEC_VER_1_4,
-                                 raise_error=False):
+    if smis_common.profile_check(
+        SmisCommon.SNIA_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_4, raise_error=False
+    ):
         return MASK_TYPE_MASK
     if raise_error:
-        raise LsmError(ErrorNumber.NO_SUPPORT,
-                       "Target SMI-S provider does not support "
-                       "%s version %s or %s version %s" %
-                       (SmisCommon.SNIA_MASK_PROFILE,
-                        SmisCommon.SMIS_SPEC_VER_1_4,
-                        SmisCommon.SNIA_GROUP_MASK_PROFILE,
-                        SmisCommon.SMIS_SPEC_VER_1_5))
+        raise LsmError(
+            ErrorNumber.NO_SUPPORT,
+            "Target SMI-S provider does not support "
+            "%s version %s or %s version %s"
+            % (
+                SmisCommon.SNIA_MASK_PROFILE,
+                SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_GROUP_MASK_PROFILE,
+                SmisCommon.SMIS_SPEC_VER_1_5,
+            ),
+        )
     return MASK_TYPE_NO_SUPPORT
 
 
@@ -291,16 +316,16 @@ def fc_tgt_is_supported(smis_common):
     flag_fc_support = smis_common.profile_check(
         SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
         SmisCommon.SMIS_SPEC_VER_1_4,
-        raise_error=False)
+        raise_error=False,
+    )
     # One more check for NetApp Typo:
     #   NetApp:     'FC Target Port'
     #   SMI-S:      'FC Target Ports'
     # Bug reported.
     if not flag_fc_support:
         flag_fc_support = smis_common.profile_check(
-            'FC Target Port',
-            SmisCommon.SMIS_SPEC_VER_1_4,
-            raise_error=False)
+            "FC Target Port", SmisCommon.SMIS_SPEC_VER_1_4, raise_error=False
+        )
     if flag_fc_support:
         return True
     else:
@@ -313,9 +338,11 @@ def iscsi_tgt_is_supported(smis_common):
     We use CIM_iSCSIProtocolEndpoint as it's a start point we are
     using in our code of target_ports().
     """
-    if smis_common.profile_check(SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
-                                 SmisCommon.SMIS_SPEC_VER_1_1,
-                                 raise_error=False):
+    if smis_common.profile_check(
+        SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE,
+        SmisCommon.SMIS_SPEC_VER_1_1,
+        raise_error=False,
+    ):
         return True
     return False
 
@@ -328,7 +355,8 @@ def multi_sys_is_supported(smis_common):
     flag_multi_sys_support = smis_common.profile_check(
         SmisCommon.SNIA_MULTI_SYS_PROFILE,
         SmisCommon.SMIS_SPEC_VER_1_1,
-        raise_error=False)
+        raise_error=False,
+    )
     if flag_multi_sys_support:
         return True
     else:
@@ -354,7 +382,7 @@ def get(smis_common, cim_sys, system):
 
     # 'Masking and Mapping' and 'Group Masking and Mapping' profiles
     mt = mask_type(smis_common)
-    if cim_sys.path.classname == 'Clar_StorageSystem':
+    if cim_sys.path.classname == "Clar_StorageSystem":
         mt = MASK_TYPE_MASK
 
     if mt == MASK_TYPE_GROUP:

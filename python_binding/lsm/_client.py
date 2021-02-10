@@ -15,10 +15,23 @@
 # Author: tasleson
 import os
 import sys
-from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
-                 Disk, AccessGroup, FileSystem, FsSnapshot,
-                 uri_parse, LsmError, ErrorNumber,
-                 INetworkAttachedStorage, TargetPort)
+from lsm import (
+    Volume,
+    NfsExport,
+    Capabilities,
+    Pool,
+    System,
+    Battery,
+    Disk,
+    AccessGroup,
+    FileSystem,
+    FsSnapshot,
+    uri_parse,
+    LsmError,
+    ErrorNumber,
+    INetworkAttachedStorage,
+    TargetPort,
+)
 
 from lsm._common import return_requires as _return_requires
 from lsm._common import UDS_PATH as _UDS_PATH
@@ -36,22 +49,26 @@ def _del_self(d):
     Used to remove the self key from the dict d.  Self is included when calling
     the function locals() in a class method.
     """
-    del d['self']
+    del d["self"]
     return d
 
 
 def _check_search_key(search_key, supported_keys):
     if search_key and search_key not in supported_keys:
-        raise LsmError(ErrorNumber.UNSUPPORTED_SEARCH_KEY,
-                       "Unsupported search_key: '%s'" % search_key)
+        raise LsmError(
+            ErrorNumber.UNSUPPORTED_SEARCH_KEY,
+            "Unsupported search_key: '%s'" % search_key,
+        )
     return
 
 
 # Descriptive exception about daemon not running.
 def _raise_no_daemon():
-    raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
-                   "The libStorageMgmt daemon is not running (process "
-                   "name lsmd), please start service")
+    raise LsmError(
+        ErrorNumber.DAEMON_NOT_RUNNING,
+        "The libStorageMgmt daemon is not running (process "
+        "name lsmd), please start service",
+    )
 
 
 # Main client class for library.
@@ -92,7 +109,7 @@ class Client(INetworkAttachedStorage):
         """
         Instruct the plug-in to get ready
         """
-        self._tp.rpc('plugin_register', _del_self(locals()))
+        self._tp.rpc("plugin_register", _del_self(locals()))
 
     # Checks to see if any unix domain sockets exist in the base directory
     # and opens a socket to one to see if the server is actually there.
@@ -122,8 +139,8 @@ class Client(INetworkAttachedStorage):
     def _plugin_uds_path():
         rc = _UDS_PATH
 
-        if 'LSM_UDS_PATH' in os.environ:
-            rc = os.environ['LSM_UDS_PATH']
+        if "LSM_UDS_PATH" in os.environ:
+            rc = os.environ["LSM_UDS_PATH"]
 
         return rc
 
@@ -134,16 +151,15 @@ class Client(INetworkAttachedStorage):
     # @param    timeout_ms              The timeout in ms
     # @param    flags                   Reserved for future use, must be zero.
     # @returns None
-    def __init__(self, uri, plain_text_password=None, timeout_ms=30000,
-                 flags=0):
+    def __init__(self, uri, plain_text_password=None, timeout_ms=30000, flags=0):
         self._uri = uri
         self._password = plain_text_password
         self._timeout = timeout_ms
         self._uds_path = Client._plugin_uds_path()
 
-        u = uri_parse(uri, ['scheme'])
+        u = uri_parse(uri, ["scheme"])
 
-        scheme = u['scheme']
+        scheme = u["scheme"]
         if "+" in scheme:
             (plug, proto) = scheme.split("+")
             scheme = plug
@@ -157,8 +173,10 @@ class Client(INetworkAttachedStorage):
             # plug-in in the URI or the daemon isn't started.  We will check
             # the directory for other unix domain sockets.
             if Client._check_daemon_exists():
-                raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
-                               "Plug-in %s not found!" % self.plugin_path)
+                raise LsmError(
+                    ErrorNumber.PLUGIN_NOT_EXIST,
+                    "Plug-in %s not found!" % self.plugin_path,
+                )
             else:
                 _raise_no_daemon()
 
@@ -180,7 +198,7 @@ class Client(INetworkAttachedStorage):
         """
         Does an orderly plugin_unregister of the plug-in
         """
-        self._tp.rpc('plugin_unregister', _del_self(locals()))
+        self._tp.rpc("plugin_unregister", _del_self(locals()))
         self._tp.close()
         self._tp = None
 
@@ -189,7 +207,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags:      Reserved for future use
     @staticmethod
     @_return_requires([six.string_types[0]])
-    def available_plugins(field_sep=':', flags=FLAG_RSVD):
+    def available_plugins(field_sep=":", flags=FLAG_RSVD):
         """
         Retrieves all the available plug-ins
 
@@ -207,7 +225,7 @@ class Client(INetworkAttachedStorage):
             for filename in files:
                 uds = os.path.join(root, filename)
                 tp = _TransPort(_TransPort.get_socket(uds))
-                i, v = tp.rpc('plugin_info', dict(flags=flags))
+                i, v = tp.rpc("plugin_info", dict(flags=flags))
                 rc.append("%s%s%s" % (i, field_sep, v))
                 tp.close()
 
@@ -224,7 +242,7 @@ class Client(INetworkAttachedStorage):
 
         Return None on success, else LsmError exception
         """
-        return self._tp.rpc('time_out_set', _del_self(locals()))
+        return self._tp.rpc("time_out_set", _del_self(locals()))
 
     # Retrieves the current time-out value.
     # @param    self    The this pointer
@@ -237,7 +255,7 @@ class Client(INetworkAttachedStorage):
 
         Return time-out in ms, else raise LsmError
         """
-        return self._tp.rpc('time_out_get', _del_self(locals()))
+        return self._tp.rpc("time_out_get", _del_self(locals()))
 
     # Retrieves the status of the specified job id.
     # @param    self    The this pointer
@@ -254,7 +272,7 @@ class Client(INetworkAttachedStorage):
                             completed item).
         else LsmError exception.
         """
-        return self._tp.rpc('job_status', _del_self(locals()))
+        return self._tp.rpc("job_status", _del_self(locals()))
 
     # Frees the resources for the specified job id.
     # @param    self    The this pointer
@@ -267,7 +285,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else raises an LsmError
         """
-        return self._tp.rpc('job_free', _del_self(locals()))
+        return self._tp.rpc("job_free", _del_self(locals()))
 
     # Gets the capabilities of the array.
     # @param    self    The this pointer
@@ -281,7 +299,7 @@ class Client(INetworkAttachedStorage):
 
         Returns a capability object, see data,py for details.
         """
-        return self._tp.rpc('capabilities', _del_self(locals()))
+        return self._tp.rpc("capabilities", _del_self(locals()))
 
     # Gets information about the plug-in
     # @param    self    The this pointer
@@ -292,7 +310,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a description and version of plug-in
         """
-        return self._tp.rpc('plugin_info', _del_self(locals()))
+        return self._tp.rpc("plugin_info", _del_self(locals()))
 
     # Returns an array of pool objects.
     # @param    self            The this pointer
@@ -307,7 +325,7 @@ class Client(INetworkAttachedStorage):
         file system interfaces, thus the reason they are in the base class.
         """
         _check_search_key(search_key, Pool.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('pools', _del_self(locals()))
+        return self._tp.rpc("pools", _del_self(locals()))
 
     # Returns an array of system objects.
     # @param    self    The this pointer
@@ -320,7 +338,7 @@ class Client(INetworkAttachedStorage):
         distinguish resources from on storage array to another when the plug=in
         supports the ability to have more than one array managed by it
         """
-        return self._tp.rpc('systems', _del_self(locals()))
+        return self._tp.rpc("systems", _del_self(locals()))
 
     # Changes the read cache percentage for a system.
     # @param    self            The this pointer
@@ -353,18 +371,23 @@ class Client(INetworkAttachedStorage):
         """
         if sys.version_info[0] == 2:
             if not isinstance(read_pct, (int, long)):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid read_pct, should be an integer")
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Invalid read_pct, should be an integer",
+                )
         else:
             if not isinstance(read_pct, int):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid read_pct, should be an integer")
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "Invalid read_pct, should be an integer",
+                )
 
         if read_pct > 100 or read_pct < 0:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Invalid read_pct, should be in range 0 - 100")
-        return self._tp.rpc('system_read_cache_pct_update',
-                            _del_self(locals()))
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Invalid read_pct, should be in range 0 - 100",
+            )
+        return self._tp.rpc("system_read_cache_pct_update", _del_self(locals()))
 
     # Register a user/password for the specified initiator for CHAP
     #  authentication.
@@ -379,16 +402,17 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def iscsi_chap_auth(self, init_id, in_user, in_password,
-                        out_user, out_password, flags=FLAG_RSVD):
+    def iscsi_chap_auth(
+        self, init_id, in_user, in_password, out_user, out_password, flags=FLAG_RSVD
+    ):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
         """
-        AccessGroup.initiator_id_verify(init_id,
-                                        AccessGroup.INIT_TYPE_ISCSI_IQN,
-                                        raise_exception=True)
-        return self._tp.rpc('iscsi_chap_auth', _del_self(locals()))
+        AccessGroup.initiator_id_verify(
+            init_id, AccessGroup.INIT_TYPE_ISCSI_IQN, raise_exception=True
+        )
+        return self._tp.rpc("iscsi_chap_auth", _del_self(locals()))
 
     # Returns an array of volume objects
     # @param    self            The this pointer
@@ -402,7 +426,7 @@ class Client(INetworkAttachedStorage):
         Returns an array of volume objects
         """
         _check_search_key(search_key, Volume.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('volumes', _del_self(locals()))
+        return self._tp.rpc("volumes", _del_self(locals()))
 
     # Creates a volume
     # @param    self            The this pointer
@@ -414,8 +438,9 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new volume), when one is None the other is
     #           valid.
     @_return_requires(six.string_types[0], Volume)
-    def volume_create(self, pool, volume_name, size_bytes, provisioning,
-                      flags=FLAG_RSVD):
+    def volume_create(
+        self, pool, volume_name, size_bytes, provisioning, flags=FLAG_RSVD
+    ):
         """
         Creates a volume, given a pool, volume name, size and provisioning
 
@@ -423,7 +448,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_create', _del_self(locals()))
+        return self._tp.rpc("volume_create", _del_self(locals()))
 
     # Re-sizes a volume
     # @param    self    The this pointer
@@ -441,7 +466,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_resize', _del_self(locals()))
+        return self._tp.rpc("volume_resize", _del_self(locals()))
 
     # Replicates a volume from the specified pool.
     # @param    self        The this pointer
@@ -454,8 +479,7 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new replicated volume), when one is
     #           None the other is valid.
     @_return_requires(six.string_types[0], Volume)
-    def volume_replicate(self, pool, rep_type, volume_src, name,
-                         flags=FLAG_RSVD):
+    def volume_replicate(self, pool, rep_type, volume_src, name, flags=FLAG_RSVD):
         """
         Replicates a volume from the specified pool.
 
@@ -463,7 +487,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('volume_replicate', _del_self(locals()))
+        return self._tp.rpc("volume_replicate", _del_self(locals()))
 
     # Size of a replicated block.
     # @param    self    The this pointer
@@ -475,8 +499,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns the size of a replicated block in bytes.
         """
-        return self._tp.rpc('volume_replicate_range_block_size',
-                            _del_self(locals()))
+        return self._tp.rpc("volume_replicate_range_block_size", _del_self(locals()))
 
     # Replicates a portion of a volume to itself or another volume.
     # @param    self    The this pointer
@@ -489,8 +512,9 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns Job id or None when completed, else raises LsmError on errors.
     @_return_requires(six.string_types[0])
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
-                               flags=FLAG_RSVD):
+    def volume_replicate_range(
+        self, rep_type, volume_src, volume_dest, ranges, flags=FLAG_RSVD
+    ):
         """
         Replicates a portion of a volume to itself or another volume.  The src,
         dest and number of blocks values change with vendor, call
@@ -498,7 +522,7 @@ class Client(INetworkAttachedStorage):
 
         Returns Job id or None when completed, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_replicate_range', _del_self(locals()))
+        return self._tp.rpc("volume_replicate_range", _del_self(locals()))
 
     # Deletes a volume
     # @param    self    The this pointer
@@ -512,7 +536,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self._tp.rpc('volume_delete', _del_self(locals()))
+        return self._tp.rpc("volume_delete", _del_self(locals()))
 
     # Makes a volume online and available to the host.
     # @param    self    The this pointer
@@ -526,7 +550,7 @@ class Client(INetworkAttachedStorage):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_enable', _del_self(locals()))
+        return self._tp.rpc("volume_enable", _del_self(locals()))
 
     # Takes a volume offline
     # @param    self    The this pointer
@@ -540,7 +564,7 @@ class Client(INetworkAttachedStorage):
 
         returns None on success, else raises LsmError on errors.
         """
-        return self._tp.rpc('volume_disable', _del_self(locals()))
+        return self._tp.rpc("volume_disable", _del_self(locals()))
 
     # Returns an array of disk objects
     # @param    self    The this pointer
@@ -557,7 +581,7 @@ class Client(INetworkAttachedStorage):
         Returns an array of disk objects
         """
         _check_search_key(search_key, Disk.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('disks', _del_self(locals()))
+        return self._tp.rpc("disks", _del_self(locals()))
 
     # Access control for allowing an access group to access a volume
     # @param    self            The this pointer
@@ -570,7 +594,7 @@ class Client(INetworkAttachedStorage):
         """
         Allows an access group to access a volume.
         """
-        return self._tp.rpc('volume_mask', _del_self(locals()))
+        return self._tp.rpc("volume_mask", _del_self(locals()))
 
     # Revokes access to a volume to initiators in an access group
     # @param    self            The this pointer
@@ -583,7 +607,7 @@ class Client(INetworkAttachedStorage):
         """
         Revokes access for an access group for a volume
         """
-        return self._tp.rpc('volume_unmask', _del_self(locals()))
+        return self._tp.rpc("volume_unmask", _del_self(locals()))
 
     # Returns a list of access group objects
     # @param    self    The this pointer
@@ -592,13 +616,12 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
-    def access_groups(self, search_key=None, search_value=None,
-                      flags=FLAG_RSVD):
+    def access_groups(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns a list of access groups
         """
         _check_search_key(search_key, AccessGroup.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('access_groups', _del_self(locals()))
+        return self._tp.rpc("access_groups", _del_self(locals()))
 
     # Creates an access a group with the specified initiator in it.
     # @param    self                The this pointer
@@ -609,15 +632,15 @@ class Client(INetworkAttachedStorage):
     # @param    flags               Reserved for future use, must be zero.
     # @returns AccessGroup on success, else raises LsmError
     @_return_requires(AccessGroup)
-    def access_group_create(self, name, init_id, init_type, system,
-                            flags=FLAG_RSVD):
+    def access_group_create(self, name, init_id, init_type, system, flags=FLAG_RSVD):
         """
         Creates an access group and add the specified initiator id,
         init_type and desired access.
         """
         init_type, init_id = AccessGroup.initiator_id_verify(
-            init_id, init_type, raise_exception=True)[1:]
-        return self._tp.rpc('access_group_create', _del_self(locals()))
+            init_id, init_type, raise_exception=True
+        )[1:]
+        return self._tp.rpc("access_group_create", _del_self(locals()))
 
     # Deletes an access group.
     # @param    self            The this pointer
@@ -629,7 +652,7 @@ class Client(INetworkAttachedStorage):
         """
         Deletes an access group
         """
-        return self._tp.rpc('access_group_delete', _del_self(locals()))
+        return self._tp.rpc("access_group_delete", _del_self(locals()))
 
     # Adds an initiator to an access group
     # @param    self            The this pointer
@@ -639,14 +662,16 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
-    def access_group_initiator_add(self, access_group, init_id, init_type,
-                                   flags=FLAG_RSVD):
+    def access_group_initiator_add(
+        self, access_group, init_id, init_type, flags=FLAG_RSVD
+    ):
         """
         Adds an initiator to an access group
         """
         init_type, init_id = AccessGroup.initiator_id_verify(
-            init_id, init_type, raise_exception=True)[1:]
-        return self._tp.rpc('access_group_initiator_add', _del_self(locals()))
+            init_id, init_type, raise_exception=True
+        )[1:]
+        return self._tp.rpc("access_group_initiator_add", _del_self(locals()))
 
     # Deletes an initiator from an access group
     # @param    self            The this pointer
@@ -656,15 +681,16 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
-    def access_group_initiator_delete(self, access_group, init_id, init_type,
-                                      flags=FLAG_RSVD):
+    def access_group_initiator_delete(
+        self, access_group, init_id, init_type, flags=FLAG_RSVD
+    ):
         """
         Deletes an initiator from an access group
         """
-        init_id = AccessGroup.initiator_id_verify(init_id, None,
-                                                  raise_exception=True)[2]
-        return self._tp.rpc('access_group_initiator_delete',
-                            _del_self(locals()))
+        init_id = AccessGroup.initiator_id_verify(init_id, None, raise_exception=True)[
+            2
+        ]
+        return self._tp.rpc("access_group_initiator_delete", _del_self(locals()))
 
     # Returns the list of volumes that access group has access to.
     # @param    self            The this pointer
@@ -672,13 +698,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns list of volumes
     @_return_requires([Volume])
-    def volumes_accessible_by_access_group(self, access_group,
-                                           flags=FLAG_RSVD):
+    def volumes_accessible_by_access_group(self, access_group, flags=FLAG_RSVD):
         """
         Returns the list of volumes that access group has access to.
         """
-        return self._tp.rpc('volumes_accessible_by_access_group',
-                            _del_self(locals()))
+        return self._tp.rpc("volumes_accessible_by_access_group", _del_self(locals()))
 
     # Returns the list of access groups that have access to the specified
     # volume.
@@ -692,8 +716,7 @@ class Client(INetworkAttachedStorage):
         Returns the list of access groups that have access to the specified
         volume.
         """
-        return self._tp.rpc('access_groups_granted_to_volume',
-                            _del_self(locals()))
+        return self._tp.rpc("access_groups_granted_to_volume", _del_self(locals()))
 
     # Checks to see if a volume has child dependencies.
     # @param    self    The this pointer
@@ -707,7 +730,7 @@ class Client(INetworkAttachedStorage):
         it. Implies that this volume cannot be deleted or possibly modified
         because it would affect its children.
         """
-        return self._tp.rpc('volume_child_dependency', _del_self(locals()))
+        return self._tp.rpc("volume_child_dependency", _del_self(locals()))
 
     # Removes any child dependency.
     # @param    self    The this pointer
@@ -727,7 +750,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None if complete else job id, raises LsmError on errors.
         """
-        return self._tp.rpc('volume_child_dependency_rm', _del_self(locals()))
+        return self._tp.rpc("volume_child_dependency_rm", _del_self(locals()))
 
     # Returns a list of file system objects.
     # @param    self            The this pointer
@@ -741,7 +764,7 @@ class Client(INetworkAttachedStorage):
         Returns a list of file systems on the controller.
         """
         _check_search_key(search_key, FileSystem.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('fs', _del_self(locals()))
+        return self._tp.rpc("fs", _del_self(locals()))
 
     # Deletes a file system
     # @param    self    The this pointer
@@ -756,7 +779,7 @@ class Client(INetworkAttachedStorage):
         Deletes a file system and everything it contains
         Returns None on success, else job id
         """
-        return self._tp.rpc('fs_delete', _del_self(locals()))
+        return self._tp.rpc("fs_delete", _del_self(locals()))
 
     # Re-sizes a file system
     # @param    self            The this pointer
@@ -774,7 +797,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_resize', _del_self(locals()))
+        return self._tp.rpc("fs_resize", _del_self(locals()))
 
     # Creates a file system.
     # @param    self        The this pointer
@@ -794,7 +817,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_create', _del_self(locals()))
+        return self._tp.rpc("fs_create", _del_self(locals()))
 
     # Clones a file system
     # @param    self            The this pointer
@@ -813,7 +836,7 @@ class Client(INetworkAttachedStorage):
         Note: Tuple return values are mutually exclusive, when one
         is None the other must be valid.
         """
-        return self._tp.rpc('fs_clone', _del_self(locals()))
+        return self._tp.rpc("fs_clone", _del_self(locals()))
 
     # Clones an individual file or files on the specified file system
     # @param    self            The this pointer
@@ -825,8 +848,9 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns  None on success, else job id
     @_return_requires(six.string_types[0])
-    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                      flags=FLAG_RSVD):
+    def fs_file_clone(
+        self, fs, src_file_name, dest_file_name, snapshot=None, flags=FLAG_RSVD
+    ):
         """
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem and
@@ -834,7 +858,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id
         """
-        return self._tp.rpc('fs_file_clone', _del_self(locals()))
+        return self._tp.rpc("fs_file_clone", _del_self(locals()))
 
     # Returns a list of snapshots
     # @param    self    The this pointer
@@ -846,7 +870,7 @@ class Client(INetworkAttachedStorage):
         """
         Returns a list of snapshot names for the supplied file system
         """
-        return self._tp.rpc('fs_snapshots', _del_self(locals()))
+        return self._tp.rpc("fs_snapshots", _del_self(locals()))
 
     # Creates a snapshot (Point in time read only copy)
     # @param    self            The this pointer
@@ -868,7 +892,7 @@ class Client(INetworkAttachedStorage):
         - Tuple return values are mutually exclusive, when one
           is None the other must be valid.
         """
-        return self._tp.rpc('fs_snapshot_create', _del_self(locals()))
+        return self._tp.rpc("fs_snapshot_create", _del_self(locals()))
 
     # Deletes a snapshot
     # @param    self        The this pointer
@@ -883,7 +907,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success else job id, LsmError exception on error
         """
-        return self._tp.rpc('fs_snapshot_delete', _del_self(locals()))
+        return self._tp.rpc("fs_snapshot_delete", _del_self(locals()))
 
     # Reverts a snapshot
     # @param    self            The this pointer
@@ -896,8 +920,9 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
     @_return_requires(six.string_types[0])
-    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                            all_files=False, flags=FLAG_RSVD):
+    def fs_snapshot_restore(
+        self, fs, snapshot, files, restore_files, all_files=False, flags=FLAG_RSVD
+    ):
         """
         WARNING: Destructive!
 
@@ -911,7 +936,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None on success, else job id, LsmError exception on error
         """
-        return self._tp.rpc('fs_snapshot_restore', _del_self(locals()))
+        return self._tp.rpc("fs_snapshot_restore", _del_self(locals()))
 
     # Checks to see if a file system has child dependencies.
     # @param    fs      The file system to check
@@ -926,7 +951,7 @@ class Client(INetworkAttachedStorage):
         or specified file on this file system cannot be deleted or possibly
         modified because it would affect its children.
         """
-        return self._tp.rpc('fs_child_dependency', _del_self(locals()))
+        return self._tp.rpc("fs_child_dependency", _del_self(locals()))
 
     # Removes child dependencies from a FS or specific file.
     # @param    self    The this pointer
@@ -947,7 +972,7 @@ class Client(INetworkAttachedStorage):
 
         Returns None if completed, else job id.  Raises LsmError on errors.
         """
-        return self._tp.rpc('fs_child_dependency_rm', _del_self(locals()))
+        return self._tp.rpc("fs_child_dependency_rm", _del_self(locals()))
 
     # Returns a list of all the NFS client authentication types.
     # @param    self    The this pointer
@@ -958,7 +983,7 @@ class Client(INetworkAttachedStorage):
         """
         What types of NFS client authentication are supported.
         """
-        return self._tp.rpc('export_auth', _del_self(locals()))
+        return self._tp.rpc("export_auth", _del_self(locals()))
 
     # Returns a list of all the exported file systems
     # @param    self    The this pointer
@@ -972,7 +997,7 @@ class Client(INetworkAttachedStorage):
         Get a list of all exported file systems on the controller.
         """
         _check_search_key(search_key, NfsExport.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('exports', _del_self(locals()))
+        return self._tp.rpc("exports", _del_self(locals()))
 
     # Exports a FS as specified in the export.
     # @param    self            The this pointer
@@ -988,17 +1013,27 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns NfsExport on success, else raises LsmError
     @_return_requires(NfsExport)
-    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
-                  anon_uid=NfsExport.ANON_UID_GID_NA,
-                  anon_gid=NfsExport.ANON_UID_GID_NA,
-                  auth_type=None, options=None, flags=FLAG_RSVD):
+    def export_fs(
+        self,
+        fs_id,
+        export_path,
+        root_list,
+        rw_list,
+        ro_list,
+        anon_uid=NfsExport.ANON_UID_GID_NA,
+        anon_gid=NfsExport.ANON_UID_GID_NA,
+        auth_type=None,
+        options=None,
+        flags=FLAG_RSVD,
+    ):
         """
         Exports a filesystem as specified in the arguments
         """
         if set(rw_list) - (set(rw_list) - set(ro_list)):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Host cannot both in rw_list and ro_list.")
-        return self._tp.rpc('export_fs', _del_self(locals()))
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT, "Host cannot both in rw_list and ro_list."
+            )
+        return self._tp.rpc("export_fs", _del_self(locals()))
 
     # Removes the specified export
     # @param    self    The this pointer
@@ -1010,7 +1045,7 @@ class Client(INetworkAttachedStorage):
         """
         Removes the specified export
         """
-        return self._tp.rpc('export_remove', _del_self(locals()))
+        return self._tp.rpc("export_remove", _del_self(locals()))
 
     # Returns a list of target ports
     # @param    self    The this pointer
@@ -1019,13 +1054,12 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero
     # @returns List of target ports, else raises LsmError
     @_return_requires([TargetPort])
-    def target_ports(self, search_key=None, search_value=None,
-                     flags=FLAG_RSVD):
+    def target_ports(self, search_key=None, search_value=None, flags=FLAG_RSVD):
         """
         Returns a list of target ports
         """
         _check_search_key(search_key, TargetPort.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('target_ports', _del_self(locals()))
+        return self._tp.rpc("target_ports", _del_self(locals()))
 
     # Returns the RAID information of certain volume
     # @param    self    The this pointer
@@ -1124,7 +1158,7 @@ class Client(INetworkAttachedStorage):
                 ErrorNumber.NO_SUPPORT
                     No support.
         """
-        return self._tp.rpc('volume_raid_info', _del_self(locals()))
+        return self._tp.rpc("volume_raid_info", _del_self(locals()))
 
     # Query the membership information of specified pool
     # @param    self    The this pointer
@@ -1227,7 +1261,7 @@ class Client(INetworkAttachedStorage):
         Capability:
             lsm.Capabilities.POOL_MEMBER_INFO
         """
-        return self._tp.rpc('pool_member_info', _del_self(locals()))
+        return self._tp.rpc("pool_member_info", _del_self(locals()))
 
     # Queries all the supported RAID types and stripe sizes which could be
     #  used for input into volume_raid_create
@@ -1288,7 +1322,7 @@ class Client(INetworkAttachedStorage):
                 This method is mandatory when volume_raid_create() is
                 supported.
         """
-        return self._tp.rpc('volume_raid_create_cap_get', _del_self(locals()))
+        return self._tp.rpc("volume_raid_create_cap_get", _del_self(locals()))
 
     # Create a disk RAID pool and allocate entire storage space to new volume
     # @param    self            The this pointer
@@ -1299,8 +1333,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Flags
     # @returns  the newly created volume, lsmError on errors
     @_return_requires(Volume)
-    def volume_raid_create(self, name, raid_type, disks, strip_size,
-                           flags=FLAG_RSVD):
+    def volume_raid_create(self, name, raid_type, disks, strip_size, flags=FLAG_RSVD):
         """
         lsm.Client.volume_raid_create(self, name, raid_type, disks,
                                       strip_size, flags=lsm.Client.FLAG_RSVD)
@@ -1390,45 +1423,52 @@ class Client(INetworkAttachedStorage):
         if len(disks) == 0:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input disks argument: no disk included")
+                "Illegal input disks argument: no disk included",
+            )
 
         if raid_type == Volume.RAID_TYPE_RAID1 and len(disks) != 2:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input disks argument: RAID 1 only allow 2 disks")
+                "Illegal input disks argument: RAID 1 only allow 2 disks",
+            )
 
         if raid_type == Volume.RAID_TYPE_RAID5 and len(disks) < 3:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input disks argument: RAID 5 require 3 or more disks")
+                "Illegal input disks argument: RAID 5 require 3 or more disks",
+            )
 
         if raid_type == Volume.RAID_TYPE_RAID6 and len(disks) < 4:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input disks argument: RAID 6 require 4 or more disks")
+                "Illegal input disks argument: RAID 6 require 4 or more disks",
+            )
 
         if raid_type == Volume.RAID_TYPE_RAID10:
             if len(disks) % 2 or len(disks) < 4:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: "
-                    "RAID 10 require even disks count and 4 or more disks")
+                    "RAID 10 require even disks count and 4 or more disks",
+                )
 
         if raid_type == Volume.RAID_TYPE_RAID50:
             if len(disks) % 2 or len(disks) < 6:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: "
-                    "RAID 50 require even disks count and 6 or more disks")
+                    "RAID 50 require even disks count and 6 or more disks",
+                )
 
         if raid_type == Volume.RAID_TYPE_RAID60:
             if len(disks) % 2 or len(disks) < 8:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: "
-                    "RAID 60 require even disks count and 8 or more disks")
+                    "RAID 60 require even disks count and 8 or more disks",
+                )
 
-        return self._tp.rpc('volume_raid_create', _del_self(locals()))
+        return self._tp.rpc("volume_raid_create", _del_self(locals()))
 
     # Enable the IDENT LED for a volume.
     # @param    self            The this pointer
@@ -1455,7 +1495,7 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        return self._tp.rpc('volume_ident_led_on', _del_self(locals()))
+        return self._tp.rpc("volume_ident_led_on", _del_self(locals()))
 
     # Disable the IDENT LED for a volume.
     # @param    self            The this pointer
@@ -1482,7 +1522,7 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        return self._tp.rpc('volume_ident_led_off', _del_self(locals()))
+        return self._tp.rpc("volume_ident_led_off", _del_self(locals()))
 
     @_return_requires([Battery])
     def batteries(self, search_key=None, search_value=None, flags=FLAG_RSVD):
@@ -1551,7 +1591,7 @@ class Client(INetworkAttachedStorage):
             lsm.Capabilities.BATTERIES
         """
         _check_search_key(search_key, Battery.SUPPORTED_SEARCH_KEYS)
-        return self._tp.rpc('batteries', _del_self(locals()))
+        return self._tp.rpc("batteries", _del_self(locals()))
 
     @_return_requires([int, int, int, int, int])
     def volume_cache_info(self, volume, flags=FLAG_RSVD):
@@ -1635,7 +1675,7 @@ class Client(INetworkAttachedStorage):
         Capability:
             lsm.Capabilities.VOLUME_CACHE_INFO
         """
-        return self._tp.rpc('volume_cache_info', _del_self(locals()))
+        return self._tp.rpc("volume_cache_info", _del_self(locals()))
 
     @_return_requires(None)
     def volume_physical_disk_cache_update(self, volume, pdc, flags=FLAG_RSVD):
@@ -1678,15 +1718,17 @@ class Client(INetworkAttachedStorage):
                 For example, on HPE SmartArray, the physical disk cache
                 setting is a controller level setting.
         """
-        if (pdc != Volume.PHYSICAL_DISK_CACHE_ENABLED) and \
-           (pdc != Volume.PHYSICAL_DISK_CACHE_DISABLED):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument pdc should be "
-                           "Volume.PHYSICAL_DISK_CACHE_ENABLED or "
-                           "Volume.PHYSICAL_DISK_CACHE_DISABLED")
+        if (pdc != Volume.PHYSICAL_DISK_CACHE_ENABLED) and (
+            pdc != Volume.PHYSICAL_DISK_CACHE_DISABLED
+        ):
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Argument pdc should be "
+                "Volume.PHYSICAL_DISK_CACHE_ENABLED or "
+                "Volume.PHYSICAL_DISK_CACHE_DISABLED",
+            )
 
-        return self._tp.rpc('volume_physical_disk_cache_update',
-                            _del_self(locals()))
+        return self._tp.rpc("volume_physical_disk_cache_update", _del_self(locals()))
 
     @_return_requires(None)
     def volume_write_cache_policy_update(self, volume, wcp, flags=FLAG_RSVD):
@@ -1740,16 +1782,19 @@ class Client(INetworkAttachedStorage):
                 mode will change all other volumes with auto write cache policy
                 to write back mode.
         """
-        if wcp != Volume.WRITE_CACHE_POLICY_WRITE_BACK and \
-           wcp != Volume.WRITE_CACHE_POLICY_AUTO and \
-           wcp != Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument wcp should be "
-                           "Volume.WRITE_CACHE_POLICY_WRITE_BACK or "
-                           "Volume.WRITE_CACHE_POLICY_AUTO or "
-                           "Volume.WRITE_CACHE_POLICY_WRITE_THROUGH")
-        return self._tp.rpc('volume_write_cache_policy_update',
-                            _del_self(locals()))
+        if (
+            wcp != Volume.WRITE_CACHE_POLICY_WRITE_BACK
+            and wcp != Volume.WRITE_CACHE_POLICY_AUTO
+            and wcp != Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+        ):
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Argument wcp should be "
+                "Volume.WRITE_CACHE_POLICY_WRITE_BACK or "
+                "Volume.WRITE_CACHE_POLICY_AUTO or "
+                "Volume.WRITE_CACHE_POLICY_WRITE_THROUGH",
+            )
+        return self._tp.rpc("volume_write_cache_policy_update", _del_self(locals()))
 
     @_return_requires(None)
     def volume_read_cache_policy_update(self, volume, rcp, flags=FLAG_RSVD):
@@ -1789,11 +1834,14 @@ class Client(INetworkAttachedStorage):
                 cache policy. For example, on HPE SmartArray, disabling read
                 cache will also change write cache policy to write through.
         """
-        if rcp != Volume.READ_CACHE_POLICY_ENABLED and \
-           rcp != Volume.READ_CACHE_POLICY_DISABLED:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument rcp should be "
-                           "Volume.READ_CACHE_POLICY_ENABLED or "
-                           "Volume.READ_CACHE_POLICY_DISABLED")
-        return self._tp.rpc('volume_read_cache_policy_update',
-                            _del_self(locals()))
+        if (
+            rcp != Volume.READ_CACHE_POLICY_ENABLED
+            and rcp != Volume.READ_CACHE_POLICY_DISABLED
+        ):
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Argument rcp should be "
+                "Volume.READ_CACHE_POLICY_ENABLED or "
+                "Volume.READ_CACHE_POLICY_DISABLED",
+            )
+        return self._tp.rpc("volume_read_cache_policy_update", _del_self(locals()))

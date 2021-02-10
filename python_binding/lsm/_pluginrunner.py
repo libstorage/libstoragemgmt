@@ -25,6 +25,7 @@ import errno
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
 
+
 def search_property(lsm_objs, search_key, search_value):
     """
     This method does not check whether lsm_obj contain requested property.
@@ -32,8 +33,9 @@ def search_property(lsm_objs, search_key, search_value):
     """
     if search_key is None:
         return lsm_objs
-    return list(lsm_obj for lsm_obj in lsm_objs
-                if getattr(lsm_obj, search_key) == search_value)
+    return list(
+        lsm_obj for lsm_obj in lsm_objs if getattr(lsm_obj, search_key) == search_value
+    )
 
 
 class PluginRunner(object):
@@ -59,7 +61,8 @@ class PluginRunner(object):
             try:
                 fd = int(args[1])
                 self.tp = TransPort(
-                    socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM))
+                    socket.fromfd(fd, socket.AF_UNIX, socket.SOCK_STREAM)
+                )
 
                 # At this point we can return errors to the client, so we can
                 # inform the client if the plug-in fails to create itself
@@ -68,13 +71,14 @@ class PluginRunner(object):
                 except Exception as e:
                     ec_info = sys.exc_info()
 
-                    self.tp.send_error(0, -32099,
-                                       'Error instantiating plug-in ' + str(e))
+                    self.tp.send_error(
+                        0, -32099, "Error instantiating plug-in " + str(e)
+                    )
                     raise six.reraise(*ec_info)
 
             except Exception:
                 error(traceback.format_exc())
-                error('Plug-in exiting.')
+                error("Plug-in exiting.")
                 sys.exit(2)
 
         else:
@@ -96,9 +100,9 @@ class PluginRunner(object):
 
                     msg = self.tp.read_req()
 
-                    method = msg['method']
-                    msg_id = msg['id']
-                    params = msg['params']
+                    method = msg["method"]
+                    msg_id = msg["id"]
+                    params = msg["params"]
 
                     # Check to see if this plug-in implements this operation
                     # if not return the expected error.
@@ -106,18 +110,16 @@ class PluginRunner(object):
                         if params is None:
                             result = getattr(self.plugin, method)()
                         else:
-                            result = getattr(self.plugin, method)(
-                                **msg['params'])
+                            result = getattr(self.plugin, method)(**msg["params"])
                     else:
-                        raise LsmError(ErrorNumber.NO_SUPPORT,
-                                       "Unsupported operation")
+                        raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
 
                     self.tp.send_resp(result)
 
-                    if method == 'plugin_register':
+                    if method == "plugin_register":
                         need_shutdown = True
 
-                    if method == 'plugin_unregister':
+                    if method == "plugin_unregister":
                         # This is a graceful plugin_unregister
                         need_shutdown = False
                         self.tp.close()
@@ -130,27 +132,28 @@ class PluginRunner(object):
                     error(traceback.format_exc())
                     self.tp.send_error(msg_id, -32601, str(ae))
                 except LsmError as lsm_err:
-                    self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
-                                       lsm_err.data)
+                    self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg, lsm_err.data)
         except _SocketEOF:
             # Client went away and didn't meet our expectations for protocol,
             # this error message should not be seen as it shouldn't be
             # occurring.
             if need_shutdown:
-                error('Client went away, exiting plug-in')
+                error("Client went away, exiting plug-in")
         except socket.error as se:
             if se.errno == errno.EPIPE:
-                error('Client went away, exiting plug-in')
+                error("Client went away, exiting plug-in")
             else:
-                error("Unhandled exception in plug-in!\n" +
-                      traceback.format_exc())
+                error("Unhandled exception in plug-in!\n" + traceback.format_exc())
         except Exception:
             error("Unhandled exception in plug-in!\n" + traceback.format_exc())
 
             try:
-                self.tp.send_error(msg_id, ErrorNumber.PLUGIN_BUG,
-                                   "Unhandled exception in plug-in",
-                                   str(traceback.format_exc()))
+                self.tp.send_error(
+                    msg_id,
+                    ErrorNumber.PLUGIN_BUG,
+                    "Unhandled exception in plug-in",
+                    str(traceback.format_exc()),
+                )
             except Exception:
                 pass
 

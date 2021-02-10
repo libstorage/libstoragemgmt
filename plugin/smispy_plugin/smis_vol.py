@@ -23,8 +23,7 @@ import sys
 import six
 
 from lsm import md5, Volume, LsmError, ErrorNumber
-from smispy_plugin.utils import (
-    merge_list, cim_path_to_path_str, path_str_to_cim_path)
+from smispy_plugin.utils import merge_list, cim_path_to_path_str, path_str_to_cim_path
 from smispy_plugin import dmtf
 
 
@@ -33,31 +32,41 @@ def cim_vol_id_pros():
     Return the property of CIM_StorageVolume required to generate
     lsm.Volume.id
     """
-    return ['SystemName', 'DeviceID']
+    return ["SystemName", "DeviceID"]
 
 
 def vol_id_of_cim_vol(cim_vol):
     """
     Get lsm.Volume.id from CIM_StorageVolume['DeviceID'] and ['SystemName']
     """
-    if 'SystemName' not in cim_vol or 'DeviceID' not in cim_vol:
+    if "SystemName" not in cim_vol or "DeviceID" not in cim_vol:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "vol_id_of_cim_vol(): Got cim_vol with no "
-            "SystemName or DeviceID property: %s, %s" %
-            (cim_vol.path, list(cim_vol.items())))
+            "SystemName or DeviceID property: %s, %s"
+            % (cim_vol.path, list(cim_vol.items())),
+        )
 
-    return md5("%s%s" % (cim_vol['SystemName'], cim_vol['DeviceID']))
+    return md5("%s%s" % (cim_vol["SystemName"], cim_vol["DeviceID"]))
 
 
 def cim_vol_pros():
     """
     Return the PropertyList required for creating new lsm.Volume.
     """
-    props = ['ElementName', 'NameFormat',
-             'NameNamespace', 'BlockSize', 'NumberOfBlocks', 'Name',
-             'OtherIdentifyingInfo', 'IdentifyingDescriptions', 'Usage',
-             'OtherNameFormat', 'OtherNameNamespace']
+    props = [
+        "ElementName",
+        "NameFormat",
+        "NameNamespace",
+        "BlockSize",
+        "NumberOfBlocks",
+        "Name",
+        "OtherIdentifyingInfo",
+        "IdentifyingDescriptions",
+        "Usage",
+        "OtherNameFormat",
+        "OtherNameNamespace",
+    ]
     props.extend(cim_vol_id_pros())
     return props
 
@@ -76,20 +85,20 @@ def cim_vol_of_cim_pool_path(smis_common, cim_pool_path, property_list=None):
     Return a list of CIM_StorageVolume.
     """
     if property_list is None:
-        property_list = ['Usage']
+        property_list = ["Usage"]
     else:
-        property_list = merge_list(property_list, ['Usage'])
+        property_list = merge_list(property_list, ["Usage"])
 
     cim_vols = smis_common.Associators(
         cim_pool_path,
-        AssocClass='CIM_AllocatedFromStoragePool',
-        ResultClass='CIM_StorageVolume',
-        PropertyList=property_list)
+        AssocClass="CIM_AllocatedFromStoragePool",
+        ResultClass="CIM_StorageVolume",
+        PropertyList=property_list,
+    )
 
     needed_cim_vols = []
     for cim_vol in cim_vols:
-        if 'Usage' not in cim_vol or \
-           cim_vol['Usage'] != dmtf.VOL_USAGE_SYS_RESERVED:
+        if "Usage" not in cim_vol or cim_vol["Usage"] != dmtf.VOL_USAGE_SYS_RESERVED:
             needed_cim_vols.append(cim_vol)
     return needed_cim_vols
 
@@ -100,18 +109,20 @@ def _vpd83_in_cim_vol_name(cim_vol):
     Only this is allowed when storing VPD83 in cim_vol["Name"]:
      * NameFormat = NAA(9), NameNamespace = VPD83Type3(2)
     """
-    if not ('NameFormat' in cim_vol and
-            'NameNamespace' in cim_vol and
-            'Name' in cim_vol):
+    if not (
+        "NameFormat" in cim_vol and "NameNamespace" in cim_vol and "Name" in cim_vol
+    ):
         return None
-    name_format = cim_vol['NameFormat']
-    name_space = cim_vol['NameNamespace']
-    name = cim_vol['Name']
+    name_format = cim_vol["NameFormat"]
+    name_space = cim_vol["NameNamespace"]
+    name = cim_vol["Name"]
     if not (name_format and name_space and name):
         return None
 
-    if name_format == dmtf.VOL_NAME_FORMAT_NNA and \
-       name_space == dmtf.VOL_NAME_SPACE_VPD83_TYPE3:
+    if (
+        name_format == dmtf.VOL_NAME_FORMAT_NNA
+        and name_space == dmtf.VOL_NAME_SPACE_VPD83_TYPE3
+    ):
         return name
 
 
@@ -120,14 +131,15 @@ def _vpd83_in_cim_vol_otherinfo(cim_vol):
     IdentifyingDescriptions[] shall contain "NAA;VPD83Type3".
     Will return the vpd_83 value if found
     """
-    if not ("IdentifyingDescriptions" in cim_vol and
-            "OtherIdentifyingInfo" in cim_vol):
+    if not ("IdentifyingDescriptions" in cim_vol and "OtherIdentifyingInfo" in cim_vol):
         return None
 
     id_des = cim_vol["IdentifyingDescriptions"]
     other_info = cim_vol["OtherIdentifyingInfo"]
-    if not (isinstance(cim_vol["IdentifyingDescriptions"], list) and
-            isinstance(cim_vol["OtherIdentifyingInfo"], list)):
+    if not (
+        isinstance(cim_vol["IdentifyingDescriptions"], list)
+        and isinstance(cim_vol["OtherIdentifyingInfo"], list)
+    ):
         return None
 
     index = 0
@@ -145,14 +157,16 @@ def _vpd83_netapp(cim_vol):
     Workaround for NetApp, they use OtherNameNamespace and
     OtherNameFormat.
     """
-    if 'OtherNameFormat' in cim_vol and \
-       cim_vol['OtherNameFormat'] == 'NAA' and \
-       'OtherNameNamespace' in cim_vol and \
-       cim_vol['OtherNameNamespace'] == 'VPD83Type3' and \
-       'OtherIdentifyingInfo' in cim_vol and \
-       isinstance(cim_vol["OtherIdentifyingInfo"], list) and \
-       len(cim_vol['OtherIdentifyingInfo']) == 1:
-        return cim_vol['OtherIdentifyingInfo'][0]
+    if (
+        "OtherNameFormat" in cim_vol
+        and cim_vol["OtherNameFormat"] == "NAA"
+        and "OtherNameNamespace" in cim_vol
+        and cim_vol["OtherNameNamespace"] == "VPD83Type3"
+        and "OtherIdentifyingInfo" in cim_vol
+        and isinstance(cim_vol["OtherIdentifyingInfo"], list)
+        and len(cim_vol["OtherIdentifyingInfo"]) == 1
+    ):
+        return cim_vol["OtherIdentifyingInfo"][0]
 
 
 def _vpd83_of_cim_vol(cim_vol):
@@ -171,7 +185,7 @@ def _vpd83_of_cim_vol(cim_vol):
     if vpd_83 and Volume.vpd83_verify(vpd_83):
         return vpd_83
     else:
-        return ''
+        return ""
 
 
 def cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id):
@@ -180,11 +194,11 @@ def cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id):
     """
 
     # This is optional (User friendly name)
-    if 'ElementName' in cim_vol:
+    if "ElementName" in cim_vol:
         user_name = cim_vol["ElementName"]
     else:
         # Better fallback value?
-        user_name = cim_vol['DeviceID']
+        user_name = cim_vol["DeviceID"]
 
     vpd_83 = _vpd83_of_cim_vol(cim_vol)
 
@@ -193,9 +207,16 @@ def cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id):
     plugin_data = cim_path_to_path_str(cim_vol.path)
 
     return Volume(
-        vol_id_of_cim_vol(cim_vol), user_name, vpd_83,
-        cim_vol["BlockSize"], cim_vol["NumberOfBlocks"], admin_state, sys_id,
-        pool_id, plugin_data)
+        vol_id_of_cim_vol(cim_vol),
+        user_name,
+        vpd_83,
+        cim_vol["BlockSize"],
+        cim_vol["NumberOfBlocks"],
+        admin_state,
+        sys_id,
+        pool_id,
+        plugin_data,
+    )
 
 
 def lsm_vol_to_cim_vol_path(smis_common, lsm_vol):
@@ -205,13 +226,10 @@ def lsm_vol_to_cim_vol_path(smis_common, lsm_vol):
     """
     if not lsm_vol.plugin_data:
         raise LsmError(
-            ErrorNumber.PLUGIN_BUG,
-            "Got lsm.Volume instance with empty plugin_data")
-    if smis_common.system_list and \
-       lsm_vol.system_id not in smis_common.system_list:
-        raise LsmError(
-            ErrorNumber.NOT_FOUND_SYSTEM,
-            "System filtered in URI")
+            ErrorNumber.PLUGIN_BUG, "Got lsm.Volume instance with empty plugin_data"
+        )
+    if smis_common.system_list and lsm_vol.system_id not in smis_common.system_list:
+        raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System filtered in URI")
 
     return path_str_to_cim_path(lsm_vol.plugin_data)
 
@@ -224,9 +242,10 @@ def volume_name_exists(smis_common, volume_name):
     :return: True if volume exists with 'name', else False
     """
     all_cim_vols = smis_common.EnumerateInstances(
-        'CIM_StorageVolume', PropertyList=['ElementName'])
+        "CIM_StorageVolume", PropertyList=["ElementName"]
+    )
     for exist_cim_vol in all_cim_vols:
-        if volume_name == exist_cim_vol['ElementName']:
+        if volume_name == exist_cim_vol["ElementName"]:
             return True
     return False
 
@@ -237,8 +256,10 @@ def volume_create_error_handler(smis_common, method_data, exec_info=None):
     The method_data is the requested volume name.
     """
     if volume_name_exists(smis_common, method_data):
-        raise LsmError(ErrorNumber.NAME_CONFLICT,
-                       "Volume with name '%s' already exists!" % method_data)
+        raise LsmError(
+            ErrorNumber.NAME_CONFLICT,
+            "Volume with name '%s' already exists!" % method_data,
+        )
 
     if exec_info is None:
         (error_type, error_msg, error_trace) = sys.exc_info()

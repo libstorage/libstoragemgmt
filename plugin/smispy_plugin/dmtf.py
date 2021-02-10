@@ -71,8 +71,8 @@ SCS_CAP_VOLUME_DELETE = pywbem.Uint16(6)
 SCS_CAP_VOLUME_MODIFY = pywbem.Uint16(7)
 
 # DSP 1033  Profile Registration
-INTEROP_NAMESPACES = ['interop', 'root/interop', 'root/PG_Interop']
-DEFAULT_NAMESPACE = 'interop'
+INTEROP_NAMESPACES = ["interop", "root/interop", "root/PG_Interop"]
+DEFAULT_NAMESPACE = "interop"
 
 
 # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
@@ -160,11 +160,10 @@ def _op_status_to_str(dmtf_op_status):
     try:
         return _OP_STATUS_STR_CONV[dmtf_op_status]
     except KeyError:
-        return ''
+        return ""
 
 
-def op_status_list_conv(conv_dict, dmtf_op_status_list,
-                        unknown_value, other_value):
+def op_status_list_conv(conv_dict, dmtf_op_status_list, unknown_value, other_value):
     status = 0
     status_info_list = []
     for dmtf_op_status in dmtf_op_status_list:
@@ -178,6 +177,7 @@ def op_status_list_conv(conv_dict, dmtf_op_status_list,
     if status == 0:
         status = unknown_value
     return status, " ".join(status_info_list)
+
 
 # CIM_ConcreteJob['JobState']
 JOB_STATE_NEW = 2
@@ -231,6 +231,6 @@ ST_SYNC_STATE_SYNCHRONIZED = 6
 # CIM_ControllerConfigurationService.ExposePaths(DeviceAccesses)
 CTRL_CONF_SRV_DA_RW = pywbem.Uint16(2)
 
-VOL_OTHER_INFO_NAA_VPD83_TYPE3H = 'NAA;VPD83Type3'
+VOL_OTHER_INFO_NAA_VPD83_TYPE3H = "NAA;VPD83Type3"
 
 VOL_USAGE_SYS_RESERVED = pywbem.Uint16(3)

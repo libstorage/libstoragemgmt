@@ -8,13 +8,14 @@ from xml.etree import ElementTree
 
 
 def _ns(tag):
-    return tag[tag.find('}') + 1:]
+    return tag[tag.find("}") + 1 :]
 
 
 class XmlDictObject(dict):
     """
     Adds object like functionality to the standard dictionary.
     """
+
     def __init__(self, initdict=None):
         if initdict is None:
             initdict = {}
@@ -27,10 +28,10 @@ class XmlDictObject(dict):
         self.__setitem__(item, value)
 
     def __str__(self):
-        if '_text' in self:
-            return self.__getitem__('_text')
+        if "_text" in self:
+            return self.__getitem__("_text")
         else:
-            return ''
+            return ""
 
     @staticmethod
     def wrap(x):
@@ -38,8 +39,7 @@ class XmlDictObject(dict):
         Static method to wrap a dictionary recursively as an XmlDictObject
         """
         if isinstance(x, dict):
-            return XmlDictObject(
-                (k, XmlDictObject.wrap(v)) for (k, v) in x.items())
+            return XmlDictObject((k, XmlDictObject.wrap(v)) for (k, v) in x.items())
         elif isinstance(x, list):
             return [XmlDictObject.wrap(v) for v in x]
         else:
@@ -48,8 +48,7 @@ class XmlDictObject(dict):
     @staticmethod
     def _un_wrap(x):
         if isinstance(x, dict):
-            return dict(
-                (k, XmlDictObject._un_wrap(v)) for (k, v) in x.items())
+            return dict((k, XmlDictObject._un_wrap(v)) for (k, v) in x.items())
         elif isinstance(x, list):
             return [XmlDictObject._un_wrap(v) for v in x]
         else:
@@ -68,7 +67,7 @@ def _convert_dict_to_xml_recurse(parent, dictitem):
 
     if isinstance(dictitem, dict):
         for (tag, child) in dictitem.items():
-            if str(tag) == '_text':
+            if str(tag) == "_text":
                 parent.text = str(child)
             elif isinstance(child, list):
                 # iterate through the array and convert
@@ -99,11 +98,11 @@ def _convert_xml_to_dict_recurse(node, dictclass):
 
     if len(list(node.items())) > 0:
         # if we have attributes, set them
-        if'attrib' in nodedict:
-            nodedict['attrib'].update(dict(list(node.items())))
+        if "attrib" in nodedict:
+            nodedict["attrib"].update(dict(list(node.items())))
         else:
-            nodedict['attrib'] = {}
-            nodedict['attrib'].update(dict(list(node.items())))
+            nodedict["attrib"] = {}
+            nodedict["attrib"].update(dict(list(node.items())))
             # We get a collision so attributes get their own hash!
             # nodedict.update(dict(node.items()))
 
@@ -131,7 +130,7 @@ def _convert_xml_to_dict_recurse(node, dictclass):
         # if we have a dictionary add the text as a dictionary value
         # (if there is any)
         if text is not None and len(text) > 0:
-            nodedict['_text'] = text
+            nodedict["_text"] = text
     else:
         # if we don't have child nodes or attributes, just set the text
         nodedict = text
@@ -143,5 +142,4 @@ def convert_xml_to_dict(root, dictclass=XmlDictObject):
     """
     Converts an ElementTree Element to a dictionary
     """
-    return dictclass(
-        {_ns(root.tag): _convert_xml_to_dict_recurse(root, dictclass)})
+    return dictclass({_ns(root.tag): _convert_xml_to_dict_recurse(root, dictclass)})

@@ -14,8 +14,7 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-from smispy_plugin.utils import (merge_list, path_str_to_cim_path,
-                                     cim_path_to_path_str)
+from smispy_plugin.utils import merge_list, path_str_to_cim_path, cim_path_to_path_str
 from smispy_plugin import dmtf
 
 
@@ -40,21 +39,22 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
         * IBM ArraySitePool(IBMTSDS_ArraySitePool)
     """
     if property_list is None:
-        property_list = ['Primordial', 'Usage']
+        property_list = ["Primordial", "Usage"]
     else:
-        property_list = merge_list(property_list, ['Primordial', 'Usage'])
+        property_list = merge_list(property_list, ["Primordial", "Usage"])
 
     cim_pools = smis_common.Associators(
         cim_sys_path,
-        AssocClass='CIM_HostedStoragePool',
-        ResultClass='CIM_StoragePool',
-        PropertyList=property_list)
+        AssocClass="CIM_HostedStoragePool",
+        ResultClass="CIM_StoragePool",
+        PropertyList=property_list,
+    )
 
     rc = []
     for cim_pool in cim_pools:
-        if 'Primordial' in cim_pool and cim_pool['Primordial']:
+        if "Primordial" in cim_pool and cim_pool["Primordial"]:
             continue
-        if 'Usage' in cim_pool and cim_pool['Usage'] == dmtf.POOL_USAGE_SPARE:
+        if "Usage" in cim_pool and cim_pool["Usage"] == dmtf.POOL_USAGE_SPARE:
             continue
         # Skip IBM ArrayPool and ArraySitePool
         # ArrayPool is holding RAID info.
@@ -74,8 +74,10 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
 
         # We are trying to hide the detail to provide a simple
         # abstraction.
-        if cim_pool.classname == 'IBMTSDS_ArrayPool' or \
-           cim_pool.classname == 'IBMTSDS_ArraySitePool':
+        if (
+            cim_pool.classname == "IBMTSDS_ArrayPool"
+            or cim_pool.classname == "IBMTSDS_ArraySitePool"
+        ):
             continue
         rc.append(cim_pool)
 
@@ -87,17 +89,18 @@ def cim_pool_id_pros():
     Return a list of CIM_StoragePool properties required to generate
     lsm.Pool.id
     """
-    return ['InstanceID']
+    return ["InstanceID"]
 
 
 def pool_id_of_cim_pool(cim_pool):
-    if 'InstanceID' in cim_pool:
-        return cim_pool['InstanceID']
+    if "InstanceID" in cim_pool:
+        return cim_pool["InstanceID"]
     else:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "pool_id_of_cim_pool(): Got CIM_StoragePool with no 'InstanceID' "
-            "property: %s, %s" % (list(cim_pool.items()), cim_pool.path))
+            "property: %s, %s" % (list(cim_pool.items()), cim_pool.path),
+        )
 
 
 def cim_pool_pros():
@@ -105,9 +108,15 @@ def cim_pool_pros():
     Return a list of CIM_StoragePool properties required to generate lsm.Pool.
     """
     pool_pros = cim_pool_id_pros()
-    pool_pros.extend(['ElementName', 'TotalManagedSpace',
-                      'RemainingManagedSpace', 'Usage',
-                      'OperationalStatus'])
+    pool_pros.extend(
+        [
+            "ElementName",
+            "TotalManagedSpace",
+            "RemainingManagedSpace",
+            "Usage",
+            "OperationalStatus",
+        ]
+    )
     return pool_pros
 
 
@@ -128,19 +137,22 @@ def _pool_element_type(smis_common, cim_pool):
     # check whether current pool support create volume or not.
     cim_sccs = smis_common.Associators(
         cim_pool.path,
-        AssocClass='CIM_ElementCapabilities',
-        ResultClass='CIM_StorageConfigurationCapabilities',
-        PropertyList=['SupportedStorageElementFeatures',
-                      'SupportedStorageElementTypes'])
+        AssocClass="CIM_ElementCapabilities",
+        ResultClass="CIM_StorageConfigurationCapabilities",
+        PropertyList=[
+            "SupportedStorageElementFeatures",
+            "SupportedStorageElementTypes",
+        ],
+    )
     # Associate StorageConfigurationCapabilities to StoragePool
     # is experimental in SNIA 1.6rev4, Block Book PDF Page 68.
     # Section 5.1.6 StoragePool, StorageVolume and LogicalDisk
     # Manipulation, Figure 9 - Capabilities Specific to a StoragePool
     if len(cim_sccs) == 1:
         cim_scc = cim_sccs[0]
-        if 'SupportedStorageElementFeatures' in cim_scc:
-            supported_features = cim_scc['SupportedStorageElementFeatures']
-            supported_types = cim_scc['SupportedStorageElementTypes']
+        if "SupportedStorageElementFeatures" in cim_scc:
+            supported_features = cim_scc["SupportedStorageElementFeatures"]
+            supported_types = cim_scc["SupportedStorageElementTypes"]
 
             if dmtf.SUPPORT_VOL_CREATE in supported_features:
                 element_type = Pool.ELEMENT_TYPE_VOLUME
@@ -160,21 +172,25 @@ def _pool_element_type(smis_common, cim_pool):
         # TODO: Currently, we don't have a way to detect
         #       Pool.ELEMENT_TYPE_POOL
         #       but based on knowing definition of each vendor.
-        if cim_pool.classname == 'IBMTSDS_VirtualPool' or \
-           cim_pool.classname == 'IBMTSDS_ExtentPool':
+        if (
+            cim_pool.classname == "IBMTSDS_VirtualPool"
+            or cim_pool.classname == "IBMTSDS_ExtentPool"
+        ):
             element_type = Pool.ELEMENT_TYPE_VOLUME
-        elif cim_pool.classname == 'IBMTSDS_RankPool':
+        elif cim_pool.classname == "IBMTSDS_RankPool":
             element_type = Pool.ELEMENT_TYPE_POOL
-        elif cim_pool.classname == 'LSIESG_StoragePool':
+        elif cim_pool.classname == "LSIESG_StoragePool":
             element_type = Pool.ELEMENT_TYPE_VOLUME
 
-    if 'Usage' in cim_pool and cim_pool['Usage'] is not None:
-        usage = cim_pool['Usage']
+    if "Usage" in cim_pool and cim_pool["Usage"] is not None:
+        usage = cim_pool["Usage"]
 
         if usage == dmtf.POOL_USAGE_UNRESTRICTED:
             element_type |= Pool.ELEMENT_TYPE_VOLUME
-        if usage == dmtf.POOL_USAGE_RESERVED_FOR_SYSTEM or \
-                usage > dmtf.POOL_USAGE_DELTA:
+        if (
+            usage == dmtf.POOL_USAGE_RESERVED_FOR_SYSTEM
+            or usage > dmtf.POOL_USAGE_DELTA
+        ):
             element_type |= Pool.ELEMENT_TYPE_SYS_RESERVED
         if usage == dmtf.POOL_USAGE_DELTA:
             # We blitz all the other elements types for this designation
@@ -197,8 +213,11 @@ def _pool_status_of_cim_pool(dmtf_op_status_list):
     Convert CIM_StoragePool['OperationalStatus'] to LSM
     """
     return dmtf.op_status_list_conv(
-        _LSM_POOL_OP_STATUS_CONV, dmtf_op_status_list,
-        Pool.STATUS_UNKNOWN, Pool.STATUS_OTHER)
+        _LSM_POOL_OP_STATUS_CONV,
+        dmtf_op_status_list,
+        Pool.STATUS_UNKNOWN,
+        Pool.STATUS_OTHER,
+    )
 
 
 def cim_pool_to_lsm_pool(smis_common, cim_pool, system_id):
@@ -206,29 +225,37 @@ def cim_pool_to_lsm_pool(smis_common, cim_pool, system_id):
     Return a Pool object base on information of cim_pool.
     Assuming cim_pool already holding correct properties.
     """
-    status_info = ''
+    status_info = ""
     pool_id = pool_id_of_cim_pool(cim_pool)
-    name = ''
+    name = ""
     total_space = Pool.TOTAL_SPACE_NOT_FOUND
     free_space = Pool.FREE_SPACE_NOT_FOUND
     status = Pool.STATUS_OK
-    if 'ElementName' in cim_pool:
-        name = cim_pool['ElementName']
-    if 'TotalManagedSpace' in cim_pool:
-        total_space = cim_pool['TotalManagedSpace']
-    if 'RemainingManagedSpace' in cim_pool:
-        free_space = cim_pool['RemainingManagedSpace']
-    if 'OperationalStatus' in cim_pool:
-        (status, status_info) = _pool_status_of_cim_pool(
-            cim_pool['OperationalStatus'])
+    if "ElementName" in cim_pool:
+        name = cim_pool["ElementName"]
+    if "TotalManagedSpace" in cim_pool:
+        total_space = cim_pool["TotalManagedSpace"]
+    if "RemainingManagedSpace" in cim_pool:
+        free_space = cim_pool["RemainingManagedSpace"]
+    if "OperationalStatus" in cim_pool:
+        (status, status_info) = _pool_status_of_cim_pool(cim_pool["OperationalStatus"])
 
     element_type, unsupported = _pool_element_type(smis_common, cim_pool)
 
     plugin_data = cim_path_to_path_str(cim_pool.path)
 
-    return Pool(pool_id, name, element_type, unsupported,
-                total_space, free_space,
-                status, status_info, system_id, plugin_data)
+    return Pool(
+        pool_id,
+        name,
+        element_type,
+        unsupported,
+        total_space,
+        free_space,
+        status,
+        status_info,
+        system_id,
+        plugin_data,
+    )
 
 
 def lsm_pool_to_cim_pool_path(smis_common, lsm_pool):
@@ -238,13 +265,10 @@ def lsm_pool_to_cim_pool_path(smis_common, lsm_pool):
     """
     if not lsm_pool.plugin_data:
         raise LsmError(
-            ErrorNumber.PLUGIN_BUG,
-            "Got lsm.Pool instance with empty plugin_data")
-    if smis_common.system_list and \
-       lsm_pool.system_id not in smis_common.system_list:
-        raise LsmError(
-            ErrorNumber.NOT_FOUND_SYSTEM,
-            "System filtered in URI")
+            ErrorNumber.PLUGIN_BUG, "Got lsm.Pool instance with empty plugin_data"
+        )
+    if smis_common.system_list and lsm_pool.system_id not in smis_common.system_list:
+        raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System filtered in URI")
 
     return path_str_to_cim_path(lsm_pool.plugin_data)
 
@@ -256,13 +280,15 @@ def pool_id_of_cim_vol(smis_common, cim_vol_path):
     property_list = cim_pool_id_pros()
     cim_pools = smis_common.Associators(
         cim_vol_path,
-        AssocClass='CIM_AllocatedFromStoragePool',
-        ResultClass='CIM_StoragePool',
-        PropertyList=property_list)
+        AssocClass="CIM_AllocatedFromStoragePool",
+        ResultClass="CIM_StoragePool",
+        PropertyList=property_list,
+    )
     if len(cim_pools) != 1:
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
-            "pool_id_of_cim_vol(): Got unexpected count(%d) of cim_pool " %
-            len(cim_pools) +
-            "associated to cim_vol: %s, %s" % (cim_vol_path, cim_pools))
+            "pool_id_of_cim_vol(): Got unexpected count(%d) of cim_pool "
+            % len(cim_pools)
+            + "associated to cim_vol: %s, %s" % (cim_vol_path, cim_pools),
+        )
     return pool_id_of_cim_pool(cim_pools[0])

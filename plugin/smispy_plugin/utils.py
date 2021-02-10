@@ -16,8 +16,9 @@
 
 import traceback
 import json
-from lsm import (LsmError, ErrorNumber, error)
+from lsm import LsmError, ErrorNumber, error
 import pywbem
+
 try:
     from pywbem import AuthError
 except ImportError:
@@ -44,29 +45,27 @@ def handle_cim_errors(method):
             desc = ce.args[1]
 
             if error_code == 0:
-                if 'Socket error' in desc:
-                    if 'Errno 111' in desc:
-                        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
-                                       'Connection refused')
-                    if 'Errno 113' in desc:
-                        raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
-                                       'Host is down')
-                    if 'Errno 104' in desc:
-                        raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
-                                       'Connection reset by peer')
+                if "Socket error" in desc:
+                    if "Errno 111" in desc:
+                        raise LsmError(
+                            ErrorNumber.NETWORK_CONNREFUSED, "Connection refused"
+                        )
+                    if "Errno 113" in desc:
+                        raise LsmError(ErrorNumber.NETWORK_HOSTDOWN, "Host is down")
+                    if "Errno 104" in desc:
+                        raise LsmError(
+                            ErrorNumber.NETWORK_CONNREFUSED, "Connection reset by peer"
+                        )
                     # We know we have a socket error of some sort, lets
                     # report a generic network error with the string from the
                     # library.
                     raise LsmError(ErrorNumber.NETWORK_ERROR, str(ce))
-                elif 'SSL error' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
-                elif 'The web server returned a bad status line' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
-                elif 'HTTP error' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
+                elif "SSL error" in desc:
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
+                elif "The web server returned a bad status line" in desc:
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
+                elif "HTTP error" in desc:
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
         except AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
@@ -74,14 +73,14 @@ def handle_cim_errors(method):
             raise LsmError(ErrorNumber.NETWORK_ERROR, str(te))
         except Exception as e:
             error("Unexpected exception:\n" + traceback.format_exc())
-            raise LsmError(ErrorNumber.PLUGIN_BUG, str(e),
-                           traceback.format_exc())
+            raise LsmError(ErrorNumber.PLUGIN_BUG, str(e), traceback.format_exc())
+
     return cim_wrapper
 
 
 def hex_string_format(hex_str, length, every):
     hex_str = hex_str.lower()
-    return ':'.join(hex_str[i:i + every] for i in range(0, length, every))
+    return ":".join(hex_str[i : i + every] for i in range(0, length, every))
 
 
 def cim_path_to_path_str(cim_path):
@@ -90,12 +89,14 @@ def cim_path_to_path_str(cim_path):
     Args:
         cim_path: CIM path
     """
-    return json.dumps({
-        'classname': cim_path.classname,
-        'keybindings': dict(cim_path.keybindings),
-        'host': cim_path.host,
-        'namespace': cim_path.namespace,
-    })
+    return json.dumps(
+        {
+            "classname": cim_path.classname,
+            "keybindings": dict(cim_path.keybindings),
+            "host": cim_path.host,
+            "namespace": cim_path.namespace,
+        }
+    )
 
 
 def path_str_to_cim_path(path_str):

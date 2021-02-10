@@ -24,8 +24,12 @@ def cmd_exec(cmds):
     Raise ExecError if command return code is not zero
     """
     cmd_popen = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        env={"PATH": os.getenv("PATH")}, universal_newlines=True)
+        cmds,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env={"PATH": os.getenv("PATH")},
+        universal_newlines=True,
+    )
     str_stdout = "".join(list(cmd_popen.stdout)).strip()
     str_stderr = "".join(list(cmd_popen.stderr)).strip()
     errno = cmd_popen.wait()
@@ -43,5 +47,9 @@ class ExecError(Exception):
         self.stderr = stderr
 
     def __str__(self):
-        return "cmd: '%s', errno: %d, stdout: '%s', stderr: '%s'" % \
-            (self.cmd, self.errno, self.stdout, self.stderr)
+        return "cmd: '%s', errno: %d, stdout: '%s', stderr: '%s'" % (
+            self.cmd,
+            self.errno,
+            self.stdout,
+            self.stderr,
+        )

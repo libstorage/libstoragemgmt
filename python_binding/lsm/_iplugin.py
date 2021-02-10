@@ -127,7 +127,6 @@ class IPlugin(with_metaclass(_ABCMeta, object)):
 
 
 class IStorageAreaNetwork(IPlugin):
-
     def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
@@ -136,8 +135,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_create(self, pool, volume_name, size_bytes, provisioning,
-                      flags=0):
+    def volume_create(self, pool, volume_name, size_bytes, provisioning, flags=0):
         """
         Creates a volume, given a pool, volume name, size and provisioning
 
@@ -188,8 +186,9 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
-                               flags=0):
+    def volume_replicate_range(
+        self, rep_type, volume_src, volume_dest, ranges, flags=0
+    ):
         """
         Replicates a portion of a volume to itself or another volume.  The src,
         dest and number of blocks values change with vendor, call
@@ -215,8 +214,9 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def iscsi_chap_auth(self, init_id, in_user, in_password, out_user,
-                        out_password, flags):
+    def iscsi_chap_auth(
+        self, init_id, in_user, in_password, out_user, out_password, flags
+    ):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.  in_user & in_password are for inbound CHAP, out_user &
@@ -251,8 +251,7 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_create(self, name, init_id, init_type, system,
-                            flags=0):
+    def access_group_create(self, name, init_id, init_type, system, flags=0):
         """
         Returns a list of access groups, raises LsmError on errors.
         """
@@ -264,15 +263,13 @@ class IStorageAreaNetwork(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_initiator_add(self, access_group, init_id, init_type,
-                                   flags=0):
+    def access_group_initiator_add(self, access_group, init_id, init_type, flags=0):
         """
         Adds an initiator to an access group, Raises LsmError on error
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def access_group_initiator_delete(self, access_group, init_id, init_type,
-                                      flags=0):
+    def access_group_initiator_delete(self, access_group, init_id, init_type, flags=0):
         """
         Deletes an initiator from an access group, Raises LsmError on error
         """
@@ -322,6 +319,7 @@ class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)
     """
+
     def fs(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of file systems on the controller. Raises LsmError on
@@ -371,8 +369,7 @@ class INetworkAttachedStorage(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
-                      flags=0):
+    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None, flags=0):
         """
         Creates a thinly provisioned clone of src to dest.
         Note: Source and Destination are required to be on same filesystem
@@ -411,8 +408,9 @@ class INetworkAttachedStorage(IPlugin):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                            all_files=False, flags=0):
+    def fs_snapshot_restore(
+        self, fs, snapshot, files, restore_files, all_files=False, flags=0
+    ):
         """
         WARNING: Destructive!
 
@@ -466,8 +464,19 @@ class INfs(INetworkAttachedStorage):
         """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
-    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
-                  anon_uid, anon_gid, auth_type, options, flags=0):
+    def export_fs(
+        self,
+        fs_id,
+        export_path,
+        root_list,
+        rw_list,
+        ro_list,
+        anon_uid,
+        anon_gid,
+        auth_type,
+        options,
+        flags=0,
+    ):
         """
         Exports a filesystem as specified in the export
         """

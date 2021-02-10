@@ -26,6 +26,7 @@ from lsm._common import SocketEOF as _SocketEOF
 from lsm._data import DataDecoder as _DataDecoder
 from lsm._data import DataEncoder as _DataEncoder
 
+
 class TransPort(object):
     """
     Provides wire serialization by using json.  Loosely conforms to json-rpc,
@@ -72,7 +73,7 @@ class TransPort(object):
         # Note: Don't catch io exceptions at this level!
         s = str.zfill(str(len(msg)), self.HDR_LEN) + msg
         # common.Info("SEND: ", msg)
-        self.s.sendall(bytes(s.encode('utf-8')))
+        self.s.sendall(bytes(s.encode("utf-8")))
 
     def _recv_msg(self):
         """
@@ -84,9 +85,11 @@ class TransPort(object):
             msg = self._read_all(int(l))
             # common.Info("RECV: ", msg)
         except socket.error as e:
-            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                           "Error while reading a message from the plug-in",
-                           str(e))
+            raise LsmError(
+                ErrorNumber.TRANSPORT_COMMUNICATION,
+                "Error while reading a message from the plug-in",
+                str(e),
+            )
         return msg
 
     def __init__(self, socket_descriptor):
@@ -104,16 +107,20 @@ class TransPort(object):
                 if os.access(path, os.R_OK | os.W_OK):
                     s.connect(path)
                 else:
-                    raise LsmError(ErrorNumber.PLUGIN_SOCKET_PERMISSION,
-                                   "Permissions are incorrect for IPC "
-                                   "socket file")
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_SOCKET_PERMISSION,
+                        "Permissions are incorrect for IPC " "socket file",
+                    )
             else:
-                raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
-                               "Plug-in appears to not exist")
+                raise LsmError(
+                    ErrorNumber.PLUGIN_NOT_EXIST, "Plug-in appears to not exist"
+                )
         except socket.error:
             # self, code, message, data=None, *args, **kwargs
-            raise LsmError(ErrorNumber.PLUGIN_IPC_FAIL,
-                           "Unable to connect to lsmd, daemon started?")
+            raise LsmError(
+                ErrorNumber.PLUGIN_IPC_FAIL,
+                "Unable to connect to lsmd, daemon started?",
+            )
         return s
 
     def close(self):
@@ -129,13 +136,15 @@ class TransPort(object):
         serialized to json
         """
         try:
-            msg = {'method': method, 'id': 100, 'params': args}
+            msg = {"method": method, "id": 100, "params": args}
             data = json.dumps(msg, cls=_DataEncoder)
             self._send_msg(data)
         except socket.error as se:
-            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                           "Error while sending a message to the plug-in",
-                           str(se))
+            raise LsmError(
+                ErrorNumber.TRANSPORT_COMMUNICATION,
+                "Error while sending a message to the plug-in",
+                str(se),
+            )
 
     def read_req(self):
         """
@@ -159,25 +168,24 @@ class TransPort(object):
         """
         Used to transmit an error.
         """
-        e = {'id': msg_id, 'error': {'code': error_code, 'message': msg,
-                                     'data': data}}
+        e = {"id": msg_id, "error": {"code": error_code, "message": msg, "data": data}}
         self._send_msg(json.dumps(e, cls=_DataEncoder))
 
     def send_resp(self, result, msg_id=100):
         """
         Used to transmit a response
         """
-        r = {'id': msg_id, 'result': result}
+        r = {"id": msg_id, "result": result}
         self._send_msg(json.dumps(r, cls=_DataEncoder))
 
     def read_resp(self):
         data = self._recv_msg()
         resp = json.loads(data, cls=_DataDecoder)
 
-        if 'result' in resp:
-            return resp['result'], resp['id']
+        if "result" in resp:
+            return resp["result"], resp["id"]
         else:
-            e = resp['error']
+            e = resp["error"]
             raise LsmError(**e)
 
 
@@ -190,25 +198,23 @@ def _server(s):
     msg = srv.read_req()
 
     try:
-        while msg['method'] != 'done':
+        while msg["method"] != "done":
 
-            if msg['method'] == 'error':
+            if msg["method"] == "error":
                 srv.send_error(
-                    msg['id'],
-                    msg['params']['errorcode'],
-                    msg['params']['errormsg'])
+                    msg["id"], msg["params"]["errorcode"], msg["params"]["errormsg"]
+                )
             else:
-                srv.send_resp(msg['params'])
+                srv.send_resp(msg["params"])
             msg = srv.read_req()
-        srv.send_resp(msg['params'])
+        srv.send_resp(msg["params"])
     finally:
         s.close()
 
 
 class _TestTransport(unittest.TestCase):
     def setUp(self):
-        (self.c, self.s) = socket.socketpair(
-            socket.AF_UNIX, socket.SOCK_STREAM)
+        (self.c, self.s) = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
 
         self.client = TransPort(self.c)
 
@@ -216,25 +222,24 @@ class _TestTransport(unittest.TestCase):
         self.server.start()
 
     def test_simple(self):
-        tc = ['0', ' ', '   ', '{}:""', "Some text message", 'DEADBEEF']
+        tc = ["0", " ", "   ", '{}:""', "Some text message", "DEADBEEF"]
 
         for t in tc:
-            self.client.send_req('test', t)
+            self.client.send_req("test", t)
             reply, msg_id = self.client.read_resp()
             self.assertTrue(msg_id == 100)
             self.assertTrue(reply == t)
 
     def test_exceptions(self):
 
-        e_msg = 'Test error message'
+        e_msg = "Test error message"
         e_code = 100
 
-        self.client.send_req('error', {'errorcode': e_code, 'errormsg': e_msg})
+        self.client.send_req("error", {"errorcode": e_code, "errormsg": e_msg})
         self.assertRaises(LsmError, self.client.read_resp)
 
         try:
-            self.client.send_req('error', {'errorcode': e_code,
-                                           'errormsg': e_msg})
+            self.client.send_req("error", {"errorcode": e_code, "errormsg": e_msg})
             self.client.read_resp()
         except LsmError as e:
             self.assertTrue(e.code == e_code)
@@ -247,7 +252,7 @@ class _TestTransport(unittest.TestCase):
         for l in range(1, 4096, 10):
 
             payload = "x" * l
-            msg = {'method': 'drip', 'id': 100, 'params': payload}
+            msg = {"method": "drip", "id": 100, "params": payload}
             data = json.dumps(msg, cls=_DataEncoder)
 
             wire = string.zfill(len(data), TransPort.HDR_LEN) + data
