@@ -71,7 +71,7 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
     struct nvme_admin_cmd cmd = {
         .opcode = 0x02,     // nvme admin get log page
         .nsid = 0xffffffff, // All namespaces
-        .addr = (uint64_t)&data,
+        .addr = (uint64_t)(uintptr_t)&data,
         .data_len = sizeof(data),
         .cdw10 = cdw10,
         .cdw11 = number_dword_upper,
