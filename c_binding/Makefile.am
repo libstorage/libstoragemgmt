@@ -17,6 +17,6 @@ libstoragemgmt_la_SOURCES= \
 	lsm_plugin_ipc.cpp util/qparams.c util/qparams.h \
 	utils.c utils.h libsg.c libsg.h lsm_local_disk.c libses.c libses.h \
 	libata.c libata.h libsas.c libsas.h libfc.c libfc.h \
-	libiscsi.c libiscsi.h
+	libiscsi.c libiscsi.h libnvme.c libnvme.h
 
 EXTRA_DIST = jsmn.h lsm_value_jsmn.hpp

@@ -73,7 +73,7 @@ AM_PROG_LIBTOOL
 AM_PROG_CC_C_O
 AM_PROG_LD
 
-AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h])
+AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h linux/nvme_ioctl.h])
 
 AC_LANG_PUSH([C++])
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([int i;])],

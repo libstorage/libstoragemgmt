@@ -37,6 +37,7 @@
 #include "libata.h"
 #include "libfc.h"
 #include "libiscsi.h"
+#include "libnvme.h"
 #include "libsas.h"
 #include "libses.h"
 #include "libsg.h"
@@ -847,6 +848,7 @@ out:
 }
 
 /* Workflow:
+ *  * Check to see if disk path refers to nvme first
  *  * Query VPD supported pages, get ATA information page support and
  *    check the device id page.
  *  * Based on that data, decide what type of device it is.
@@ -867,25 +869,34 @@ int lsm_local_disk_health_status_get(const char *disk_path,
 
     *lsm_err = NULL;
 
-    rc = lsm_local_disk_link_type_get(disk_path, &link_type, lsm_err);
-
-    if (rc != LSM_ERR_OK) {
-        _lsm_err_msg_set(err_msg, "%s", lsm_error_message_get(*lsm_err));
-        lsm_error_free(*lsm_err);
-        goto out;
-    }
-
-    _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
-
-    if (link_type == LSM_DISK_LINK_TYPE_ATA) {
-        _good(_sg_ata_health_status(err_msg, fd, health_status), rc, out);
-    } else if (link_type == LSM_DISK_LINK_TYPE_SAS) {
-        _good(_sg_sas_health_status(err_msg, fd, health_status), rc, out);
+    /*
+     * For NVMe devices we will check the disk path to reduce issuing cmds
+     * to devices which are not appropriate.
+     */
+    if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+        rc = _nvme_health_status(err_msg, fd, health_status);
     } else {
-        rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg, "Device link type %d is not supported yet",
-                         link_type);
-        goto out;
+        rc = lsm_local_disk_link_type_get(disk_path, &link_type, lsm_err);
+
+        if (rc != LSM_ERR_OK) {
+            _lsm_err_msg_set(err_msg, "%s", lsm_error_message_get(*lsm_err));
+            lsm_error_free(*lsm_err);
+            goto out;
+        }
+
+        _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
+
+        if (link_type == LSM_DISK_LINK_TYPE_ATA) {
+            _good(_sg_ata_health_status(err_msg, fd, health_status), rc, out);
+        } else if (link_type == LSM_DISK_LINK_TYPE_SAS) {
+            _good(_sg_sas_health_status(err_msg, fd, health_status), rc, out);
+        } else {
+            rc = LSM_ERR_NO_SUPPORT;
+            _lsm_err_msg_set(
+                err_msg, "Device link type %d is not supported yet", link_type);
+            goto out;
+        }
     }
 
 out:
