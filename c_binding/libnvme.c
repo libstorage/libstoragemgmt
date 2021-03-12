@@ -88,9 +88,15 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
                              ? LSM_DISK_HEALTH_STATUS_GOOD
                              : LSM_DISK_HEALTH_STATUS_FAIL;
         return LSM_ERR_OK;
+    } else if (-1 == rc) {
+        int errno_cpy = errno;
+        snprintf(err_msg, _LSM_ERR_MSG_LEN,
+                 "Unexpected return from ioctl %d (%s)", rc,
+                 strerror(errno_cpy));
+    } else {
+        /* We got a nvme status code */
+        snprintf(err_msg, _LSM_ERR_MSG_LEN,
+                 "Unexpected return from ioctl, nvme status code 0x%X", rc);
     }
-    int errno_cpy = errno;
-    snprintf(err_msg, _LSM_ERR_MSG_LEN, "Unexpected return from ioctl %d (%s)",
-             rc, strerror(errno_cpy));
     return LSM_ERR_LIB_BUG;
 }
