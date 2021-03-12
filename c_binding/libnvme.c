@@ -75,7 +75,9 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
         .data_len = sizeof(data),
         .cdw10 = cdw10,
         .cdw11 = number_dword_upper,
-        // 12 - 14 == are zero
+        .cdw12 = 0,
+        .cdw13 = 0,
+        .cdw14 = 0,
     };
 
     errno = 0;
