@@ -33,6 +33,7 @@ BuildRequires:  systemd
 BuildRequires:  bash-completion
 BuildRequires:  libconfig-devel
 BuildRequires:  systemd-devel
+BuildRequires:  kernel-headers
 %if %{with python2}
 BuildRequires:  python2-six
 BuildRequires:  python2-devel
