@@ -400,12 +400,8 @@ static int _ses_bsg_paths_get(char *err_msg, char ***bsg_paths,
     } while (dp != NULL);
 
     *bsg_count = lsm_string_list_size(bsg_name_list);
-    *bsg_paths = (char **)malloc(sizeof(char *) * (*bsg_count));
+    *bsg_paths = (char **)calloc(*bsg_count, sizeof(char *));
     _alloc_null_check(err_msg, *bsg_paths, rc, out);
-
-    /* Initialize *bsg_paths */
-    for (i = 0; i < *bsg_count; ++i)
-        (*bsg_paths)[i] = NULL;
 
     _lsm_string_list_foreach(bsg_name_list, i, bsg_name) {
         (*bsg_paths)[i] = (char *)malloc(
