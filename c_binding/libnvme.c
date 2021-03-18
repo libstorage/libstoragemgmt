@@ -67,6 +67,7 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
     uint32_t cdw10 = number_dword_lower << 16 | 0x02;
 
     struct smart_data data;
+    memset(&data, 0, sizeof(data));
 
     struct nvme_admin_cmd cmd = {
         .opcode = 0x02,     // nvme admin get log page
