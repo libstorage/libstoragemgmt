@@ -15,6 +15,7 @@
 # Author: tasleson
 import os
 import sys
+from stat import S_ISSOCK
 from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
                  Disk, AccessGroup, FileSystem, FsSnapshot,
                  uri_parse, LsmError, ErrorNumber,
@@ -206,6 +207,12 @@ class Client(INetworkAttachedStorage):
         for root, sub_folders, files in os.walk(uds_path):
             for filename in files:
                 uds = os.path.join(root, filename)
+
+                # Exclude files that are not sockets
+                mode = os.stat(uds).st_mode
+                if not S_ISSOCK(mode):
+                    continue
+
                 tp = _TransPort(_TransPort.get_socket(uds))
                 i, v = tp.rpc('plugin_info', dict(flags=flags))
                 rc.append("%s%s%s" % (i, field_sep, v))
