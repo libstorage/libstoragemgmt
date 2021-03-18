@@ -443,11 +443,11 @@ void *lsm_error_debug_data_get(lsm_error_ptr e, uint32_t *size) {
  * @return None
  */
 #define CREATE_FREE_ARRAY_FUNC(name, free_func, record_type, error)            \
-    int name(record_type pa[], uint32_t size) {                                \
+    int name(record_type *pa, uint32_t size) {                                 \
         if (pa) {                                                              \
             uint32_t i = 0;                                                    \
             for (i = 0; i < size; ++i) {                                       \
-                free_func(pa[i]);                                              \
+                free_func(*(pa + i));                                          \
             }                                                                  \
             free(pa);                                                          \
             return LSM_ERR_OK;                                                 \
