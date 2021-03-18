@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <grp.h>
 #include <libconfig.h>
@@ -32,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -789,8 +791,28 @@ void serve(void) {
     clean_up();
 }
 
+int ipc_lock_file() {
+    static const char LFN[] = ".lsmd-ipc-lock";
+    char *lock_file = path_form(socket_dir, LFN);
+    int fd = open(lock_file, O_CREAT|O_CLOEXEC|O_RDWR, S_IRUSR|S_IWUSR);
+    free(lock_file);
+    if (fd != -1) {
+        int lock = flock(fd, LOCK_EX|LOCK_NB);
+        if (lock != 0) {
+            log_and_exit("An instance of lsmd is using %s socketdir\n",
+                         socket_dir);
+        }
+    } else {
+        int errno_cpy = errno;
+        log_and_exit("Unable to create socketdir lock file %s/%s reason: %s\n",
+                     socket_dir, LFN, strerror(errno_cpy));
+    }
+    return fd;
+}
+
 int main(int argc, char *argv[]) {
     int c = 0;
+    int lock_fd = -1;
 
     LIST_INIT(&head);
 
@@ -877,14 +899,22 @@ int main(int argc, char *argv[]) {
     }
     flight_check();
 
+    /*
+     * Make sure there is only 1 instance of lsmd running against the same
+     * IPC sockets directory.
+     */
+    lock_fd = ipc_lock_file();
+
     /* Become a daemon if told we are not using systemd */
     if (!systemd) {
         if (-1 == daemon(0, 0)) {
             int err = errno;
+            close(lock_fd);
             log_and_exit("Error on calling daemon: %s\n", strerror(err));
         }
     }
 
     serve();
+    close(lock_fd);
     return EXIT_SUCCESS;
 }
