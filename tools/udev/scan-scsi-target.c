@@ -109,6 +109,11 @@ int main(int argc, char **argv) {
     }
 
     sysfs_path = malloc(strlen("/sys") + strlen(devpath) + 1);
+    if (!sysfs_path) {
+        fprintf(stderr, "Memory allocation failure!");
+        return 1;
+    }
+
     strcpy(sysfs_path, "/sys");
     strcat(sysfs_path, devpath);
 
@@ -150,6 +155,10 @@ int main(int argc, char **argv) {
 
     sysfs_path = malloc(strlen("/sys") + strlen(devpath) - host_next_len +
                         strlen("/scsi_host") + host_len + strlen("/scan") + 1);
+    if (!sysfs_path) {
+        fprintf(stderr, "Memory allocation failure!");
+        return 1;
+    }
 
     strcpy(sysfs_path, "/sys");
     strncat(sysfs_path, devpath, host_next_pos);
@@ -183,6 +192,11 @@ int main(int argc, char **argv) {
         invalid(argv, devpath);
 
     sysfs_data = malloc(channel_len + strlen(" ") + id_len + strlen(" -") + 1);
+    if (!sysfs_data) {
+        free(sysfs_path);
+        fprintf(stderr, "Memory allocation failure!");
+        return 1;
+    }
 
     sysfs_data[0] = '\0';
     strncat(sysfs_data, &devpath[target_pos + channel_pos], channel_len);
