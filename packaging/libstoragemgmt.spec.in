@@ -401,8 +401,6 @@ fi
 #Python library files
 %dir %{python2_sitearch}/lsm
 %{python2_sitearch}/lsm/__init__.*
-%dir %{python2_sitearch}/lsm/external
-%{python2_sitearch}/lsm/external/*
 %{python2_sitearch}/lsm/_client.*
 %{python2_sitearch}/lsm/_common.*
 %{python2_sitearch}/lsm/_local_disk.*
@@ -422,8 +420,6 @@ fi
 %files -n python3-%{name}
 %dir %{python3_sitearch}/lsm
 %{python3_sitearch}/lsm/__init__.*
-%dir %{python3_sitearch}/lsm/external
-%{python3_sitearch}/lsm/external/*
 %{python3_sitearch}/lsm/_client.*
 %{python3_sitearch}/lsm/_common.*
 %{python3_sitearch}/lsm/_local_disk.*

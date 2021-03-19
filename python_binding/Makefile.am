@@ -1,6 +1,5 @@
 
 lsmdir = $(LSM_PYSO_DIR)/lsm
-externaldir = $(lsmdir)/external
 
 lsm_PYTHON = \
 	lsm/__init__.py \
@@ -28,7 +27,3 @@ lsm__clib_la_LDFLAGS = $(PYTHON_LIBS) \
 		       -module -avoid-version -export-symbols-regex \
 		       $(_PY_CLIB_INIT_NAME)
 lsm__clib_la_LIBADD = $(top_builddir)/c_binding/libstoragemgmt.la
-
-external_PYTHON = \
-	lsm/external/__init__.py \
-	lsm/external/xmltodict.py

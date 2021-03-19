@@ -206,7 +206,6 @@ function lsm_test_base_install
     _good mkdir "${LSM_TEST_LOG_DIR}"
     _good mkdir "${LSM_UDS_PATH}"
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm"
-    _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/external"
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/plugin"
     _good mkdir "$LSM_TEST_PY_MODULE_DIR/lsm/lsmcli"
     _good mkdir "$LSM_TEST_RUNDIR"
@@ -256,10 +255,6 @@ function lsm_test_base_install
     _good find "${build_dir}/python_binding/lsm/" -maxdepth 1 \
         -type f -name '*.py' \
         -exec install -D "{}" "$LSM_TEST_PY_MODULE_DIR/lsm/" \\\;
-
-    _good find "${src_dir}/python_binding/lsm/external/" -maxdepth 1 \
-        -type f -name '*.py' \
-        -exec install -D "{}" "$LSM_TEST_PY_MODULE_DIR/lsm/external" \\\;
 
     _good find "${src_dir}/tools/lsmcli/" -maxdepth 1 -type f -name '*.py' \
         -exec install -D "{}" "$LSM_TEST_PY_MODULE_DIR/lsm/lsmcli/" \\\;
