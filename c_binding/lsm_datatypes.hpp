@@ -276,6 +276,7 @@ struct LSM_DLL_LOCAL _lsm_disk {
     const char *location;
     int32_t rpm;
     lsm_disk_link_type link_type;
+    char *plugin_data; /**< Reserved for the plugin to use, added in 1.9 */
 };
 
 #define LSM_HASH_MAGIC   0xAA7A0011

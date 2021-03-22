@@ -1387,6 +1387,33 @@ lsm_disk_record_alloc(const char *id, const char *name, lsm_disk_type disk_type,
                       uint64_t disk_status, const char *system_id);
 
 /**
+ * New in version 1.9.  (The original API release missed this ability)
+ * Allocate a disk record which includes the ability to associate plugin_data.
+ * @param id                Identification
+ * @param name              Human readable name
+ * @param disk_type         Enumerated disk type
+ * @param block_size        Number of bytes per logical block
+ * @param block_count       Number of blocks for disk
+ * @param disk_status       Status
+ * @param system_id         System id this disk resides in
+ * @param plugin_data       Private data for plugin use
+ * @return Pointer to allocated disk record or NULL on memory error.
+ */
+lsm_disk LSM_DLL_EXPORT *
+lsm_disk_record_alloc_pd(const char *id, const char *name,
+                         lsm_disk_type disk_type, uint64_t block_size,
+                         uint64_t block_count, uint64_t disk_status,
+                         const char *system_id, const char *plugin_data);
+
+/**
+ * New in version 1.9.
+ * Used to retrieve the plugin-private data for a specified lsm_disk.
+ * @param b     Disk to retrieve plugin private data for
+ * @return NULL if doesn't exists, else data.
+ */
+const char LSM_DLL_EXPORT *lsm_disk_plugin_data_get(lsm_disk *d);
+
+/**
  * New in version 1.3. Set a disk's location.
  * @param disk          Pointer to the disk of interest.
  * @param disk_path     Pointer to the disk's location.

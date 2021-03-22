@@ -593,12 +593,22 @@ lsm_volume *lsm_volume_record_alloc(const char *id, const char *name,
     return rc;
 }
 
+MEMBER_FUNC_GET(const char *, lsm_disk, LSM_IS_DISK, plugin_data, NULL);
 CREATE_ALLOC_ARRAY_FUNC(lsm_disk_record_array_alloc, lsm_disk *)
 
 lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
                                 lsm_disk_type disk_type, uint64_t block_size,
                                 uint64_t block_count, uint64_t disk_status,
                                 const char *system_id) {
+    return lsm_disk_record_alloc_pd(id, name, disk_type, block_size,
+                                    block_count, disk_status, system_id, NULL);
+}
+
+lsm_disk *lsm_disk_record_alloc_pd(const char *id, const char *name,
+                                   lsm_disk_type disk_type, uint64_t block_size,
+                                   uint64_t block_count, uint64_t disk_status,
+                                   const char *system_id,
+                                   const char *plugin_data) {
     lsm_disk *rc = (lsm_disk *)malloc(sizeof(lsm_disk));
     if (rc) {
         rc->magic = LSM_DISK_MAGIC;
@@ -614,7 +624,14 @@ lsm_disk *lsm_disk_record_alloc(const char *id, const char *name,
         rc->rpm = LSM_DISK_RPM_NO_SUPPORT;
         rc->link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
 
-        if (!rc->id || !rc->name || !rc->system_id) {
+        if (plugin_data) {
+            rc->plugin_data = strdup(plugin_data);
+        } else {
+            rc->plugin_data = NULL;
+        }
+
+        if (!rc->id || !rc->name || !rc->system_id ||
+            (plugin_data && !rc->plugin_data)) {
             lsm_disk_record_free(rc);
             rc = NULL;
         }
@@ -802,9 +819,10 @@ lsm_disk *lsm_disk_record_copy(lsm_disk *disk) {
     lsm_disk *new_lsm_disk = NULL;
 
     if (LSM_IS_DISK(disk)) {
-        new_lsm_disk = lsm_disk_record_alloc(
+        new_lsm_disk = lsm_disk_record_alloc_pd(
             disk->id, disk->name, disk->type, disk->block_size,
-            disk->number_of_blocks, disk->status, disk->system_id);
+            disk->number_of_blocks, disk->status, disk->system_id,
+            disk->plugin_data);
         if (disk->vpd83 != NULL)
             if (lsm_disk_vpd83_set(new_lsm_disk, disk->vpd83) != LSM_ERR_OK) {
                 lsm_disk_record_free(new_lsm_disk);
@@ -835,6 +853,9 @@ int lsm_disk_record_free(lsm_disk *d) {
 
         free(d->system_id);
         d->system_id = NULL;
+
+        free(d->plugin_data);
+        d->plugin_data = NULL;
 
         free(d->vpd83);
         d->vpd83 = NULL;
