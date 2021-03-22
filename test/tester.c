@@ -1113,6 +1113,8 @@ static int compare_battery(lsm_battery *l, lsm_battery *r) {
 }
 
 START_TEST(test_lsm_disk_private_data) {
+    #define NUM_TESTS 3
+    int i;
     char id[] = "8675309";
     char name[] = "some disk";
     char system_id[] = "system-hba";
@@ -1128,9 +1130,8 @@ START_TEST(test_lsm_disk_private_data) {
                                    const char *system_id,
                                    const char *plugin_data)
      */
-    char *pd[3] = {NULL, plugin_data, ""};
-
-    for (int i = 0; i < 3; i++) {
+    char *pd[NUM_TESTS] = {NULL, plugin_data, ""};
+    for (i = 0; i < NUM_TESTS; i++) {
         lsm_disk *testing = lsm_disk_record_alloc_pd(
             id, name, LSM_DISK_TYPE_UNKNOWN, block_size, block_count, status,
             system_id, pd[i]);
