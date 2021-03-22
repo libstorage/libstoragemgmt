@@ -1154,6 +1154,7 @@ START_TEST(test_lsm_disk_private_data) {
         }
     }
 }
+END_TEST
 
 START_TEST(test_disks) {
     uint32_t count = 0;
