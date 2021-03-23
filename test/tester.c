@@ -1123,13 +1123,6 @@ START_TEST(test_lsm_disk_private_data) {
     uint64_t block_count = 1070599167;
     uint64_t status = LSM_DISK_STATUS_FREE;
 
-    /*
-     const char *id, const char *name,
-                                   lsm_disk_type disk_type, uint64_t block_size,
-                                   uint64_t block_count, uint64_t disk_status,
-                                   const char *system_id,
-                                   const char *plugin_data)
-     */
     char *pd[NUM_TESTS] = {NULL, plugin_data, ""};
     for (i = 0; i < NUM_TESTS; i++) {
         lsm_disk *testing = lsm_disk_record_alloc_pd(
