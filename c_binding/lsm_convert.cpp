@@ -126,12 +126,18 @@ lsm_disk *value_to_disk(Value &disk) {
     lsm_disk *rc = NULL;
     if (is_expected_object(disk, CLASS_NAME_DISK)) {
         std::map<std::string, Value> d = disk.asObject();
+        const char *plugin_data = NULL;
 
-        rc = lsm_disk_record_alloc(
+        if (std_map_has_key(d, "plugin_data")) {
+            plugin_data = d["plugin_data"].asC_str();
+        }
+
+        rc = lsm_disk_record_alloc_pd(
             d["id"].asString().c_str(), d["name"].asString().c_str(),
             (lsm_disk_type)d["disk_type"].asInt32_t(),
             d["block_size"].asUint64_t(), d["num_of_blocks"].asUint64_t(),
-            d["status"].asUint64_t(), d["system_id"].asString().c_str());
+            d["status"].asUint64_t(), d["system_id"].asString().c_str(),
+            plugin_data);
         if ((rc != NULL) && std_map_has_key(d, "vpd83") &&
             (d["vpd83"].asC_str()[0] != '\0') &&
             (lsm_disk_vpd83_set(rc, d["vpd83"].asC_str()) != LSM_ERR_OK)) {
@@ -188,6 +194,7 @@ Value disk_to_value(lsm_disk *disk) {
         d["num_of_blocks"] = Value(disk->number_of_blocks);
         d["status"] = Value(disk->status);
         d["system_id"] = Value(disk->system_id);
+        d["plugin_data"] = Value(disk->plugin_data);
         if (disk->location != NULL)
             d["location"] = Value(disk->location);
         if (disk->rpm != LSM_DISK_RPM_NO_SUPPORT)

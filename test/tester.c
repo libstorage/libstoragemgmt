@@ -408,7 +408,7 @@ lsm_system *get_system(lsm_connect *c) {
     G(rc, lsm_system_list, c, &sys, &count, LSM_CLIENT_FLAG_RSVD);
 
     if (LSM_ERR_OK == rc) {
-        if (count > 0 ) {
+        if (count > 0) {
             rc_sys = lsm_system_record_copy(sys[0]);
         }
         G(rc, lsm_system_record_array_free, sys, count);
@@ -852,9 +852,9 @@ START_TEST(test_access_groups_grant_revoke) {
     if (LSM_ERR_OK == rc) {
         if (g_count >= 1) {
             ck_assert_msg(strcmp(lsm_access_group_id_get(groups[0]),
-                             lsm_access_group_id_get(group)) == 0,
-                            "%s != %s", lsm_access_group_id_get(groups[0]),
-                            lsm_access_group_id_get(group));
+                                 lsm_access_group_id_get(group)) == 0,
+                          "%s != %s", lsm_access_group_id_get(groups[0]),
+                          lsm_access_group_id_get(group));
         }
 
         G(rc, lsm_access_group_record_array_free, groups, g_count);
@@ -1111,6 +1111,44 @@ static int compare_battery(lsm_battery *l, lsm_battery *r) {
     }
     return 1;
 }
+
+START_TEST(test_lsm_disk_private_data) {
+    #define NUM_TESTS 3
+    int i;
+    char id[] = "8675309";
+    char name[] = "some disk";
+    char system_id[] = "system-hba";
+    char plugin_data[] = "private_data_for_plugin";
+    uint64_t block_size = 512;
+    uint64_t block_count = 1070599167;
+    uint64_t status = LSM_DISK_STATUS_FREE;
+
+    char *pd[NUM_TESTS] = {NULL, plugin_data, ""};
+    for (i = 0; i < NUM_TESTS; i++) {
+        lsm_disk *testing = lsm_disk_record_alloc_pd(
+            id, name, LSM_DISK_TYPE_UNKNOWN, block_size, block_count, status,
+            system_id, pd[i]);
+
+        ck_assert_msg(testing != NULL, "lsm_disk_record_alloc_pd fail");
+
+        if (testing) {
+            if (pd[i]) {
+                int cmp = strcmp(lsm_disk_plugin_data_get(testing), pd[i]);
+                ck_assert_msg(
+                    cmp == 0,
+                    "lsm_disk private data incorrect: %d %d (%s) (%s)", cmp, i,
+                    pd[i], lsm_disk_plugin_data_get(testing));
+            } else {
+                ck_assert_msg(lsm_disk_plugin_data_get(testing) == NULL,
+                              "Expecting NULL");
+            }
+            lsm_disk_record_free(testing);
+        } else {
+            break;
+        }
+    }
+}
+END_TEST
 
 START_TEST(test_disks) {
     uint32_t count = 0;
@@ -4103,6 +4141,7 @@ Suite *lsm_suite(void) {
     TCase *basic = tcase_create("Basic");
     tcase_add_checked_fixture(basic, setup, teardown);
 
+    tcase_add_test(basic, test_lsm_disk_private_data);
     tcase_add_test(basic, test_volume_vpd_check);
     tcase_add_test(basic, test_initiator_id_verification);
     tcase_add_test(basic, test_target_ports);
