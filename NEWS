@@ -1,5 +1,13 @@
 News for libStorageMgmt
 
+1.9.0: Mar 24 2021
+    * Add NVMe device health check
+      - https://github.com/libstorage/libstoragemgmt/issues/265
+    * Correct lsm_disk_record_alloc does not have plugin_data
+      - https://github.com/libstorage/libstoragemgmt/issues/68
+    * Limit lsmd to running a single instance against same socket dir
+      - https://github.com/libstorage/libstoragemgmt/issues/398
+
 1.8.8: Dec 15 2020
     * Remove NetApp ontap plugin
     * Remove Nexentastor nstor plugin
