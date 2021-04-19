@@ -436,11 +436,11 @@ fi
 %{python3_sitearch}/lsm/lsmcli/cmdline.*
 %{python3_sitearch}/lsm/_clib.*
 
-%dir %{python3_sitelib}/sim_plugin
-%{python3_sitelib}/sim_plugin/__pycache__/
-%{python3_sitelib}/sim_plugin/__init__.*
-%{python3_sitelib}/sim_plugin/simulator.*
-%{python3_sitelib}/sim_plugin/simarray.*
+%dir %{python3_sitearch}/sim_plugin
+%{python3_sitearch}/sim_plugin/__pycache__/
+%{python3_sitearch}/sim_plugin/__init__.*
+%{python3_sitearch}/sim_plugin/simulator.*
+%{python3_sitearch}/sim_plugin/simarray.*
 
 %{_bindir}/sim_lsmplugin
 %dir %{_libexecdir}/lsm.d

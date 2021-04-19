@@ -1,6 +1,6 @@
 if WITH_SIM
 
-simdir = $(pythondir)/sim_plugin
+simdir = $(LSM_PYSO_DIR)/sim_plugin
 
 sim_PYTHON = \
 	__init__.py \
