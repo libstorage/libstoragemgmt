@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.9.1: Apr 20 2021
+    * Correct sim plugin install location
+      - https://github.com/libstorage/libstoragemgmt/pull/463
+
 1.9.0: Mar 24 2021
     * Add NVMe device health check
       - https://github.com/libstorage/libstoragemgmt/issues/265
