@@ -49,19 +49,6 @@ int _get_db_from_plugin_ptr(char *err_msg, lsm_plugin_ptr c, sqlite3 **db) {
     return rc;
 }
 
-void _md5(const char *data, char *out_hash) {
-    int i = 0;
-    unsigned char digest[MD5_DIGEST_LENGTH];
-
-    assert(data != NULL);
-    assert(out_hash != NULL);
-
-    MD5((const unsigned char *)data, strlen(data), digest);
-
-    for (; i < MD5_DIGEST_LENGTH; ++i)
-        sprintf(out_hash + i * 2, "%02x", (unsigned int)digest[i]);
-}
-
 /*
  * Copy from c_binding/utils.c, will remove if that was exposed out.
  */

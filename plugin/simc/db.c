@@ -354,13 +354,8 @@ out:
 }
 
 static const char *_sys_version(void) {
-    char version_md5[_MD5_HASH_STR_LEN];
-
-    _md5(_DB_VERSION, version_md5);
-
-    snprintf(_SYS_VERSION, _BUFF_SIZE, "%s_%s_%s", _DB_VERSION_STR_PREFIX,
-             _DB_VERSION, version_md5);
-
+    snprintf(_SYS_VERSION, _BUFF_SIZE, "%s_%s", _DB_VERSION_STR_PREFIX,
+        _DB_VERSION);
     return _SYS_VERSION;
 }
 

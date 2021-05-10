@@ -106,9 +106,6 @@ fi
 dnl Availability of various common headers (non-fatal if missing).
 AC_CHECK_HEADERS([dlfcn.h])
 
-#Check for openssl development libs, we are using in simc_lsmplugin
-AC_CHECK_LIB([crypto], [MD5_Final], [SSL_LIBS=-lcrypto], AC_MSG_ERROR([Missing openssl-devel libraries]))
-AC_SUBST([SSL_LIBS])
 #Check for sqlite development libs for simc_lsmplugin
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 

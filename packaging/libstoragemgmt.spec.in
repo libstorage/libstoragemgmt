@@ -27,7 +27,6 @@ Obsoletes:      %{name}-nfs-plugin-clibs < %{version}-%{release}
 
 BuildRequires:  gcc gcc-c++
 BuildRequires:  autoconf automake libtool libxml2-devel check-devel perl-interpreter
-BuildRequires:  openssl-devel
 BuildRequires:  glib2-devel
 BuildRequires:  systemd
 BuildRequires:  bash-completion
