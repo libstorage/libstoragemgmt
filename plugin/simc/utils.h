@@ -19,7 +19,6 @@
 #ifndef _SIMC_UTILS_H_
 #define _SIMC_UTILS_H_
 
-#include <openssl/md5.h>
 #include <sqlite3.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -144,12 +143,6 @@ struct _simc_private_data {
         return rc;                                                             \
     }
 int _get_db_from_plugin_ptr(char *err_msg, lsm_plugin_ptr c, sqlite3 **db);
-
-/*
- * data:        Non-NULL pointer to a string.
- * out_hash:    Pointer to char[_MD5_HASH_STR_LEN]
- */
-void _md5(const char *data, char *out_hash);
 
 /*
  * true if file exists or false.

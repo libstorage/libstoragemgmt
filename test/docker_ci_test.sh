@@ -4,7 +4,15 @@
 # docker pull fedora
 # docker run --privileged --rm=false --tty=true --interactive=true \
 #    -v `pwd`:/libstoragemgmt-code:rw fedora \
-#    /bin/bash -c /libstoragemgmt-code/test/docker_travis_test.sh
+#    /bin/bash -c /libstoragemgmt-code/test/docker_ci_test.sh
+#
+# or
+#
+# podman run --privileged --rm=false --tty=true --interactive=true \
+# -v `pwd`/libstoragemgmt:/libstoragemgmt:rw,z -i -t fedora
+# /bin/bash -c "cd /libstoragemgmt && pwd && test/docker_ci_test.sh"
+#
+
 if [ -e "/etc/debian_version" ];then
     IS_DEB=1
 elif [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then

@@ -13,7 +13,6 @@ libtool
 libudev-devel
 libxml2-devel
 make
-openssl-devel
 perl
 procps-ng
 python-devel

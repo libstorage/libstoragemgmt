@@ -18,7 +18,6 @@ python-pywbem
 'pkgconfig(libxml-2.0)'
 'pkgconfig(check)'
 'pkgconfig(glib-2.0)'
-'pkgconfig(openssl)'
 'pkgconfig(bash-completion) >= 2.0'
 'pkgconfig(systemd)'
 'pkgconfig(udev)'
