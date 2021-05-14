@@ -1,5 +1,8 @@
 News for libStorageMgmt
 
+1.9.2: May 14 2021
+    * Remove OpenSSL usage as OpenSSL 3.0 is deprecating MD5
+
 1.9.1: Apr 20 2021
     * Correct sim plugin install location
       - https://github.com/libstorage/libstoragemgmt/pull/463
