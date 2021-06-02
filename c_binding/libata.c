@@ -57,17 +57,23 @@
     ((i >> start_include) & ((1 << (end_include - start_include + 1)) - 1))
 
 #pragma pack(push, 1)
+/*
+ * The data is in words, thus we need to account for both bytes in ordering
+ */
 struct _ata_sata_add_cap {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t zero : 1;
     uint8_t cur_speed : 3;
     uint8_t we_dont_care_0 : 4;
+
+    uint8_t we_dont_care_1;
 #else
+    uint8_t we_dont_care_1;
+
     uint8_t we_dont_care_0 : 4;
     uint8_t cur_speed : 3;
     uint8_t zero : 1;
 #endif
-    uint8_t we_dont_care_1;
 };
 #pragma pack(pop)
 
