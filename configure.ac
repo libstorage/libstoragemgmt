@@ -189,6 +189,18 @@ AC_ARG_WITH([python2],
     [force_2=yes],
     [])
 
+dnl ==========================================================================
+dnl Add option '--without-smispy' to exclude SMI-S python plugin.
+dnl ==========================================================================
+
+AC_ARG_WITH([smispy],
+    [AS_HELP_STRING([--without-smispy],
+        [Do not build the SMI-S python plugin])],
+    [],
+    [with_smispy=yes])
+
+AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
+
 if test "x$force_2" = "xyes"; then
     if test "x$with_python3" = "xyes"; then
         AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])
@@ -201,7 +213,11 @@ if test "x$with_python3" = "xyes"; then
     AC_SUBST(WITH_PYTHON3, yes)
     AC_PATH_PROGS(PYTHON, python3, [Python3 is required])
     AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
-    AC_PYTHON_MODULE([pywbem], [Required], [python3])
+
+    if test "x$with_smispy" = "xyes"; then
+        AC_PYTHON_MODULE([pywbem], [Required], [python3])
+    fi
+
     AC_PYTHON_MODULE([six], [Required], [python3])
     PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
 
@@ -239,7 +255,10 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
     AM_PATH_PYTHON([2.6], [],
                    AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
 
-    AC_PYTHON_MODULE([pywbem], [Required])
+    if test "x$with_smispy" = "xyes"; then
+        AC_PYTHON_MODULE([pywbem], [Required])
+    fi
+
     AC_PYTHON_MODULE([argparse], [Required])
     AC_PYTHON_MODULE([six], [Required])
     PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
@@ -325,18 +344,6 @@ AC_ARG_WITH([local],
     [with_local=yes])
 
 AM_CONDITIONAL([WITH_LOCAL], [test "x$with_local" = "xyes"])
-
-dnl ==========================================================================
-dnl Add option '--without-smispy' to exclude SMI-S python plugin.
-dnl ==========================================================================
-
-AC_ARG_WITH([smispy],
-    [AS_HELP_STRING([--without-smispy],
-        [Do not build the SMI-S python plugin])],
-    [],
-    [with_smispy=yes])
-
-AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
 
 dnl ==========================================================================
 dnl Add option '--without-targetd' to exclude targetd plugin.
