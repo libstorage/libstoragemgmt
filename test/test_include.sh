@@ -212,11 +212,11 @@ function lsm_test_base_install
     _good mkdir "$LSM_TEST_CFG_DIR"
     _good mkdir "$LSM_TEST_CFG_DIR/pluginconf.d"
 
-    # Make sure LSM_UDS_PATH is gloable writeable in case 'sudo make check'
+    # Make sure LSM_UDS_PATH is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_UDS_PATH}
-    # Make sure LSM_TEST_RUNDIR is gloable writeable in case 'sudo make check'
+    # Make sure LSM_TEST_RUNDIR is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_TEST_RUNDIR}
-    # Make suer log folder is gloable writeable in case 'sudo make check'
+    # Make sure log folder is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_TEST_LOG_DIR}
 
 
