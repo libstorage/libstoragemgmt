@@ -201,6 +201,12 @@ AC_ARG_WITH([smispy],
 
 AM_CONDITIONAL([WITH_SMISPY], [test "x$with_smispy" = "xyes"])
 
+if test "x$with_smispy" = "xyes"; then
+    AC_SUBST(WITH_SMISPY, yes)
+else
+    AC_SUBST(WITH_SMISPY, no)
+fi
+
 if test "x$force_2" = "xyes"; then
     if test "x$with_python3" = "xyes"; then
         AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])

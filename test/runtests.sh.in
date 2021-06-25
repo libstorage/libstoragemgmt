@@ -34,6 +34,7 @@ test_base_dir="/tmp/$RANDOM"
 build_dir=$(readlink -f "`pwd`")
 src_dir=$(readlink -f "@abs_top_srcdir@")
 with_mem_leak_test="@WITH_MEM_LEAK_TEST@"
+export INCLUDE_SMISPY="@WITH_SMISPY@"
 
 source "${src_dir}/test/test_include.sh"
 

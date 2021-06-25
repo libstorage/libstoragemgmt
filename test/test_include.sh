@@ -316,6 +316,13 @@ function lsm_test_base_install
         legal_plugin_type=1
     fi
 
+    # Remove smispy plugin if user did not want it included.
+    if [ "$INCLUDE_SMISPY" == "no" ] ; then
+        echo "Removing smispy_plugin plugin as --without-smispy was specified"
+        _good rm -rf ${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/smispy_plugin
+        _good rm -f ${LSM_TEST_PLUGIN_DIR}/smispy_lsmplugin
+    fi
+
     if [ $legal_plugin_type -eq 0 ];then
         _fail "lsm_test_base_install(): Invalid argument"
     fi
