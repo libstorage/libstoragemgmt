@@ -80,6 +80,9 @@ pwd
 
 tree .
 
+echo "Are we in a sane state?"
+rpm -Va
+
 echo "Circle debug END"
 
 ./autogen.sh || exit 1
