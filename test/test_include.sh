@@ -212,11 +212,11 @@ function lsm_test_base_install
     _good mkdir "$LSM_TEST_CFG_DIR"
     _good mkdir "$LSM_TEST_CFG_DIR/pluginconf.d"
 
-    # Make sure LSM_UDS_PATH is gloable writeable in case 'sudo make check'
+    # Make sure LSM_UDS_PATH is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_UDS_PATH}
-    # Make sure LSM_TEST_RUNDIR is gloable writeable in case 'sudo make check'
+    # Make sure LSM_TEST_RUNDIR is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_TEST_RUNDIR}
-    # Make suer log folder is gloable writeable in case 'sudo make check'
+    # Make sure log folder is globally writeable in case 'sudo make check'
     _good chmod 0777 ${LSM_TEST_LOG_DIR}
 
 
@@ -314,6 +314,13 @@ function lsm_test_base_install
             _good chrpath -d "${LSM_TEST_PLUGIN_DIR}/$(basename $c_plugin)"
         done
         legal_plugin_type=1
+    fi
+
+    # Remove smispy plugin if user did not want it included.
+    if [ "$INCLUDE_SMISPY" == "no" ] ; then
+        echo "Removing smispy_plugin plugin as --without-smispy was specified"
+        _good rm -rf ${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/smispy_plugin
+        _good rm -f ${LSM_TEST_PLUGIN_DIR}/smispy_lsmplugin
     fi
 
     if [ $legal_plugin_type -eq 0 ];then

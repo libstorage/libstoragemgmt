@@ -94,12 +94,23 @@
  * SPC-5 rev 7 Table 590 - Designation descriptor
  */
 struct _sg_t10_vpd83_dp_header {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t code_set : 4;
     uint8_t protocol_id : 4;
+
     uint8_t designator_type : 4;
     uint8_t association : 2;
     uint8_t reserved_1 : 1;
     uint8_t piv : 1;
+#else
+    uint8_t protocol_id : 4;
+    uint8_t code_set : 4;
+
+    uint8_t piv : 1;
+    uint8_t reserved_1 : 1;
+    uint8_t association : 2;
+    uint8_t designator_type : 4;
+#endif
     uint8_t reserved_2;
     uint8_t designator_len;
 };
@@ -111,8 +122,13 @@ LSM_DLL_LOCAL struct _sg_t10_vpd83_dp {
 };
 
 LSM_DLL_LOCAL struct _sg_t10_vpd83_naa_header {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t data_msb : 4;
     uint8_t naa_type : 4;
+#else
+    uint8_t naa_type : 4;
+    uint8_t data_msb : 4;
+#endif
 };
 
 struct _sg_t10_vpd_ata_info {
