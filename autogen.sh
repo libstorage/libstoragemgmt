@@ -1,9 +1,10 @@
 #!/bin/bash
 
 #Clean stuff up to ensure a clean autobuild
-rm -rf autom4te.cache/*
-rm -rf build-aux/*
-rm -f m4/l*
-rm -f aclocal.m4
+rm -rf autom4te.cache/* || exit 1
+rm -rf build-aux/* || exit 1
+rm -f m4/l* || exit 1
+rm -f aclocal.m4 || exit 1
 
-autoreconf -f -i
+autoreconf -f -i || exit 1
+exit 0
