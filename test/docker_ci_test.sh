@@ -80,12 +80,12 @@ pwd
 
 tree .
 
-echo "Are we in a sane state?"
-rpm -Va
-
 echo "Circle debug END"
 
 ./autogen.sh || exit 1
+
+echo "autogen.sh run completely"
+tree .
 
 # Configure is almost doing the "right thing" by default in most cases,
 # but not for all.
