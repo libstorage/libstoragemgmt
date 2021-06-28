@@ -13,6 +13,9 @@
 # /bin/bash -c "cd /libstoragemgmt && pwd && test/docker_ci_test.sh"
 #
 
+export CONFIG_SHELL=/bin/bash
+export M4=/usr/bin/m4
+
 if [ -e "/etc/debian_version" ];then
     IS_DEB=1
 elif [ "CHK$(rpm -E "%{?fedora}")" != "CHK" ];then
@@ -49,6 +52,8 @@ fi
 if [ "CHK$IS_PY3" == "CHK1" ];then
     # shellcheck disable=SC2046
     dnf install $(cat ./rh_py3_rpm_dependency) rpm-build -y || exit 1
+    dnf install bash tree -y || exit 1
+    dnf update -y
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
     # shellcheck disable=SC2046
     yum install $(cat ./rh_py2_rpm_dependency) rpm-build -y || exit 1
@@ -68,6 +73,14 @@ fi
 if [ "CHK$IS_RHEL6" == "CHK1" ];then
     yum install python-argparse -y || exit 1
 fi
+
+echo "Circle debug START"
+printenv
+pwd
+
+tree .
+
+echo "Circle debug END"
 
 ./autogen.sh || exit 1
 
