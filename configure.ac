@@ -240,7 +240,9 @@ if test "x$with_python3" = "xyes"; then
 
     if test -e "/etc/debian_version"; then
         new_py_dir=`echo $pythondir| sed -e 's/site-packages$/dist-packages/'`
+        new_pyexec_dir=`echo $pyexecdir| sed -e 's/site-packages$/dist-packages/'`
         AC_SUBST([pythondir], [$new_py_dir])
+        AC_SUBST([pyexecdir], [$new_pyexec_dir])
         AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
     fi
     AC_SUBST(PY_VERSION, 3)
