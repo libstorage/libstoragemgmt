@@ -43,22 +43,30 @@ perl ${src_dir}/tools/utility/check_const.pl || exit 1
 
 # Fetch and test the golang module to ensure we didn't break it
 echo "Testing golang module"
-lsm_test_base_install \
-    "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
 
-lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+arch=`uname -m`
+if [ $arch != "ppc64" ] ; then
 
-STARTING_POINT=`pwd`
+    lsm_test_base_install \
+        "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
 
-#fetch the module
-_good git clone https://github.com/libstorage/libstoragemgmt-golang
-_good  cd libstoragemgmt-golang
-_good test/docker_travis_test.sh "$src_dir"
-_good cd "$STARTING_POINT"
+    lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
 
-lsm_test_cleanup
+    STARTING_POINT=`pwd`
+
+    #fetch the module
+    _good git clone https://github.com/libstorage/libstoragemgmt-golang
+    _good  cd libstoragemgmt-golang
+    _good test/docker_travis_test.sh "$src_dir"
+    _good cd "$STARTING_POINT"
+
+    lsm_test_cleanup
+else
+    echo "PowerPC big endian golang is no longer supported!"
+fi
 
 echo "Round 1: Testing sim plugin"
+
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
 
