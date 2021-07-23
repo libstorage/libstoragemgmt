@@ -48,10 +48,10 @@ fi
 
 if [ "CHK$IS_PY3" == "CHK1" ];then
     # shellcheck disable=SC2046
-    dnf install $(cat ./rh_py3_rpm_dependency) rpm-build -y || exit 1
+    dnf install $(cat ./rh_py3_rpm_dependency) rpm-build git-core -y || exit 1
 elif [ "CHK$IS_RHEL" == "CHK1" ];then
     # shellcheck disable=SC2046
-    yum install $(cat ./rh_py2_rpm_dependency) rpm-build -y || exit 1
+    yum install $(cat ./rh_py2_rpm_dependency) rpm-build git-core -y || exit 1
 elif [ "CHK$IS_DEB" = "CHK1" ];then
     export DEBIAN_FRONTEND="noninteractive"
     apt-get update
