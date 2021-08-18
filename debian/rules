@@ -9,10 +9,10 @@ DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/buildflags.mk
 
 %:
-	dh $@ --with python2,autoreconf,systemd
+	dh $@ --with python3,autoreconf,systemd
 
 override_dh_auto_clean:
 	:
 
 override_dh_auto_configure:
-	./configure --prefix=/usr --without-test --with-python2
+	./configure --prefix=/usr --without-test --with-python3 --without-smispy
