@@ -7,14 +7,14 @@ libtool
 libtool-bin
 autoconf
 automake
-python-pywbem
 libxml2-dev
 check
 libglib2.0-dev
 libssl-dev
 libconfig-dev
 libudev-dev
-python-dev
+python3-dev
+python3-six
 perl
 valgrind
 chrpath
