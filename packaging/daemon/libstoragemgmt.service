@@ -4,7 +4,6 @@ Description=libstoragemgmt plug-in server daemon
 [Service]
 ExecStart=/usr/bin/lsmd -d
 ExecReload=/bin/kill -HUP $MAINPID
-StandardError=syslog
 User=root
 
 [Install]
