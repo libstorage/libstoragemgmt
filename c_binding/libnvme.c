@@ -49,7 +49,7 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
      *         15    - Retain Asynchronous Event (RAE)
      *         14:12 - Reserved
      *         11: 8 - Log Specific Field (LSP)
-     *          7: 0 - Log Page Idenfifier (LID)
+     *          7: 0 - Log Page Identifier (LID)
      * cdw11 = 31:16 - Log Specific Identifier, Not using
      *         15: 0 - Number of dwords upper
      * cdw12 = 31: 0 - Log Page Offset Lower (LPOL) Not using
