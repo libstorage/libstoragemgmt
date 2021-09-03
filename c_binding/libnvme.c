@@ -49,7 +49,7 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
      *         15    - Retain Asynchronous Event (RAE)
      *         14:12 - Reserved
      *         11: 8 - Log Specific Field (LSP)
-     *          7: 0 - Log Page Idenfifier (LID)
+     *          7: 0 - Log Page Identifier (LID)
      * cdw11 = 31:16 - Log Specific Identifier, Not using
      *         15: 0 - Number of dwords upper
      * cdw12 = 31: 0 - Log Page Offset Lower (LPOL) Not using
@@ -96,8 +96,14 @@ int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
                  strerror(errno_cpy));
     } else {
         /* We got a nvme status code */
-        snprintf(err_msg, _LSM_ERR_MSG_LEN,
-                 "Unexpected return from ioctl, nvme status code 0x%X", rc);
+        if (rc == 0x109) {
+            /* Invalid log page, we'll return no support.  Found on
+             * google cloud NVMe scratch device */
+            return LSM_ERR_NO_SUPPORT;
+        } else {
+            snprintf(err_msg, _LSM_ERR_MSG_LEN,
+                     "Unexpected return from ioctl, nvme status code 0x%X", rc);
+        }
     }
     return LSM_ERR_LIB_BUG;
 }
