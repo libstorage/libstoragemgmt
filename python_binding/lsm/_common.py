@@ -356,7 +356,7 @@ def int_div(a, b):
     if six.PY3:
         return a // b
     else:
-        return a / b
+        return int(a) / int(b)
 
 
 # Converts a list of arguments to string.
