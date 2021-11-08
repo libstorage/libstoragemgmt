@@ -330,7 +330,8 @@ def _vd_path_of_lsm_vol(lsm_vol):
 class MegaRAID(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli",
-        "/opt/MegaRAID/perccli/perccli64", "/opt/MegaRAID/perccli/perccli"]
+        "/opt/MegaRAID/perccli/perccli64", "/opt/MegaRAID/perccli/perccli",
+        "/opt/hpe/storcli/storcli64"]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
     def __init__(self):
@@ -577,7 +578,7 @@ class MegaRAID(IPlugin):
                 disk_show_output.update(
                     self._storcli_exec(
                         ["/c%d/sall" % ctrl_num, "show", "all"]))
-            except (ExecError, TypeError):
+            except (ExecError, TypeError, LsmError):
                 pass
 
             for drive_name in list(disk_show_output.keys()):
