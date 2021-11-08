@@ -792,7 +792,7 @@ class MegaRAID(IPlugin):
                 int(vd_prop_info['Span Depth']))
         elif raid_type == Volume.RAID_TYPE_RAID10:
             strip_count = (
-                int(vd_prop_info['Number of Drives Per Span']) / 2 *
+                int_div(int(vd_prop_info['Number of Drives Per Span']), 2) *
                 int(vd_prop_info['Span Depth']))
         else:
             # MegaRAID does not support 15 or 16 yet.
