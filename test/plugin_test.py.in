@@ -1637,6 +1637,135 @@ class TestPlugin(unittest.TestCase):
                 self._skip_current_test(
                     "Skip test: not support of VOLUME_RAID_CREATE")
 
+    def find_disks(self, status):
+        return [d for d in self.c.disks() if ((d.status & status) == status)]
+
+    def _create_raid_vol(self, raid_type, free_disks, name=None):
+        # RAID1: len(disks) == 2
+        # RAID5: len(disks) >= 3
+        # RAID6: len(disks) >= 4
+        # RAID10: len(disks) % 2 == 0 and len(disks) >= 4
+        # RAID50: len(disks) % 2 == 0 and len(disks) >= 6
+        # RAID60: len(disks) % 2 == 0 and len(disks) >= 8
+        if not name:
+            vol_name = rs('v')
+        else:
+            vol_name = name
+
+        new_vol = None
+
+        if raid_type == lsm.Volume.RAID_TYPE_RAID1:
+            if len(free_disks) >= 2:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:2],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID5:
+            if len(free_disks) >= 3:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:3],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID6:
+            if len(free_disks) >= 4:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:4],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID10:
+            if len(free_disks) >= 4:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:4],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID50:
+            if len(free_disks) >= 6:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:6],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID60:
+            if len(free_disks) >= 8:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:8],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+        elif raid_type == lsm.Volume.RAID_TYPE_RAID0:
+            if len(free_disks) >= 1:
+                new_vol = self.c.volume_raid_create(
+                    vol_name, raid_type,
+                    free_disks[0:1],
+                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
+            else:
+                return (False, None)
+
+        return (True, new_vol)
+
+    def test_raid_create_raid_info(self):
+        for s in self.systems:
+            cap = self.c.capabilities(s)
+            if supported(cap, [Cap.VOLUME_RAID_CREATE, Cap.VOLUME_DELETE,
+                               Cap.VOLUME_RAID_INFO, Cap.VOLUMES]):
+                supported_raid_types, supported_strip_sizes = \
+                    self.c.volume_raid_create_cap_get(s)
+
+                # We are going to remove all the volume, do the test, and then
+                # put any volumes back.
+                existing_volumes = self.c.volumes()
+                existing_raid_info = []
+                for v in existing_volumes:
+                    info = self.c.volume_raid_info(v)
+                    existing_raid_info.append(info)
+
+                for v in existing_volumes:
+                    self.c.volume_delete(v)
+
+                # Loop through each raid type, if we have enough disks create it
+                # and get the raid info from it.
+                for raid_type in supported_raid_types:
+                    free_disks = self.find_disks((lsm.Disk.STATUS_FREE | lsm.Disk.STATUS_OK))
+                    expected, new_vol = self._create_raid_vol(raid_type, free_disks)
+                    if not expected:
+                        continue
+
+                    self.assertTrue(new_vol is not None, "Failed: %d %s" % (raid_type, str(free_disks)))
+                    if new_vol is not None:
+                        raid_info = self.c.volume_raid_info(new_vol)
+                        self.assertTrue(raid_info[0] == raid_type)
+                        self._volume_delete(new_vol)
+
+                # We shouldn't have any volumes...
+                remaining = self.c.volumes()
+                for r in remaining:
+                    self.c.volume_delete(r)
+
+                for i, v in enumerate(existing_volumes):
+                    free_disks = self.find_disks(
+                        (lsm.Disk.STATUS_FREE | lsm.Disk.STATUS_OK))
+
+                    expected, recreated_vol = \
+                        self._create_raid_vol(
+                            existing_raid_info[i][0], free_disks, v.name)
+
+                    if expected:
+                        self.assertTrue(recreated_vol,
+                            "Unable to re-create volume %s" % v.name)
+            else:
+                self._skip_current_test(
+                    "Skip test: required capabilities not found")
+
     def test_volume_raid_info(self):
         flag_supported = False
         pool_id_to_lsm_vols = dict()
