@@ -38,22 +38,22 @@
 struct _sas_phy_ctrl_dicov_hdr {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t page_code : 6;
-    uint8_t spf : 1;
-    uint8_t ps : 1;
+    uint8_t spf       : 1;
+    uint8_t ps        : 1;
 #else
-    uint8_t ps : 1;
-    uint8_t spf : 1;
-    uint8_t page_code : 6;
+    uint8_t ps                           : 1;
+    uint8_t spf                          : 1;
+    uint8_t page_code                    : 6;
 #endif
     uint8_t sub_page_code;
     uint16_t len_be;
     uint8_t reserved_1;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t protocol_id : 4;
-    uint8_t reserved_2 : 4;
+    uint8_t reserved_2  : 4;
 #else
-    uint8_t reserved_2 : 4;
-    uint8_t protocol_id : 4;
+    uint8_t reserved_2                   : 4;
+    uint8_t protocol_id                  : 4;
 #endif
     uint8_t gen_code;
     uint8_t num_of_phys;
@@ -66,9 +66,9 @@ struct _sas_phy_mode_dp {
     uint8_t we_dont_care_0;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t negotiated_logical_link_rate : 4;
-    uint8_t we_dont_care_1 : 4;
+    uint8_t we_dont_care_1               : 4;
 #else
-    uint8_t we_dont_care_1 : 4;
+    uint8_t we_dont_care_1               : 4;
     uint8_t negotiated_logical_link_rate : 4;
 #endif
     uint8_t we_dont_care_2[2];

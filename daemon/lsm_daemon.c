@@ -712,8 +712,8 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
          * does not return on success.
          */
         err = errno;
-        warn("Error on exec'ing Plugin: %s: %s (execve rc: %d)\n",
-            p_copy, strerror(err), exec_rc);
+        warn("Error on exec'ing Plugin: %s: %s (execve rc: %d)\n", p_copy,
+             strerror(err), exec_rc);
         free(p_copy);
         exit(1);
     }
@@ -794,10 +794,10 @@ void serve(void) {
 int ipc_lock_file() {
     static const char LFN[] = ".lsmd-ipc-lock";
     char *lock_file = path_form(socket_dir, LFN);
-    int fd = open(lock_file, O_CREAT|O_CLOEXEC|O_RDWR, S_IRUSR|S_IWUSR);
+    int fd = open(lock_file, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
     free(lock_file);
     if (fd != -1) {
-        int lock = flock(fd, LOCK_EX|LOCK_NB);
+        int lock = flock(fd, LOCK_EX | LOCK_NB);
         if (lock != 0) {
             log_and_exit("An instance of lsmd is using %s socketdir\n",
                          socket_dir);

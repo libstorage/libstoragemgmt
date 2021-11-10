@@ -355,7 +355,7 @@ out:
 
 static const char *_sys_version(void) {
     snprintf(_SYS_VERSION, _BUFF_SIZE, "%s_%s", _DB_VERSION_STR_PREFIX,
-        _DB_VERSION);
+             _DB_VERSION);
     return _SYS_VERSION;
 }
 
