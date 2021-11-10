@@ -23,8 +23,8 @@ LSM_TEST_INSTALL_PY_PLUGINS_ONLY=1
 LSM_TEST_INSTALL_C_PLUGINS_ONLY=2
 LSM_TEST_INSTALL_ALL_PLUGINS=3
 
-LSM_TEST_WITHOUT_MEM_CHECK=0
-LSM_TEST_WITH_MEM_CHECK=1
+export LSM_TEST_WITHOUT_MEM_CHECK=0
+export LSM_TEST_WITH_MEM_CHECK=1
 
 LSM_TEST_SIM_URI="sim://"
 LSM_TEST_SIMC_URI="simc://"
@@ -50,9 +50,9 @@ VALGRIND_OPTIONS="
 VALGRIND_OPTIONS_3_9="${VALGRIND_OPTIONS} --errors-for-leak-kinds=definite "
 
 VALGRIND_VERSION="$(valgrind --version 2>/dev/null)"
-VALGRIND_VERSION_MAJOR="$(echo $VALGRIND_VERSION|
+VALGRIND_VERSION_MAJOR="$(echo "$VALGRIND_VERSION"|
     sed -ne 's/valgrind-\([0-9]\+\)\..*/\1/p')"
-VALGRIND_VERSION_MINOR="$(echo $VALGRIND_VERSION|
+VALGRIND_VERSION_MINOR="$(echo "$VALGRIND_VERSION"|
     sed -ne 's/valgrind-[0-9]\+.\([0-9]\+\)\..*/\1/p')"
 
 if [ "CHK$VALGRIND_VERSION_MAJOR" == "CHK" ] || \
@@ -61,11 +61,11 @@ if [ "CHK$VALGRIND_VERSION_MAJOR" == "CHK" ] || \
     VALGRIND_OPTIONS=$VALGRIND_OPTIONS_3_9
 fi
 
-if [ $VALGRIND_VERSION_MAJOR -gt 3 ];then
+if [ "$VALGRIND_VERSION_MAJOR" -gt 3 ];then
     VALGRIND_OPTIONS=$VALGRIND_OPTIONS_3_9
 fi
 
-if [ $VALGRIND_VERSION_MAJOR -eq 3 ] && [ $VALGRIND_VERSION_MINOR -ge 9 ];then
+if [ "$VALGRIND_VERSION_MAJOR" -eq 3 ] && [ "$VALGRIND_VERSION_MINOR" -ge 9 ];then
     VALGRIND_OPTIONS=$VALGRIND_OPTIONS_3_9
 fi
 
@@ -94,10 +94,10 @@ function lsm_test_cleanup
         kill -s KILL $LSM_TEST_LSMD_PID
     fi
 
-    if [ -e $LSM_UDS_PATH ]; then
+    if [ -e "$LSM_UDS_PATH" ]; then
         if [ "CHK$keep_base" != "CHK${LSM_TEST_KEEP_INSTALL_BASE}" ]; then
-            chmod +w -R ${LSM_TEST_DST_DIR}
-            rm -rf     ${LSM_TEST_DST_DIR}
+            chmod +w -R "${LSM_TEST_DST_DIR}"
+            rm -rf "${LSM_TEST_DST_DIR}"
         else
             echo "Base folder ${LSM_TEST_DST_DIR} is kept for investigation"
         fi
@@ -107,11 +107,11 @@ function lsm_test_cleanup
 function lsm_test_dump_log
 {
     echo "============ Dumping log BEGIN ====================="
-    for x in $LSM_TEST_LOG_DIR/*;do
-        if [ -e $x ] && [ $(cat $x|wc -l) -gt 0 ];then
-            echo ======== $x BEGIN ==========
-            cat $x
-            echo ======== $x END   ==========
+    for x in "$LSM_TEST_LOG_DIR"/*;do
+        if [ -e "$x" ] && [ "$(wc -l < "$x")" -gt 0 ];then
+            echo ======== "$x" BEGIN ==========
+            cat "$x"
+            echo ======== "$x" END   ==========
         fi
     done
     echo "============ Dumping log END   ====================="
@@ -119,7 +119,7 @@ function lsm_test_dump_log
 
 function _good
 {
-    echo "executing: $@"
+    echo "executing: $*"
     eval "$@"
     local rc=$?
     if [ $rc -ne 0 ]; then
@@ -127,7 +127,7 @@ function _good
         if [ $rc -eq $LSM_TEST_MEM_LEAK_ERROR_CODE ];then
             echo "Found memory leak"
         else
-            echo "Fail exit[$rc]: $@"
+            echo "Fail exit[$rc]: $*"
         fi
         lsm_test_dump_log
         echo "Base folder is '$LSM_TEST_DST_DIR', please investigate"
@@ -172,7 +172,7 @@ function lsm_test_base_install
        [ "CHK$build_dir" == "CHK" ] ||
        [ "CHK$src_dir" == "CHK" ]   ||
        [ "CHK$plugin_type" == "CHK" ];then
-        _fail "lsm_test_base_install(): Invalid argument"
+        _fail "lsm_test_base_install: Invalid argument"
     fi
 
     LSM_TEST_DST_DIR="${dst_dir}"
@@ -213,11 +213,11 @@ function lsm_test_base_install
     _good mkdir "$LSM_TEST_CFG_DIR/pluginconf.d"
 
     # Make sure LSM_UDS_PATH is globally writeable in case 'sudo make check'
-    _good chmod 0777 ${LSM_UDS_PATH}
+    _good chmod 0777 "${LSM_UDS_PATH}"
     # Make sure LSM_TEST_RUNDIR is globally writeable in case 'sudo make check'
-    _good chmod 0777 ${LSM_TEST_RUNDIR}
+    _good chmod 0777 "${LSM_TEST_RUNDIR}"
     # Make sure log folder is globally writeable in case 'sudo make check'
-    _good chmod 0777 ${LSM_TEST_LOG_DIR}
+    _good chmod 0777 "${LSM_TEST_LOG_DIR}"
 
 
     _good $LIBTOOL_CMD_NO_WARN --mode install \
@@ -279,16 +279,16 @@ function lsm_test_base_install
 
     if [ "CHK${plugin_type}" == "CHK${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}" ] || \
        [ "CHK${plugin_type}" == "CHK${LSM_TEST_INSTALL_ALL_PLUGINS}" ];then
-        _good cp -av ${src_dir}/plugin ${LSM_TEST_PY_MODULE_DIR}/lsm/
-        _good find ${build_dir}/plugin '\( ! -regex ".*/\..*" \)' \
+        _good cp -av "${src_dir}"/plugin "${LSM_TEST_PY_MODULE_DIR}"/lsm/
+        _good find "${build_dir}"/plugin '\( ! -regex ".*/\..*" \)' \
             -name \*_lsmplugin \
-            -exec install -D {} ${LSM_TEST_PLUGIN_DIR} \\\;
+            -exec install -D {} "${LSM_TEST_PLUGIN_DIR}" \\\;
         # When source folder is the build folder, above command might also
         # copied C plugin(libtool wrapper file).
         local tmp_plugin
-        for tmp_plugin in ${LSM_TEST_PLUGIN_DIR}/*; do
-            if [ "CHK$(file -b $tmp_plugin |grep -i Python)" == "CHK" ];then
-                _good rm $tmp_plugin
+        for tmp_plugin in "${LSM_TEST_PLUGIN_DIR}"/*; do
+            if [ "CHK$(file -b "$tmp_plugin" |grep -i Python)" == "CHK" ];then
+                _good rm "$tmp_plugin"
             fi
         done
 
@@ -310,7 +310,7 @@ function lsm_test_base_install
         local c_plugin
         for c_plugin in $_LSM_C_PLUGINS; do
             _good $LIBTOOL_CMD_NO_WARN --mode install \
-                install -D "${build_dir}/plugin/$c_plugin" $LSM_TEST_PLUGIN_DIR
+                install -D "${build_dir}/plugin/$c_plugin" "$LSM_TEST_PLUGIN_DIR"
             _good chrpath -d "${LSM_TEST_PLUGIN_DIR}/$(basename $c_plugin)"
         done
         legal_plugin_type=1
@@ -319,8 +319,8 @@ function lsm_test_base_install
     # Remove smispy plugin if user did not want it included.
     if [ "$INCLUDE_SMISPY" == "no" ] ; then
         echo "Removing smispy_plugin plugin as --without-smispy was specified"
-        _good rm -rf ${LSM_TEST_PY_MODULE_DIR}/lsm/plugin/smispy_plugin
-        _good rm -f ${LSM_TEST_PLUGIN_DIR}/smispy_lsmplugin
+        _good rm -rf "${LSM_TEST_PY_MODULE_DIR}"/lsm/plugin/smispy_plugin
+        _good rm -f "${LSM_TEST_PLUGIN_DIR}"/smispy_lsmplugin
     fi
 
     if [ $legal_plugin_type -eq 0 ];then
@@ -328,7 +328,7 @@ function lsm_test_base_install
     fi
     echo "Installed plugins"
     echo "==================================="
-    ls -l ${LSM_TEST_PLUGIN_DIR}
+    ls -l "${LSM_TEST_PLUGIN_DIR}"
     echo "==================================="
 }
 
@@ -353,11 +353,11 @@ function lsm_test_lsmd_start
              --log-file=${LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX}_lsmd_%p ${cmd}"
     fi
     #Start daemon
-    echo $cmd
+    echo "$cmd"
     eval $cmd
     sleep 2
-    LSM_TEST_LSMD_PID=$(ps aux | grep $LSM_UDS_PATH | \
-                        grep -v grep |  awk '{print $2}')
+    LSM_TEST_LSMD_PID="$(ps aux | grep "$LSM_UDS_PATH" | \
+                        grep -v grep |  awk '{print $2}')"
     if [ "CHK${LSM_TEST_LSMD_PID}" == "CHK" ];then
         _fail "Failed to start lsmd daemon"
     fi
@@ -365,9 +365,9 @@ function lsm_test_lsmd_start
 
 function lsm_test_check_memory_leak
 {
-    for x in ${LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX}*; do
-        if [ -e $x ] && \
-           [ $(wc -l $x|perl -ne 'print $1 if /^([0-9]+)/') -gt 0 ];then
+    for x in "${LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX}"*; do
+        if [ -e "$x" ] && \
+           [ "$(wc -l "$x"|perl -ne 'print $1 if /^([0-9]+)/')" -gt 0 ];then
             lsm_test_dump_log
             _fail "Found memory leak"
         fi
@@ -405,7 +405,7 @@ function lsm_test_cmd_test_run
 
     unset LSMCLI_PASSWORD
 
-    _good $LSM_TEST_BIN_DIR/cmdtest.py -c $LSM_TEST_BIN_DIR/lsmcli
+    _good "${LSM_TEST_BIN_DIR}"/cmdtest.py -c "${LSM_TEST_BIN_DIR}"/lsmcli
     # TODO(Gris Ge): Should we add running from plugin here.
 }
 
@@ -417,5 +417,5 @@ function lsm_test_plugin_test_run
         unset LSM_TEST_PASSWORD
     fi
 
-    _good $LSM_TEST_BIN_DIR/plugin_test.py -v
+    _good "${LSM_TEST_BIN_DIR}"/plugin_test.py -v
 }
