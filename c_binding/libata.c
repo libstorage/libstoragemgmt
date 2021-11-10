@@ -59,13 +59,13 @@
 #pragma pack(push, 1)
 struct _ata_sata_add_cap {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t zero : 1;
-    uint8_t cur_speed : 3;
+    uint8_t zero           : 1;
+    uint8_t cur_speed      : 3;
     uint8_t we_dont_care_0 : 4;
 #else
     uint8_t we_dont_care_0 : 4;
-    uint8_t cur_speed : 3;
-    uint8_t zero : 1;
+    uint8_t cur_speed      : 3;
+    uint8_t zero           : 1;
 #endif
     uint8_t we_dont_care_1;
 };

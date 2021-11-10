@@ -226,7 +226,7 @@ int inc_token(int current, int amount, int max) {
 }
 
 Value lsm_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
-                 int *consumed) {
+                int *consumed) {
 
     int i = start_tok;
 

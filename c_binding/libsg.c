@@ -149,11 +149,11 @@ const char *const _T10_SPC_SENSE_KEY_STR[] = {
  */
 struct _sg_t10_vpd83_header {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t dev_type : 5;
+    uint8_t dev_type  : 5;
     uint8_t qualifier : 3;
 #else
-    uint8_t qualifier : 3;
-    uint8_t dev_type : 5;
+    uint8_t qualifier      : 3;
+    uint8_t dev_type       : 5;
 #endif
     uint8_t page_code;
     uint16_t page_len_be;
@@ -161,11 +161,11 @@ struct _sg_t10_vpd83_header {
 
 struct _sg_t10_vpd80_header {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t dev_type : 5;
+    uint8_t dev_type  : 5;
     uint8_t qualifier : 3;
 #else
-    uint8_t qualifier : 3;
-    uint8_t dev_type : 5;
+    uint8_t qualifier      : 3;
+    uint8_t dev_type       : 5;
 #endif
     uint8_t page_code;
     uint16_t page_len_be;
@@ -180,11 +180,11 @@ struct _sg_t10_vpd00 {
 
 struct _sg_t10_sense_header {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t response_code : 7;
+    uint8_t response_code  : 7;
     uint8_t we_dont_care_0 : 1;
 #else
     uint8_t we_dont_care_0 : 1;
-    uint8_t response_code : 7;
+    uint8_t response_code  : 7;
 #endif
 };
 
@@ -194,18 +194,18 @@ struct _sg_t10_sense_header {
 struct _sg_t10_sense_fixed {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t response_code : 7;
-    uint8_t valid : 1;
+    uint8_t valid         : 1;
 #else
-    uint8_t valid : 1;
-    uint8_t response_code : 7;
+    uint8_t valid          : 1;
+    uint8_t response_code  : 7;
 #endif
     uint8_t reserved;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t sense_key : 4;
+    uint8_t sense_key      : 4;
     uint8_t we_dont_care_0 : 4;
 #else
     uint8_t we_dont_care_0 : 4;
-    uint8_t sense_key : 4;
+    uint8_t sense_key      : 4;
 #endif
     uint8_t information[4];
     uint8_t len;
@@ -220,15 +220,15 @@ struct _sg_t10_sense_fixed {
  */
 struct _sg_t10_sense_dp {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    uint8_t response_code : 7;
-    uint8_t reserved : 1;
-    uint8_t sense_key : 4;
+    uint8_t response_code  : 7;
+    uint8_t reserved       : 1;
+    uint8_t sense_key      : 4;
     uint8_t we_dont_care_0 : 4;
 #else
-    uint8_t reserved : 1;
-    uint8_t response_code : 7;
+    uint8_t reserved       : 1;
+    uint8_t response_code  : 7;
     uint8_t we_dont_care_0 : 4;
-    uint8_t sense_key : 4;
+    uint8_t sense_key      : 4;
 #endif
     uint8_t asc;  /* ADDITIONAL SENSE CODE */
     uint8_t ascq; /* ADDITIONAL SENSE CODE QUALIFIER */
@@ -252,10 +252,10 @@ struct _sg_t10_info_excep_mode_page_0_hdr {
     uint8_t dont_care[3];
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t reserved : 4;
-    uint8_t mrie : 4;
+    uint8_t mrie     : 4;
 #else
-    uint8_t mrie : 4;
-    uint8_t reserved : 4;
+    uint8_t mrie           : 4;
+    uint8_t reserved       : 4;
 #endif
 };
 
@@ -288,26 +288,26 @@ struct _sg_t10_ata_pass_through_12_cdb {
     uint8_t operation_code;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t reserved_0 : 1;
-    uint8_t protocol : 4;
-    uint8_t obsolete : 3;
+    uint8_t protocol   : 4;
+    uint8_t obsolete   : 3;
 
-    uint8_t t_length : 2;
+    uint8_t t_length   : 2;
     uint8_t byte_block : 1;
-    uint8_t t_dir : 1;
-    uint8_t t_type : 1;
-    uint8_t ck_cond : 1;
-    uint8_t off_line : 2;
+    uint8_t t_dir      : 1;
+    uint8_t t_type     : 1;
+    uint8_t ck_cond    : 1;
+    uint8_t off_line   : 2;
 #else
-    uint8_t obsolete : 3;
-    uint8_t protocol : 4;
-    uint8_t reserved_0 : 1;
+    uint8_t obsolete       : 3;
+    uint8_t protocol       : 4;
+    uint8_t reserved_0     : 1;
 
-    uint8_t off_line : 2;
-    uint8_t ck_cond : 1;
-    uint8_t t_type : 1;
-    uint8_t t_dir : 1;
+    uint8_t off_line   : 2;
+    uint8_t ck_cond    : 1;
+    uint8_t t_type     : 1;
+    uint8_t t_dir      : 1;
     uint8_t byte_block : 1;
-    uint8_t t_length : 2;
+    uint8_t t_length   : 2;
 #endif
     uint8_t feature;
     uint8_t count;

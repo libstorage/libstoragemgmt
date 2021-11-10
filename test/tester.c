@@ -1113,7 +1113,7 @@ static int compare_battery(lsm_battery *l, lsm_battery *r) {
 }
 
 START_TEST(test_lsm_disk_private_data) {
-    #define NUM_TESTS 3
+#define NUM_TESTS 3
     int i;
     char id[] = "8675309";
     char name[] = "some disk";
