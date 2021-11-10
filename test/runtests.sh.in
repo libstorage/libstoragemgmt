@@ -31,31 +31,33 @@ if [ ! -e "./test" ];then
 fi
 
 test_base_dir="/tmp/$RANDOM"
-build_dir=$(readlink -f "`pwd`")
+build_dir=$(readlink -f "$(pwd)")
 src_dir=$(readlink -f "@abs_top_srcdir@")
 with_mem_leak_test="@WITH_MEM_LEAK_TEST@"
 export INCLUDE_SMISPY="@WITH_SMISPY@"
 
-source "${src_dir}/test/test_include.sh"
+source "${src_dir}"/test/test_include.sh
 
 # Constant check: check whether python constants matched with C constants.
-perl ${src_dir}/tools/utility/check_const.pl || exit 1
+perl "${src_dir}"/tools/utility/check_const.pl || exit 1
 
 # Fetch and test the golang module to ensure we didn't break it
 echo "Testing golang module"
 
-arch=`uname -m`
-if [ $arch != "ppc64" ] ; then
+arch=$(uname -m)
+if [ "CHK${arch}" != "CHKppc64" ] ; then
 
     lsm_test_base_install \
-        "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
+        "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_ALL_PLUGINS}"
 
-    lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+    lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
-    STARTING_POINT=`pwd`
+    STARTING_POINT=$(pwd)
 
     #fetch the module
-    _good git clone https://github.com/libstorage/libstoragemgmt-golang
+    if [ ! -d libstoragemgmt-golang ]; then
+        _good git clone https://github.com/libstorage/libstoragemgmt-golang
+    fi
     _good  cd libstoragemgmt-golang
     _good test/docker_travis_test.sh "$src_dir"
     _good cd "$STARTING_POINT"
@@ -68,18 +70,19 @@ fi
 # Fetch and test the rust code to ensure we didn't break it
 echo "Testing rust code base"
 
-arch=`uname -m`
-if [ $arch != "ppc64" ] ; then
+if [ "CHK${arch}" != "CHKppc64" ] ; then
 
     lsm_test_base_install \
-        "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
+        "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_ALL_PLUGINS}"
 
-    lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+    lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
-    STARTING_POINT=`pwd`
+    STARTING_POINT=$(pwd)
 
     #fetch the module
-    _good git clone https://github.com/libstorage/libstoragemgmt-rust
+    if [ ! -d libstoragemgmt-rust ]; then
+        _good git clone https://github.com/libstorage/libstoragemgmt-rust
+    fi
     _good  cd libstoragemgmt-rust
     _good tests/ci_test.sh "$src_dir"
     _good cd "$STARTING_POINT"
@@ -92,30 +95,30 @@ fi
 echo "Round 1: Testing sim plugin"
 
 lsm_test_base_install \
-    "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}
+    "${test_base_dir}" "${build_dir}" "${src_dir}" "${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}"
 
-lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
+lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
-lsm_test_c_unit_test_run $LSM_TEST_WITHOUT_MEM_CHECK $LSM_TEST_SIM_URI
-lsm_test_cmd_test_run $LSM_TEST_SIM_URI
-lsm_test_plugin_test_run $LSM_TEST_SIM_URI
+lsm_test_c_unit_test_run "${LSM_TEST_WITHOUT_MEM_CHECK}" "${LSM_TEST_SIM_URI}"
+lsm_test_cmd_test_run "${LSM_TEST_SIM_URI}"
+lsm_test_plugin_test_run "${LSM_TEST_SIM_URI}"
 
 lsm_test_cleanup
 
 echo "Round 2: Testing simc plugin and memory leak check if enabled"
 lsm_test_base_install \
-    "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_C_PLUGINS_ONLY}
+    "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_C_PLUGINS_ONLY}"
 
-if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
-    lsm_test_lsmd_start $LSM_TEST_WITH_MEM_CHECK
-    lsm_test_c_unit_test_run $LSM_TEST_WITH_MEM_CHECK $LSM_TEST_SIMC_URI
+if [ "CHK${with_mem_leak_test}" == "CHKyes" ];then
+    lsm_test_lsmd_start "${LSM_TEST_WITH_MEM_CHECK}"
+    lsm_test_c_unit_test_run "${LSM_TEST_WITH_MEM_CHECK}" "${LSM_TEST_SIMC_URI}"
 else
-    lsm_test_lsmd_start $LSM_TEST_WITHOUT_MEM_CHECK
-    lsm_test_c_unit_test_run $LSM_TEST_WITHOUT_MEM_CHECK $LSM_TEST_SIMC_URI
+    lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
+    lsm_test_c_unit_test_run "${LSM_TEST_WITHOUT_MEM_CHECK}" "${LSM_TEST_SIMC_URI}"
 fi
 
-lsm_test_cmd_test_run $LSM_TEST_SIMC_URI
-lsm_test_plugin_test_run $LSM_TEST_SIMC_URI
+lsm_test_cmd_test_run "${LSM_TEST_SIMC_URI}"
+lsm_test_plugin_test_run "${LSM_TEST_SIMC_URI}"
 
 if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
     lsm_test_check_memory_leak
