@@ -55,7 +55,9 @@ if [ $arch != "ppc64" ] ; then
     STARTING_POINT=`pwd`
 
     #fetch the module
-    _good git clone https://github.com/libstorage/libstoragemgmt-golang
+    if [ ! -d libstoragemgmt-golang ]; then
+        _good git clone https://github.com/libstorage/libstoragemgmt-golang
+    fi
     _good  cd libstoragemgmt-golang
     _good test/docker_travis_test.sh "$src_dir"
     _good cd "$STARTING_POINT"
@@ -79,6 +81,9 @@ if [ $arch != "ppc64" ] ; then
     STARTING_POINT=`pwd`
 
     #fetch the module
+    if [ ! -d libstoragemgmt-rust ]; then
+        _good git clone https://github.com/libstorage/libstoragemgmt-rust
+    fi
     _good git clone https://github.com/libstorage/libstoragemgmt-rust
     _good  cd libstoragemgmt-rust
     _good tests/ci_test.sh "$src_dir"
