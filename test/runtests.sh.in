@@ -44,8 +44,8 @@ perl ${src_dir}/tools/utility/check_const.pl || exit 1
 # Fetch and test the golang module to ensure we didn't break it
 echo "Testing golang module"
 
-arch=`uname -m`
-if [ $arch != "ppc64" ] ; then
+arch=$(uname -m)
+if [ "CHK${arch}" != "CHKppc64" ] ; then
 
     lsm_test_base_install \
         "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
@@ -70,8 +70,7 @@ fi
 # Fetch and test the rust code to ensure we didn't break it
 echo "Testing rust code base"
 
-arch=`uname -m`
-if [ $arch != "ppc64" ] ; then
+if [ "CHK${arch}" != "CHKppc64" ] ; then
 
     lsm_test_base_install \
         "$test_base_dir" "$build_dir" "$src_dir" ${LSM_TEST_INSTALL_ALL_PLUGINS}
