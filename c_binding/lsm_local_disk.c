@@ -696,7 +696,7 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
 
     bdc = (struct t10_sbc_vpd_bdc *)vpd_data;
     if (bdc->pg_code != _SG_T10_SBC_VPD_BLK_DEV_CHA) {
-        rc = LSM_ERR_LIB_BUG;
+        rc = LSM_ERR_NO_SUPPORT;
         _lsm_err_msg_set(err_msg,
                          "Got corrupted SCSI SBC "
                          "Device Characteristics VPD page, expected page code "
