@@ -25,8 +25,8 @@ import sys
 import fcntl
 
 from lsm import (Capabilities, ErrorNumber, FileSystem, INfs,
-                 IStorageAreaNetwork, LsmError, NfsExport,
-                 System, Pool, VERSION, search_property)
+                 IStorageAreaNetwork, LsmError, NfsExport, System, Pool,
+                 VERSION, search_property)
 
 from nfs_plugin.nfs_clib import (get_fsid, list_mounts)
 
@@ -170,9 +170,8 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
             export_id = NFSPlugin._export_id(path, sec, anonuid, anongid,
                                              optionstring)
 
-            result = NfsExport(export_id, fsid, path,
-                               sec, root_list, rw_list, ro_list,
-                               anonuid, anongid, optionstring)
+            result = NfsExport(export_id, fsid, path, sec, root_list, rw_list,
+                               ro_list, anonuid, anongid, optionstring)
             return result
         except:
             pass
@@ -349,8 +348,9 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                     try:
                         export_id = get_fsid(exp._export_path)
                         if export_id != exp._fs_id:
-                            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                                           'FS ID and Path\'s FS ID do not match')
+                            raise LsmError(
+                                ErrorNumber.INVALID_ARGUMENT,
+                                'FS ID and Path\'s FS ID do not match')
                     except:
                         raise
 
@@ -383,11 +383,10 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                         del opts['rw']
                     opts['ro'] = 'ro'
                     efile.write("%s %s(%s)\n" %
-                                (exp._export_path,
-                                 host, NFSPlugin._print_option(opts)))
+                                (exp._export_path, host,
+                                 NFSPlugin._print_option(opts)))
         except IOError:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           'error writing exports')
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'error writing exports')
 
     @staticmethod
     def _update_exports():
@@ -396,11 +395,9 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         try:
             NFSPlugin._run_cmd(cmd)
         except subprocess.CalledProcessError:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           'exportfs failed')
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT, 'exportfs failed')
         except OSError:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           'error calling exportfs')
+            raise LsmError(ErrorNumber.PLUGIN_BUG, 'error calling exportfs')
 
     def plugin_info(self, flags=0):
         return "Local NFS Exports", VERSION
@@ -412,9 +409,10 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
     def plugin_register(self, uri, password, timeout, flags=0):
         self.tmo = timeout
         if os.geteuid() != 0:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "This plugin requires root privilege for both "
-                           "daemon and client")
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "This plugin requires root privilege for both "
+                "daemon and client")
 
         return
 
@@ -447,9 +445,9 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                 unsup_actions = 0
                 status = System.STATUS_OK
                 status_info = ''
-                pools.append(Pool(fsid, prt, pooltype, unsup_actions,
-                                  total_size, avail_size, status, status_info,
-                                  self._SYSID))
+                pools.append(
+                    Pool(fsid, prt, pooltype, unsup_actions, total_size,
+                         avail_size, status, status_info, self._SYSID))
             except OSError:
                 pass
         return search_property(pools, search_key, search_value)
@@ -457,8 +455,9 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
     def systems(self, flags=0):
         syslist = []
         hostname = os.uname()[1]
-        syslist.append(System(NFSPlugin._SYSID, "NFS on %s" % hostname,
-                              System.STATUS_UNKNOWN, ''))
+        syslist.append(
+            System(NFSPlugin._SYSID, "NFS on %s" % hostname,
+                   System.STATUS_UNKNOWN, ''))
         return syslist
 
     def fs(self, search_key=None, search_value=None, flags=0):
@@ -470,8 +469,8 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                 (total_size, avail_size) = NFSPlugin._get_fs_sizes(prt)
                 fsid = get_fsid(prt)
                 fss.append(
-                    FileSystem(fsid, prt, total_size,
-                               avail_size, fsid, self._SYSID))
+                    FileSystem(fsid, prt, total_size, avail_size, fsid,
+                               self._SYSID))
             except OSError:
                 pass
 
@@ -482,10 +481,17 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         exports = NFSPlugin._load_exports()
         return search_property(exports, search_key, search_value)
 
-    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+    def export_fs(self,
+                  fs_id,
+                  export_path,
+                  root_list,
+                  rw_list,
+                  ro_list,
                   anon_uid=NfsExport.ANON_UID_GID_NA,
                   anon_gid=NfsExport.ANON_UID_GID_NA,
-                  auth_type=None, options=None, flags=None):
+                  auth_type=None,
+                  options=None,
+                  flags=None):
         """Add an export"""
 
         if fs_id is None and export_path is None:
@@ -529,9 +535,8 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         expid = NFSPlugin._export_id(export_path, auth_type, anon_uid,
                                      anon_gid, options)
 
-        newexp = NfsExport(expid, fs_id, export_path,
-                           auth_type, root_list, rw_list, ro_list,
-                           anon_uid, anon_gid, options)
+        newexp = NfsExport(expid, fs_id, export_path, auth_type, root_list,
+                           rw_list, ro_list, anon_uid, anon_gid, options)
 
         efile = NFSPlugin._open_exports(readonly=False)
         exports = NFSPlugin._read_exports(efile)

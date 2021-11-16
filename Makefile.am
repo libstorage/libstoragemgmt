@@ -32,6 +32,11 @@ deb: clean
 cformat:
 	find . -type f \( -name \*.h -o -name \*.c -o -name \*.hpp -o -name \*.cpp \) -exec clang-format -i {} \;
 
+pyformat:
+	yapf --style pep8 -r -i .
+
+format: cformat pyformat
+
 if WITH_TEST
 TESTS = test/runtests.sh
 endif

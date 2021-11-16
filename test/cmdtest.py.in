@@ -44,7 +44,7 @@ import copy
 (INIT_TYPE) = 2
 (FS_TOTAL, FS_FREE, FS_POOL_ID) = (2, 3, 4)
 
-(SYS_STATUS,) = (2,)
+(SYS_STATUS, ) = (2, )
 
 iqn = ['iqn.1994-05.com.domain:01.89bd01', 'iqn.1994-05.com.domain:01.89bd02']
 
@@ -121,13 +121,14 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
     if (expected_rc is None and process.returncode != expected_rc) or \
        (expected_rcs is not None and process.returncode not in expected_rcs):
         if expected_rcs is None:
-            raise RuntimeError("exit code != %s, actual= %s, stdout= %s, "
-                               "stderr= %s" % (expected_rc, process.returncode,
-                                               out[0], out[1]))
-        raise RuntimeError("exit code not in one of '%s', "
-                           "actual= %s, stdout= %s, stderr= %s" %
-                           (expected_rcs_str, process.returncode, out[0],
-                            out[1]))
+            raise RuntimeError(
+                "exit code != %s, actual= %s, stdout= %s, "
+                "stderr= %s" %
+                (expected_rc, process.returncode, out[0], out[1]))
+        raise RuntimeError(
+            "exit code not in one of '%s', "
+            "actual= %s, stdout= %s, stderr= %s" %
+            (expected_rcs_str, process.returncode, out[0], out[1]))
     return process.returncode, out[0], out[1]
 
 
@@ -181,8 +182,10 @@ def name_to_id(op, name):
 
 
 def create_volume(pool):
-    out = call([cmd, '-t' + sep, 'volume-create', '--name', rs(12), '--size',
-                '30M', '--pool', pool, '--provisioning', 'DEFAULT'])[1]
+    out = call([
+        cmd, '-t' + sep, 'volume-create', '--name',
+        rs(12), '--size', '30M', '--pool', pool, '--provisioning', 'DEFAULT'
+    ])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -192,18 +195,19 @@ def volume_delete(vol_id):
 
 
 def fs_create(pool_id):
-    out = call([cmd, '-t' + sep, 'fs-create', '--name', rs(12), '--size',
-                '500M', '--pool', pool_id])[1]
+    out = call([
+        cmd, '-t' + sep, 'fs-create', '--name',
+        rs(12), '--size', '500M', '--pool', pool_id
+    ])[1]
     r = parse(out)
     return r[0][ID]
 
 
 def export_fs(fs_id):
-    out = call([cmd, '-t' + sep,
-                'fs-export',
-                '--fs', fs_id,
-                '--rw-host', '192.168.0.1',
-                '--root-host', '192.168.0.1', '--script'])[1]
+    out = call([
+        cmd, '-t' + sep, 'fs-export', '--fs', fs_id, '--rw-host',
+        '192.168.0.1', '--root-host', '192.168.0.1', '--script'
+    ])[1]
 
     r = parse_key_value(out)
     return r[0]['ID']
@@ -218,8 +222,10 @@ def delete_fs(fs_id):
 
 
 def access_group_create(init_id, system_id):
-    out = call([cmd, '-t' + sep, 'access-group-create', '--name', rs(8),
-                '--init', init_id, '--sys', system_id])[1]
+    out = call([
+        cmd, '-t' + sep, 'access-group-create', '--name',
+        rs(8), '--init', init_id, '--sys', system_id
+    ])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -253,34 +259,27 @@ def access_groups_granted_to_volume(vol_id):
 
 
 def resize_vol(vol_id):
-    call([cmd, '-t' + sep, '-f',
-          'volume-resize',
-          '--vol', vol_id,
-          '--size', '60M'])
-    call([cmd, '-t' + sep, '-f',
-          'volume-resize',
-          '--vol', vol_id,
-          '--size', '100M'])
+    call([
+        cmd, '-t' + sep, '-f', 'volume-resize', '--vol', vol_id, '--size',
+        '60M'
+    ])
+    call([
+        cmd, '-t' + sep, '-f', 'volume-resize', '--vol', vol_id, '--size',
+        '100M'
+    ])
 
 
 def resize_fs(fs_id):
-    call([cmd, '-t' + sep, '-f',
-          'fs-resize',
-          '--fs', fs_id,
-          '--size', '1G'])
-    call([cmd, '-t' + sep, '-f',
-          'fs-resize',
-          '--fs', fs_id,
-          '--size', '750M'])
-    call([cmd, '-t' + sep, '-f',
-          'fs-resize',
-          '--fs', fs_id,
-          '--size', '300M'])
+    call([cmd, '-t' + sep, '-f', 'fs-resize', '--fs', fs_id, '--size', '1G'])
+    call([cmd, '-t' + sep, '-f', 'fs-resize', '--fs', fs_id, '--size', '750M'])
+    call([cmd, '-t' + sep, '-f', 'fs-resize', '--fs', fs_id, '--size', '300M'])
 
 
 def map_init(init, volume):
-    call([cmd, '-t' + sep, 'access-grant', '--init', init, '--vol', volume,
-          '--access', 'RW'])
+    call([
+        cmd, '-t' + sep, 'access-grant', '--init', init, '--vol', volume,
+        '--access', 'RW'
+    ])
 
 
 def unmap(init, volume):
@@ -288,8 +287,10 @@ def unmap(init, volume):
 
 
 def clone_fs(fs_id):
-    out = call([cmd, '-t' + sep, 'fs-clone', '--src-fs', fs_id,
-                '--dst-name', 'cloned_' + rs(8)])[1]
+    out = call([
+        cmd, '-t' + sep, 'fs-clone', '--src-fs', fs_id, '--dst-name',
+        'cloned_' + rs(8)
+    ])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -308,8 +309,9 @@ def clone_file(fs_id):
 
 
 def create_ss(fs_id):
-    out = call([cmd, '-t' + sep, 'fs-snap-create', '--name', rs(12), '--fs',
-                fs_id])[1]
+    out = call(
+        [cmd, '-t' + sep, 'fs-snap-create', '--name',
+         rs(12), '--fs', fs_id])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -323,12 +325,10 @@ def restore_ss(snapshot_id, fs_id):
 
 
 def volume_replicate(source_id, vol_type):
-    out = call([cmd,
-                '-t' + sep,
-                'volume-replicate',
-                '--vol', source_id,
-                '--rep-type', vol_type,
-                '--name', 'lun_' + vol_type + '_' + rs(12)])[1]
+    out = call([
+        cmd, '-t' + sep, 'volume-replicate', '--vol', source_id, '--rep-type',
+        vol_type, '--name', 'lun_' + vol_type + '_' + rs(12)
+    ])[1]
     r = parse(out)
     return r[0][ID]
 
@@ -339,21 +339,20 @@ def volume_replicate_range_bs(system_id):
     Args:
         system_id:  The unique identifier for the system
     """
-    out = call([cmd,
-                'volume-replicate-range-block-size',
-                '--sys', system_id])[1]
+    out = call([cmd, 'volume-replicate-range-block-size', '--sys',
+                system_id])[1]
     return int(out)
 
 
 def volume_replicate_range(vol_id, dest_vol_id, rep_type, src_start,
                            dest_start, count):
-    call([cmd, '-f', 'volume-replicate-range',
-          '--src-vol', vol_id,
-          '--rep-type', rep_type,
-          '--dst-vol', dest_vol_id,
-          '--src-start', str(src_start),
-          '--dst-start', str(dest_start),
-          '--count', str(count)])
+    call([
+        cmd, '-f', 'volume-replicate-range', '--src-vol', vol_id, '--rep-type',
+        rep_type, '--dst-vol', dest_vol_id, '--src-start',
+        str(src_start), '--dst-start',
+        str(dest_start), '--count',
+        str(count)
+    ])
 
 
 def volume_child_dependency(vol_id):
@@ -377,22 +376,22 @@ def system_read_cache_pct_update_test(cap):
         for specific_system in system_list:
             call([
                 cmd, '-t' + sep, 'system-read-cache-pct-update', '--system',
-                specific_system[0], 50])
+                specific_system[0], 50
+            ])
 
     return
 
 
 def initiator_chap(initiator):
-    call([cmd, 'iscsi-chap',
-          '--init', initiator])
-    call([cmd, 'iscsi-chap',
-          '--init', initiator,
-          '--in-user', "foo",
-          '--in-pass', "bar"])
-    call([cmd, 'iscsi-chap',
-          '--init', initiator, '--in-user', "foo",
-          '--in-pass', "bar", '--out-user', "foo",
-          '--out-pass', "bar"])
+    call([cmd, 'iscsi-chap', '--init', initiator])
+    call([
+        cmd, 'iscsi-chap', '--init', initiator, '--in-user', "foo",
+        '--in-pass', "bar"
+    ])
+    call([
+        cmd, 'iscsi-chap', '--init', initiator, '--in-user', "foo",
+        '--in-pass', "bar", '--out-user', "foo", '--out-pass', "bar"
+    ])
 
 
 def capabilities(system_id):
@@ -411,7 +410,13 @@ def capabilities(system_id):
 
 
 def get_existing_fs():
-    out = call([cmd, '-t' + sep, 'list', '--type', 'FS', ])[1]
+    out = call([
+        cmd,
+        '-t' + sep,
+        'list',
+        '--type',
+        'FS',
+    ])[1]
     results = parse(out)
 
     if len(results) > 0:
@@ -434,7 +439,13 @@ def display_check(display_list):
     s = [x for x in display_list if x != 'SNAPSHOTS']
     for p in s:
         call([cmd, 'list', '--type', p])
-        call([cmd, '-H', 'list', '--type', p, ])
+        call([
+            cmd,
+            '-H',
+            'list',
+            '--type',
+            p,
+        ])
         call([cmd, '-H', '-t' + sep, 'list', '--type', p])
 
     if 'SNAPSHOTS' in display_list:
@@ -524,12 +535,11 @@ def test_block_creation(cap, system_id):
 
         if cap['VOLUME_COPY_RANGE']:
             if cap['VOLUME_COPY_RANGE_CLONE']:
-                volume_replicate_range(vol_src, vol_src, "CLONE",
-                                       0, 10000, 100)
+                volume_replicate_range(vol_src, vol_src, "CLONE", 0, 10000,
+                                       100)
 
             if cap['VOLUME_COPY_RANGE_COPY']:
-                volume_replicate_range(vol_src, vol_src, "COPY",
-                                       0, 10000, 100)
+                volume_replicate_range(vol_src, vol_src, "COPY", 0, 10000, 100)
 
     if cap['VOLUME_CHILD_DEPENDENCY']:
         volume_child_dependency(vol_src)
@@ -651,8 +661,15 @@ def test_nfs_operations():
 
 
 def test_plugin_info():
-    call([cmd, 'plugin-info', ])
-    call([cmd, '-t' + sep, 'plugin-info', ])
+    call([
+        cmd,
+        'plugin-info',
+    ])
+    call([
+        cmd,
+        '-t' + sep,
+        'plugin-info',
+    ])
 
 
 def test_plugin_list():
@@ -697,14 +714,15 @@ def search_test(system_id):
     nfs_export_id = export_fs(fs_id)
     nfs_export_id_filter = "--nfs-export='%s'" % nfs_export_id
 
-    all_filters = [sys_id_filter, pool_id_filter, vol_id_filter,
-                   disk_id_filter, ag_id_filter, fs_id_filter,
-                   nfs_export_id_filter]
+    all_filters = [
+        sys_id_filter, pool_id_filter, vol_id_filter, disk_id_filter,
+        ag_id_filter, fs_id_filter, nfs_export_id_filter
+    ]
 
     supported = {
         'pools': [sys_id_filter, pool_id_filter],
-        'volumes': [sys_id_filter, pool_id_filter, vol_id_filter,
-                    ag_id_filter],
+        'volumes':
+        [sys_id_filter, pool_id_filter, vol_id_filter, ag_id_filter],
         'disks': [sys_id_filter, disk_id_filter],
         'access_groups': [sys_id_filter, ag_id_filter, vol_id_filter],
         'fs': [sys_id_filter, pool_id_filter, fs_id_filter],
@@ -787,16 +805,16 @@ def volume_raid_create_test(cap, system_id):
         out = call([
             cmd, '-t' + sep, 'volume-raid-create', '--disk', free_disk_ids[0],
             '--disk', free_disk_ids[1], '--name',
-            'test_volume_raid_create_%s' % rs(4),
-            '--raid-type', 'raid1'])[1]
+            'test_volume_raid_create_%s' % rs(4), '--raid-type', 'raid1'
+        ])[1]
 
         volume = parse(out)
         vol_id = volume[0][0]
         pool_id = volume[0][5]
 
         if cap['VOLUME_RAID_INFO']:
-            out = call(
-                [cmd, '-t' + sep, 'volume-raid-info', '--vol', vol_id])[1]
+            out = call([cmd, '-t' + sep, 'volume-raid-info', '--vol',
+                        vol_id])[1]
             if parse(out)[0][1] != 'RAID1':
                 print("New volume is not RAID 1")
                 exit(10)
@@ -824,8 +842,8 @@ def volume_ident_led_on_test(cap):
         volume_list = parse(out)
         for volume in volume_list:
             call([
-                cmd, '-t' + sep, 'volume-ident-led-on', '--volume',
-                volume[0]])
+                cmd, '-t' + sep, 'volume-ident-led-on', '--volume', volume[0]
+            ])
 
     return
 
@@ -836,8 +854,8 @@ def volume_ident_led_off_test(cap):
         volume_list = parse(out)
         for volume in volume_list:
             call([
-                cmd, '-t' + sep, 'volume-ident-led-off', '--volume',
-                volume[0]])
+                cmd, '-t' + sep, 'volume-ident-led-off', '--volume', volume[0]
+            ])
 
     return
 
@@ -868,8 +886,10 @@ def test_volume_pdc_update():
     pool_id = name_to_id(OP_POOL, test_pool_name)
     vol_id = create_volume(pool_id)
     for policy, result in dict(ENABLE="Enabled", DISABLE="Disabled").items():
-        output = call([cmd, '-t' + sep, 'volume-phy-disk-cache-update',
-                       '--vol', vol_id, '--policy', policy])[1]
+        output = call([
+            cmd, '-t' + sep, 'volume-phy-disk-cache-update', '--vol', vol_id,
+            '--policy', policy
+        ])[1]
 
         cache_info = parse(output)
         if len(cache_info) != 1 or len(cache_info[0]) < 6:
@@ -887,11 +907,14 @@ def test_volume_pdc_update():
 def test_volume_wcp_update():
     pool_id = name_to_id(OP_POOL, test_pool_name)
     vol_id = create_volume(pool_id)
-    for policy, result in dict(WB="Write Back", AUTO="Auto",
+    for policy, result in dict(WB="Write Back",
+                               AUTO="Auto",
                                WT="Write Through").items():
         cache_info = parse(
-            call([cmd, '-t' + sep, 'volume-write-cache-policy-update',
-                 '--vol', vol_id, '--policy', policy])[1])
+            call([
+                cmd, '-t' + sep, 'volume-write-cache-policy-update', '--vol',
+                vol_id, '--policy', policy
+            ])[1])
         if len(cache_info) != 1 or len(cache_info[0]) < 2:
             print("Invalid return from volume-write-cache-policy-update, "
                   "should has 6 or more items")
@@ -908,8 +931,10 @@ def test_volume_rcp_update():
     vol_id = create_volume(pool_id)
     for policy, result in dict(ENABLE="Enabled", DISABLE="Disabled").items():
         cache_info = parse(
-            call([cmd, '-t' + sep, 'volume-read-cache-policy-update',
-                 '--vol', vol_id, '--policy', policy])[1])
+            call([
+                cmd, '-t' + sep, 'volume-read-cache-policy-update', '--vol',
+                vol_id, '--policy', policy
+            ])[1])
         if len(cache_info) != 1 or len(cache_info[0]) < 4:
             print("Invalid return from volume-read-cache-policy-update, "
                   "should has 6 or more items")
@@ -945,8 +970,8 @@ def test_local_disk_led():
               "when not run by root user")
         return
 
-    disk_paths = list(x[0] for x in
-                      parse(verify_no_daemon_needed([cmd, '-t' + sep, 'local-disk-list'], [0])[1]))
+    disk_paths = list(x[0] for x in parse(
+        verify_no_daemon_needed([cmd, '-t' + sep, 'local-disk-list'], [0])[1]))
 
     if len(disk_paths) == 0:
         print("Skipping test of 'local-disk-ident-led-on' and etc commands "
@@ -957,14 +982,18 @@ def test_local_disk_led():
     for disk_path in disk_paths[:4]:
         if os.path.exists(disk_path):
             flag_disk_found = True
-            verify_no_daemon_needed([cmd, 'local-disk-ident-led-on', '--path',
-                                     disk_path], expected_rcs=expected_rcs)
-            verify_no_daemon_needed([cmd, 'local-disk-ident-led-off', '--path',
-                                     disk_path], expected_rcs=expected_rcs)
-            verify_no_daemon_needed([cmd, 'local-disk-fault-led-on', '--path',
-                                     disk_path], expected_rcs=expected_rcs)
-            verify_no_daemon_needed([cmd, 'local-disk-fault-led-off', '--path',
-                                     disk_path], expected_rcs=expected_rcs)
+            verify_no_daemon_needed(
+                [cmd, 'local-disk-ident-led-on', '--path', disk_path],
+                expected_rcs=expected_rcs)
+            verify_no_daemon_needed(
+                [cmd, 'local-disk-ident-led-off', '--path', disk_path],
+                expected_rcs=expected_rcs)
+            verify_no_daemon_needed(
+                [cmd, 'local-disk-fault-led-on', '--path', disk_path],
+                expected_rcs=expected_rcs)
+            verify_no_daemon_needed(
+                [cmd, 'local-disk-fault-led-off', '--path', disk_path],
+                expected_rcs=expected_rcs)
 
     if flag_disk_found is False:
         print("Skipping test of 'local-disk-ident-led-on' and etc command "
@@ -996,15 +1025,26 @@ def run_all_tests(cap, system_id):
     test_volume_rcp_update()
     test_local_disk_led()
 
+
 if __name__ == "__main__":
     parser = OptionParser()
-    parser.add_option("-c", "--command", action="store", type="string",
-                      dest="cmd", help="specific command line to test")
-    parser.add_option("-p", "--pool", action="store", dest="pool_name",
+    parser.add_option("-c",
+                      "--command",
+                      action="store",
+                      type="string",
+                      dest="cmd",
+                      help="specific command line to test")
+    parser.add_option("-p",
+                      "--pool",
+                      action="store",
+                      dest="pool_name",
                       default='lsm_test_aggr',
                       help="pool name to use for testing")
 
-    parser.add_option("-f", "--fspool", action="store", dest="fs_pool_id",
+    parser.add_option("-f",
+                      "--fspool",
+                      action="store",
+                      dest="fs_pool_id",
                       default='',
                       help="fs pool id to use for testing")
 

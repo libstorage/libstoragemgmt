@@ -20,9 +20,8 @@ import copy
 import os
 
 from lsm import (IStorageAreaNetwork, uri_parse, LsmError, ErrorNumber,
-                 JobStatus, md5, Volume, AccessGroup, Pool,
-                 VERSION, TargetPort,
-                 search_property)
+                 JobStatus, md5, Volume, AccessGroup, Pool, VERSION,
+                 TargetPort, search_property)
 from smispy_plugin.smis_common import SmisCommon
 from smispy_plugin import smis_cap
 from smispy_plugin import smis_sys
@@ -34,7 +33,6 @@ from smispy_plugin import dmtf
 from smispy_plugin.utils import (merge_list, handle_cim_errors,
                                  hex_string_format)
 import pywbem
-
 
 # Variable Naming scheme:
 #   cim_xxx         CIMInstance
@@ -161,9 +159,9 @@ class Smis(IStorageAreaNetwork):
                                "ca_cert_file: '%s' does not exists")
             no_ssl_verify = False
 
-        self._c = SmisCommon(
-            url, u['username'], password, namespace, no_ssl_verify,
-            debug_path, system_list, ca_cert_file)
+        self._c = SmisCommon(url, u['username'], password, namespace,
+                             no_ssl_verify, debug_path, system_list,
+                             ca_cert_file)
 
         self.tmo = timeout
 
@@ -207,9 +205,10 @@ class Smis(IStorageAreaNetwork):
             error_handler = Smis._JOB_ERROR_HANDLER[retrieve_data]
 
         cim_job_pros = SmisCommon.cim_job_pros()
-        cim_job_pros.extend(
-            ['JobState', 'PercentComplete', 'ErrorDescription',
-             'OperationalStatus'])
+        cim_job_pros.extend([
+            'JobState', 'PercentComplete', 'ErrorDescription',
+            'OperationalStatus'
+        ])
         cim_job = self._c.cim_job_of_job_id(job_id, cim_job_pros)
 
         job_state = cim_job['JobState']
@@ -234,12 +233,11 @@ class Smis(IStorageAreaNetwork):
                        retrieve_data == SmisCommon.JOB_RETRIEVE_VOLUME_CREATE:
                         completed_item = self._new_vol_from_job(cim_job)
                 else:
-                    raise LsmError(
-                        ErrorNumber.PLUGIN_BUG,
-                        str(cim_job['ErrorDescription']))
+                    raise LsmError(ErrorNumber.PLUGIN_BUG,
+                                   str(cim_job['ErrorDescription']))
             else:
-                raise LsmError(
-                    ErrorNumber.PLUGIN_BUG, str(cim_job['ErrorDescription']))
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
+                               str(cim_job['ErrorDescription']))
 
         except Exception:
             if error_handler is not None:
@@ -256,13 +254,11 @@ class Smis(IStorageAreaNetwork):
         cim_vol_pros = smis_vol.cim_vol_pros()
 
         if 'TheElement' in out:
-            cim_vol = self._c.GetInstance(
-                out['TheElement'],
-                PropertyList=cim_vol_pros)
+            cim_vol = self._c.GetInstance(out['TheElement'],
+                                          PropertyList=cim_vol_pros)
         elif 'TargetElement' in out:
-            cim_vol = self._c.GetInstance(
-                out['TargetElement'],
-                PropertyList=cim_vol_pros)
+            cim_vol = self._c.GetInstance(out['TargetElement'],
+                                          PropertyList=cim_vol_pros)
 
         pool_id = smis_pool.pool_id_of_cim_vol(self._c, cim_vol.path)
         sys_id = smis_sys.sys_id_of_cim_vol(cim_vol)
@@ -279,16 +275,14 @@ class Smis(IStorageAreaNetwork):
         #   return [None] if PropertyList defined. It works well
         #   for CLONE type.
         if job.path.classname == 'TPD_ConcreteJob':
-            cim_vols = self._c.Associators(
-                job.path,
-                AssocClass='CIM_AffectedJobElement',
-                ResultClass='CIM_StorageVolume')
+            cim_vols = self._c.Associators(job.path,
+                                           AssocClass='CIM_AffectedJobElement',
+                                           ResultClass='CIM_StorageVolume')
         else:
-            cim_vols = self._c.Associators(
-                job.path,
-                AssocClass='CIM_AffectedJobElement',
-                ResultClass='CIM_StorageVolume',
-                PropertyList=cim_vol_pros)
+            cim_vols = self._c.Associators(job.path,
+                                           AssocClass='CIM_AffectedJobElement',
+                                           ResultClass='CIM_StorageVolume',
+                                           PropertyList=cim_vol_pros)
         for cim_vol in cim_vols:
             pool_id = smis_pool.pool_id_of_cim_vol(self._c, cim_vol.path)
             sys_id = smis_sys.sys_id_of_cim_vol(cim_vol)
@@ -354,8 +348,8 @@ class Smis(IStorageAreaNetwork):
                 self._c, cim_sys.path, cim_pool_pros)
             for cim_pool in cim_pools:
                 rc.append(
-                    smis_pool.cim_pool_to_lsm_pool(
-                        self._c, cim_pool, system_id))
+                    smis_pool.cim_pool_to_lsm_pool(self._c, cim_pool,
+                                                   system_id))
 
         return search_property(rc, search_key, search_value)
 
@@ -374,16 +368,19 @@ class Smis(IStorageAreaNetwork):
         return [smis_sys.cim_sys_to_lsm_sys(s) for s in cim_syss]
 
     @handle_cim_errors
-    def volume_create(self, pool, volume_name, size_bytes, provisioning,
+    def volume_create(self,
+                      pool,
+                      volume_name,
+                      size_bytes,
+                      provisioning,
                       flags=0):
         """
         Create a volume.
         """
         # Use user provide lsm.Pool.element_type to speed thing up.
         if not Pool.ELEMENT_TYPE_VOLUME & pool.element_type:
-            raise LsmError(
-                ErrorNumber.NO_SUPPORT,
-                "Pool not suitable for creating volumes")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Pool not suitable for creating volumes")
 
         # Use THICK volume by default unless unsupported or user requested.
         dmtf_element_type = dmtf.ELEMENT_THICK_VOLUME
@@ -399,8 +396,8 @@ class Smis(IStorageAreaNetwork):
             if provisioning == Volume.PROVISION_FULL and \
                Pool.ELEMENT_TYPE_VOLUME_FULL & pool.element_type:
                 dmtf_element_type = dmtf.ELEMENT_THICK_VOLUME
-            elif (provisioning == Volume.PROVISION_THIN and
-                  Pool.ELEMENT_TYPE_VOLUME_THIN & pool.element_type):
+            elif (provisioning == Volume.PROVISION_THIN
+                  and Pool.ELEMENT_TYPE_VOLUME_THIN & pool.element_type):
                 dmtf_element_type = dmtf.ELEMENT_THIN_VOLUME
             else:
                 raise LsmError(
@@ -411,19 +408,21 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         cim_scs = self._c.cim_scs_of_sys_id(pool.system_id)
 
-        cim_pool_path = smis_pool.lsm_pool_to_cim_pool_path(
-            self._c, pool)
+        cim_pool_path = smis_pool.lsm_pool_to_cim_pool_path(self._c, pool)
 
-        in_params = {'ElementName': volume_name,
-                     'ElementType': dmtf_element_type,
-                     'InPool': cim_pool_path,
-                     'Size': pywbem.Uint64(size_bytes)}
+        in_params = {
+            'ElementName': volume_name,
+            'ElementType': dmtf_element_type,
+            'InPool': cim_pool_path,
+            'Size': pywbem.Uint64(size_bytes)
+        }
 
         error_handler = Smis._JOB_ERROR_HANDLER[
             SmisCommon.JOB_RETRIEVE_VOLUME_CREATE]
 
         return self._c.invoke_method(
-            'CreateOrModifyElementFromStoragePool', cim_scs.path,
+            'CreateOrModifyElementFromStoragePool',
+            cim_scs.path,
             in_params,
             out_handler=self._new_vol_from_name,
             error_handler=error_handler,
@@ -434,11 +433,13 @@ class Smis(IStorageAreaNetwork):
         # Get the Configuration service for the system we are interested in.
         cim_scs = self._c.cim_scs_of_sys_id(vol.system_id)
 
-        in_params = {'Operation': pywbem.Uint16(2),
-                     'Synchronization': sync.path}
+        in_params = {
+            'Operation': pywbem.Uint16(2),
+            'Synchronization': sync.path
+        }
 
-        self._c.invoke_method_wait(
-            'ModifySynchronization', cim_scs.path, in_params)
+        self._c.invoke_method_wait('ModifySynchronization', cim_scs.path,
+                                   in_params)
 
     def _detach(self, vol, sync):
         if self._c.is_netappe():
@@ -447,20 +448,24 @@ class Smis(IStorageAreaNetwork):
         cim_rs = self._c.cim_rs_of_sys_id(vol.system_id, raise_error=False)
 
         if cim_rs:
-            in_params = {'Operation': pywbem.Uint16(8),
-                         'Synchronization': sync.path}
+            in_params = {
+                'Operation': pywbem.Uint16(8),
+                'Synchronization': sync.path
+            }
 
-            self._c.invoke_method_wait(
-                'ModifyReplicaSynchronization', cim_rs.path, in_params)
+            self._c.invoke_method_wait('ModifyReplicaSynchronization',
+                                       cim_rs.path, in_params)
 
     def _return_to_storage_pool(self, vol, sync):
         cim_rs = self._c.cim_rs_of_sys_id(vol.system_id, raise_error=False)
 
         if cim_rs:
-            in_params = {'Operation': pywbem.Uint16(19),
-                         'Synchronization': sync.path}
-            self._c.invoke_method_wait(
-                'ModifyReplicaSynchronization', cim_rs.path, in_params)
+            in_params = {
+                'Operation': pywbem.Uint16(19),
+                'Synchronization': sync.path
+            }
+            self._c.invoke_method_wait('ModifyReplicaSynchronization',
+                                       cim_rs.path, in_params)
 
     @staticmethod
     def _cim_name_match(a, b):
@@ -578,8 +583,8 @@ class Smis(IStorageAreaNetwork):
             in_params = {'TheElement': cim_vol_path}
 
             # Delete returns None or Job number
-            return self._c.invoke_method(
-                'ReturnToStoragePool', cim_scs.path, in_params)[0]
+            return self._c.invoke_method('ReturnToStoragePool', cim_scs.path,
+                                         in_params)[0]
 
         # Loop to check to see if volume is actually gone yet!
         try:
@@ -619,8 +624,8 @@ class Smis(IStorageAreaNetwork):
 
         # Delete returns None or Job number
         if need_return:
-            return self._c.invoke_method(
-                'ReturnToStoragePool', cim_scs.path, in_params)[0]
+            return self._c.invoke_method('ReturnToStoragePool', cim_scs.path,
+                                         in_params)[0]
 
     @handle_cim_errors
     def volume_resize(self, volume, new_size_bytes, flags=0):
@@ -631,12 +636,16 @@ class Smis(IStorageAreaNetwork):
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
 
-        in_params = {'ElementType': pywbem.Uint16(2),
-                     'TheElement': cim_vol_path,
-                     'Size': pywbem.Uint64(new_size_bytes)}
+        in_params = {
+            'ElementType': pywbem.Uint16(2),
+            'TheElement': cim_vol_path,
+            'Size': pywbem.Uint64(new_size_bytes)
+        }
 
         return self._c.invoke_method(
-            'CreateOrModifyElementFromStoragePool', cim_scs.path, in_params,
+            'CreateOrModifyElementFromStoragePool',
+            cim_scs.path,
+            in_params,
             out_handler=self._new_vol_from_name,
             retrieve_data=SmisCommon.JOB_RETRIEVE_VOLUME)
 
@@ -699,8 +708,8 @@ class Smis(IStorageAreaNetwork):
                 or rep_type == Volume.REPLICATE_MIRROR_SYNC:
             raise LsmError(ErrorNumber.NO_SUPPORT, "Mirroring not supported")
 
-        cim_rs = self._c.cim_rs_of_sys_id(
-            volume_src.system_id, raise_error=False)
+        cim_rs = self._c.cim_rs_of_sys_id(volume_src.system_id,
+                                          raise_error=False)
 
         # Some (EMC VMAX, Dot hill) SMI-S Provider allow duplicated
         # ElementName, we have to do pre-check here.
@@ -721,11 +730,13 @@ class Smis(IStorageAreaNetwork):
             sync, mode = self._get_supported_sync_and_mode(
                 volume_src.system_id, rep_type)
 
-            in_params = {'ElementName': name,
-                         'SyncType': sync,
-                         # 'Mode': mode,
-                         'SourceElement': src_cim_vol_path,
-                         'WaitForCopyState': dmtf.COPY_STATE_SYNC}
+            in_params = {
+                'ElementName': name,
+                'SyncType': sync,
+                # 'Mode': mode,
+                'SourceElement': src_cim_vol_path,
+                'WaitForCopyState': dmtf.COPY_STATE_SYNC
+            }
 
         else:
             # Check for older support via storage configuration service
@@ -733,8 +744,8 @@ class Smis(IStorageAreaNetwork):
             method = 'CreateReplica'
 
             # Check for storage configuration service
-            cim_rs = self._c.cim_scs_of_sys_id(
-                volume_src.system_id, raise_error=False)
+            cim_rs = self._c.cim_scs_of_sys_id(volume_src.system_id,
+                                               raise_error=False)
 
             ct = Volume.REPLICATE_CLONE
             if rep_type == Volume.REPLICATE_CLONE:
@@ -746,16 +757,20 @@ class Smis(IStorageAreaNetwork):
             elif rep_type == Volume.REPLICATE_MIRROR_SYNC:
                 ct = dmtf.ST_CONF_CAP_COPY_TYPE_SYNC
 
-            in_params = {'ElementName': name,
-                         'CopyType': ct,
-                         'SourceElement': src_cim_vol_path}
+            in_params = {
+                'ElementName': name,
+                'CopyType': ct,
+                'SourceElement': src_cim_vol_path
+            }
         if cim_rs:
 
             if cim_pool_path is not None:
                 in_params['TargetPool'] = cim_pool_path
 
             return self._c.invoke_method(
-                method, cim_rs.path, in_params,
+                method,
+                cim_rs.path,
+                in_params,
                 out_handler=self._new_vol_from_name,
                 retrieve_data=SmisCommon.JOB_RETRIEVE_VOLUME)
 
@@ -768,11 +783,14 @@ class Smis(IStorageAreaNetwork):
         in_params = {
             'GroupName': name,
             'Members': [cim_vol_path],
-            'Type': dmtf.MASK_GROUP_TYPE_DEV}
+            'Type': dmtf.MASK_GROUP_TYPE_DEV
+        }
 
         try:
             cim_dev_mg_path = self._c.invoke_method_wait(
-                'CreateGroup', cim_gmms_path, in_params,
+                'CreateGroup',
+                cim_gmms_path,
+                in_params,
                 out_key='MaskingGroup',
                 expect_class='CIM_TargetMaskingGroup')
         except (LsmError, pywbem.CIMError):
@@ -791,9 +809,7 @@ class Smis(IStorageAreaNetwork):
         we will mask to all target ports.
         Return CIMInstanceName of CIM_TargetMaskingGroup
         """
-        in_params = {
-            'GroupName': name,
-            'Type': dmtf.MASK_GROUP_TYPE_TGT}
+        in_params = {'GroupName': name, 'Type': dmtf.MASK_GROUP_TYPE_TGT}
 
         if init_type == AccessGroup.INIT_TYPE_WWPN:
             cim_fc_tgts = self._cim_fc_tgt_of(cim_sys_path)
@@ -811,8 +827,11 @@ class Smis(IStorageAreaNetwork):
 
         try:
             cim_tgt_mg_path = self._c.invoke_method_wait(
-                'CreateGroup', cim_gmms_path, in_params,
-                out_key='MaskingGroup', expect_class='CIM_TargetMaskingGroup')
+                'CreateGroup',
+                cim_gmms_path,
+                in_params,
+                out_key='MaskingGroup',
+                expect_class='CIM_TargetMaskingGroup')
         except (LsmError, pywbem.CIMError):
             cim_tgt_mg_path = self._check_exist_cim_tgt_mg(name)
             if cim_tgt_mg_path is None:
@@ -830,7 +849,9 @@ class Smis(IStorageAreaNetwork):
         }
 
         return self._c.invoke_method_wait(
-            'CreateMaskingView', cim_gmms_path, in_params,
+            'CreateMaskingView',
+            cim_gmms_path,
+            in_params,
             out_key='ProtocolController',
             expect_class='CIM_SCSIProtocolController')
 
@@ -853,18 +874,18 @@ class Smis(IStorageAreaNetwork):
         cim_inits = smis_ag.cim_init_of_cim_init_mg_path(
             self._c, cim_init_mg_path)
         if len(cim_inits) == 0:
-            raise LsmError(ErrorNumber.EMPTY_ACCESS_GROUP,
-                           "Access group %s is empty(no member), " %
-                           access_group.id +
-                           "will not do volume_mask()")
+            raise LsmError(
+                ErrorNumber.EMPTY_ACCESS_GROUP,
+                "Access group %s is empty(no member), " % access_group.id +
+                "will not do volume_mask()")
 
         if access_group.init_type != AccessGroup.INIT_TYPE_WWPN and \
            access_group.init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "SMI-S plugin only support iSCSI and FC/FCoE "
-                           "access group volume masking, but got "
-                           "access group init_type: %d" %
-                           access_group.init_type)
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "SMI-S plugin only support iSCSI and FC/FCoE "
+                "access group volume masking, but got "
+                "access group init_type: %d" % access_group.init_type)
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
 
@@ -877,8 +898,8 @@ class Smis(IStorageAreaNetwork):
 
         if len(cim_spcs_path) == 0:
             # We have to create the SPC and dev_mg now.
-            cim_sys = smis_sys.cim_sys_of_sys_id(
-                self._c, access_group.system_id)
+            cim_sys = smis_sys.cim_sys_of_sys_id(self._c,
+                                                 access_group.system_id)
 
             cim_tgt_mg_path = self._cim_tgt_mg_path_create(
                 cim_sys.path, cim_gmms.path, access_group.name,
@@ -886,9 +907,9 @@ class Smis(IStorageAreaNetwork):
             cim_dev_mg_path = self._cim_dev_mg_path_create(
                 cim_gmms.path, access_group.name, cim_vol_path, volume.id)
             # Done when SPC created.
-            self._cim_spc_path_create(
-                cim_gmms.path, cim_init_mg_path, cim_tgt_mg_path,
-                cim_dev_mg_path, access_group.name)
+            self._cim_spc_path_create(cim_gmms.path, cim_init_mg_path,
+                                      cim_tgt_mg_path, cim_dev_mg_path,
+                                      access_group.name)
         else:
             # CIM_InitiatorMaskingGroup might have multiple SPC when having
             # many tgt_mg. It's seldom use, but possible.
@@ -912,8 +933,8 @@ class Smis(IStorageAreaNetwork):
                     'MaskingGroup': cim_dev_mg_path,
                     'Members': [cim_vol_path],
                 }
-                self._c.invoke_method_wait(
-                    'AddMembers', cim_gmms.path, in_params)
+                self._c.invoke_method_wait('AddMembers', cim_gmms.path,
+                                           in_params)
         return None
 
     @handle_cim_errors
@@ -940,8 +961,8 @@ class Smis(IStorageAreaNetwork):
         if property_list is None:
             property_list = smis_vol.cim_vol_id_pros()
         else:
-            property_list = merge_list(
-                property_list, smis_vol.cim_vol_id_pros())
+            property_list = merge_list(property_list,
+                                       smis_vol.cim_vol_id_pros())
 
         masked_cim_vols = smis_ag.cim_vols_masked_to_cim_spc_path(
             self._c, cim_spc_path, property_list)
@@ -956,25 +977,26 @@ class Smis(IStorageAreaNetwork):
 
         cim_inits = smis_ag.cim_init_of_cim_spc_path(self._c, cim_spc_path)
         if len(cim_inits) == 0:
-            raise LsmError(ErrorNumber.EMPTY_ACCESS_GROUP,
-                           "Access group %s is empty(no member), " %
-                           access_group.id +
-                           "will not do volume_mask()")
+            raise LsmError(
+                ErrorNumber.EMPTY_ACCESS_GROUP,
+                "Access group %s is empty(no member), " % access_group.id +
+                "will not do volume_mask()")
 
         # Pre-Check: Already masked
         if self._cim_vol_masked_to_spc(cim_spc_path, volume.id):
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume already masked to requested access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume already masked to requested access group")
 
         cim_ccs = self._c.cim_ccs_of_sys_id(volume.system_id)
 
         cim_vol_path = smis_vol.lsm_vol_to_cim_vol_path(self._c, volume)
         cim_vol = self._c.GetInstance(cim_vol_path, PropertyList=['Name'])
 
-        in_params = {'LUNames': [cim_vol['Name']],
-                     'ProtocolControllers': [cim_spc_path],
-                     'DeviceAccesses': [dmtf.CTRL_CONF_SRV_DA_RW]}
+        in_params = {
+            'LUNames': [cim_vol['Name']],
+            'ProtocolControllers': [cim_spc_path],
+            'DeviceAccesses': [dmtf.CTRL_CONF_SRV_DA_RW]
+        }
 
         self._c.invoke_method_wait('ExposePaths', cim_ccs.path, in_params)
         return None
@@ -992,9 +1014,10 @@ class Smis(IStorageAreaNetwork):
             cim_sys.path,
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_GroupMaskingMappingCapabilities',
-            PropertyList=['SupportedDeviceGroupFeatures',
-                          'SupportedSynchronousActions',
-                          'SupportedAsynchronousActions'])[0]
+            PropertyList=[
+                'SupportedDeviceGroupFeatures', 'SupportedSynchronousActions',
+                'SupportedAsynchronousActions'
+            ])[0]
 
         flag_empty_dev_in_spc = False
 
@@ -1003,10 +1026,10 @@ class Smis(IStorageAreaNetwork):
             flag_empty_dev_in_spc = True
 
         if flag_empty_dev_in_spc is False:
-            if ((dmtf.GMM_CAP_DELETE_SPC not in
-                 cim_gmms_cap['SupportedSynchronousActions']) and
-                (dmtf.GMM_CAP_DELETE_SPC not in
-                 cim_gmms_cap['SupportedAsynchronousActions'])):
+            if ((dmtf.GMM_CAP_DELETE_SPC
+                 not in cim_gmms_cap['SupportedSynchronousActions'])
+                    and (dmtf.GMM_CAP_DELETE_SPC
+                         not in cim_gmms_cap['SupportedAsynchronousActions'])):
                 raise LsmError(
                     ErrorNumber.NO_SUPPORT,
                     "volume_unmask() not supported. It requires one of these "
@@ -1022,9 +1045,8 @@ class Smis(IStorageAreaNetwork):
 
         if len(vol_cim_spcs_path) == 0:
             # Already unmasked
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume is not masked to requested access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume is not masked to requested access group")
 
         cim_init_mg_path = smis_ag.lsm_ag_to_cim_init_mg_path(
             self._c, access_group)
@@ -1042,9 +1064,8 @@ class Smis(IStorageAreaNetwork):
 
         if found_cim_spc_path is None:
             # Already unmasked
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume is not masked to requested access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume is not masked to requested access group")
 
         # SNIA require each cim_spc only have one cim_dev_mg associated.
         cim_dev_mg_path = self._c.AssociatorNames(
@@ -1067,15 +1088,14 @@ class Smis(IStorageAreaNetwork):
                 in_params = {
                     'ProtocolController': found_cim_spc_path,
                 }
-                self._c.invoke_method_wait(
-                    'DeleteMaskingView', cim_gmms.path, in_params)
+                self._c.invoke_method_wait('DeleteMaskingView', cim_gmms.path,
+                                           in_params)
 
         in_params = {
             'MaskingGroup': cim_dev_mg_path,
             'Members': [cim_vol_path],
         }
-        self._c.invoke_method_wait(
-            'RemoveMembers', cim_gmms.path, in_params)
+        self._c.invoke_method_wait('RemoveMembers', cim_gmms.path, in_params)
 
         return None
 
@@ -1097,16 +1117,17 @@ class Smis(IStorageAreaNetwork):
         cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(self._c, access_group)
 
         # Pre-check: not masked
-        cim_vol = self._cim_vol_masked_to_spc(
-            cim_spc_path, volume.id, ['Name'])
+        cim_vol = self._cim_vol_masked_to_spc(cim_spc_path, volume.id,
+                                              ['Name'])
 
         if cim_vol is None:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume is not masked to requested access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume is not masked to requested access group")
 
-        hide_params = {'LUNames': [cim_vol['Name']],
-                       'ProtocolControllers': [cim_spc_path]}
+        hide_params = {
+            'LUNames': [cim_vol['Name']],
+            'ProtocolControllers': [cim_spc_path]
+        }
 
         self._c.invoke_method_wait('HidePaths', cim_ccs.path, hide_params)
         return None
@@ -1150,9 +1171,9 @@ class Smis(IStorageAreaNetwork):
             error_code = ce.args[0]
             if error_code == pywbem.CIM_ERR_INVALID_CLASS or \
                error_code == pywbem.CIM_ERR_INVALID_PARAMETER:
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               'AccessGroup is not supported ' +
-                               'by this array')
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    'AccessGroup is not supported ' + 'by this array')
         if cim_ccs is None:
             raise LsmError(ErrorNumber.NO_SUPPORT,
                            'AccessGroup is not supported by this array')
@@ -1175,8 +1196,8 @@ class Smis(IStorageAreaNetwork):
 
         # Workaround for EMC VNX/CX
         if mask_type == smis_cap.MASK_TYPE_GROUP:
-            cim_sys = smis_sys.cim_sys_of_sys_id(
-                self._c, access_group.system_id)
+            cim_sys = smis_sys.cim_sys_of_sys_id(self._c,
+                                                 access_group.system_id)
             if cim_sys.path.classname == 'Clar_StorageSystem':
                 mask_type = smis_cap.MASK_TYPE_MASK
 
@@ -1202,8 +1223,7 @@ class Smis(IStorageAreaNetwork):
         for cim_vol in cim_vols:
             pool_id = smis_pool.pool_id_of_cim_vol(self._c, cim_vol.path)
             sys_id = smis_sys.sys_id_of_cim_vol(cim_vol)
-            rc.append(
-                smis_vol.cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id))
+            rc.append(smis_vol.cim_vol_to_lsm_vol(cim_vol, pool_id, sys_id))
         return rc
 
     @handle_cim_errors
@@ -1239,15 +1259,15 @@ class Smis(IStorageAreaNetwork):
                     PropertyList=cim_init_mg_pros)
                 rc.extend(
                     list(
-                        smis_ag.cim_init_mg_to_lsm_ag(
-                            self._c, x, volume.system_id)
+                        smis_ag.cim_init_mg_to_lsm_ag(self._c, x,
+                                                      volume.system_id)
                         for x in cim_init_mgs))
         else:
             for cim_spc in cim_spcs:
                 if self._is_access_group(cim_spc):
                     rc.append(
-                        smis_ag.cim_spc_to_lsm_ag(
-                            self._c, cim_spc, volume.system_id))
+                        smis_ag.cim_spc_to_lsm_ag(self._c, cim_spc,
+                                                  volume.system_id))
 
         return rc
 
@@ -1265,11 +1285,10 @@ class Smis(IStorageAreaNetwork):
 
         cim_gmms = self._c.cim_gmms_of_sys_id(system_id)
 
-        return self._c.Associators(
-            cim_gmms.path,
-            AssocClass='CIM_ServiceAffectsElement',
-            ResultClass='CIM_InitiatorMaskingGroup',
-            PropertyList=property_list)
+        return self._c.Associators(cim_gmms.path,
+                                   AssocClass='CIM_ServiceAffectsElement',
+                                   ResultClass='CIM_InitiatorMaskingGroup',
+                                   PropertyList=property_list)
 
     @handle_cim_errors
     def access_groups(self, search_key=None, search_value=None, flags=0):
@@ -1290,8 +1309,8 @@ class Smis(IStorageAreaNetwork):
             system_id = smis_sys.sys_id_of_cim_sys(cim_sys)
             if mask_type == smis_cap.MASK_TYPE_GROUP:
                 cim_init_mg_pros = smis_ag.cim_init_mg_pros()
-                cim_init_mgs = self._cim_init_mg_of(
-                    system_id, cim_init_mg_pros)
+                cim_init_mgs = self._cim_init_mg_of(system_id,
+                                                    cim_init_mg_pros)
                 rc.extend(
                     list(
                         smis_ag.cim_init_mg_to_lsm_ag(self._c, x, system_id)
@@ -1303,9 +1322,10 @@ class Smis(IStorageAreaNetwork):
                         smis_ag.cim_spc_to_lsm_ag(self._c, cim_spc, system_id)
                         for cim_spc in cim_spcs))
             else:
-                raise LsmError(ErrorNumber.PLUGIN_BUG,
-                               "_get_cim_spc_by_id(): Got invalid mask_type: "
-                               "%s" % mask_type)
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "_get_cim_spc_by_id(): Got invalid mask_type: "
+                    "%s" % mask_type)
 
         return search_property(rc, search_key, search_value)
 
@@ -1313,10 +1333,11 @@ class Smis(IStorageAreaNetwork):
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         if cim_sys.path.classname == 'Clar_StorageSystem':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "EMC VNX/CX require WWNN defined when adding a "
-                           "new initiator which is not supported by LSM yet. "
-                           "Please do it via EMC vendor specific tools.")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "EMC VNX/CX require WWNN defined when adding a "
+                "new initiator which is not supported by LSM yet. "
+                "Please do it via EMC vendor specific tools.")
 
         cim_init_mg_path = smis_ag.lsm_ag_to_cim_init_mg_path(
             self._c, access_group)
@@ -1340,17 +1361,23 @@ class Smis(IStorageAreaNetwork):
         }
 
         new_cim_init_mg_path = self._c.invoke_method_wait(
-            'AddMembers', cim_gmms.path, in_params,
-            out_key='MaskingGroup', expect_class='CIM_InitiatorMaskingGroup')
+            'AddMembers',
+            cim_gmms.path,
+            in_params,
+            out_key='MaskingGroup',
+            expect_class='CIM_InitiatorMaskingGroup')
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
-        new_cim_init_mg = self._c.GetInstance(
-            new_cim_init_mg_path, PropertyList=cim_init_mg_pros,
-            LocalOnly=False)
-        return smis_ag.cim_init_mg_to_lsm_ag(
-            self._c, new_cim_init_mg, access_group.system_id)
+        new_cim_init_mg = self._c.GetInstance(new_cim_init_mg_path,
+                                              PropertyList=cim_init_mg_pros,
+                                              LocalOnly=False)
+        return smis_ag.cim_init_mg_to_lsm_ag(self._c, new_cim_init_mg,
+                                             access_group.system_id)
 
     @handle_cim_errors
-    def access_group_initiator_add(self, access_group, init_id, init_type,
+    def access_group_initiator_add(self,
+                                   access_group,
+                                   init_id,
+                                   init_type,
                                    flags=0):
         init_id = smis_ag.lsm_init_id_to_snia(init_id)
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
@@ -1366,14 +1393,14 @@ class Smis(IStorageAreaNetwork):
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, access_group.system_id)
 
         if cim_sys.path.classname == 'Clar_StorageSystem':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "EMC VNX/CX require WWNN defined when adding "
-                           "new initiator which is not supported by LSM yet. "
-                           "Please do it via EMC vendor specific tools. "
-                           "EMC VNX does not support adding iSCSI IQN neither")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "EMC VNX/CX require WWNN defined when adding "
+                "new initiator which is not supported by LSM yet. "
+                "Please do it via EMC vendor specific tools. "
+                "EMC VNX does not support adding iSCSI IQN neither")
 
-        cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(
-            self._c, access_group)
+        cim_spc_path = smis_ag.lsm_ag_to_cim_spc_path(self._c, access_group)
 
         exist_cim_inits = smis_ag.cim_init_of_cim_spc_path(
             self._c, cim_spc_path)
@@ -1385,24 +1412,30 @@ class Smis(IStorageAreaNetwork):
         # Check to see if we have this initiator already, if not we
         # create it and then add to the view.
 
-        smis_ag.cim_init_path_check_or_create(
-            self._c, access_group.system_id, init_id, init_type)
+        smis_ag.cim_init_path_check_or_create(self._c, access_group.system_id,
+                                              init_id, init_type)
 
         cim_ccs = self._c.cim_ccs_of_sys_id(access_group.system_id)
 
-        in_params = {'InitiatorPortIDs': [init_id],
-                     'ProtocolControllers': [cim_spc_path]}
+        in_params = {
+            'InitiatorPortIDs': [init_id],
+            'ProtocolControllers': [cim_spc_path]
+        }
 
         cim_spc_path = self._c.invoke_method_wait(
-            'ExposePaths', cim_ccs.path, in_params,
-            out_key='ProtocolControllers', flag_out_array=True,
+            'ExposePaths',
+            cim_ccs.path,
+            in_params,
+            out_key='ProtocolControllers',
+            flag_out_array=True,
             expect_class='CIM_SCSIProtocolController')
 
         cim_spc_pros = smis_ag.cim_spc_pros()
-        cim_spc = self._c.GetInstance(
-            cim_spc_path, PropertyList=cim_spc_pros, LocalOnly=False)
-        return smis_ag.cim_spc_to_lsm_ag(
-            self._c, cim_spc, access_group.system_id)
+        cim_spc = self._c.GetInstance(cim_spc_path,
+                                      PropertyList=cim_spc_pros,
+                                      LocalOnly=False)
+        return smis_ag.cim_spc_to_lsm_ag(self._c, cim_spc,
+                                         access_group.system_id)
 
     def _ag_init_del_group(self, access_group, init_id):
         """
@@ -1421,14 +1454,15 @@ class Smis(IStorageAreaNetwork):
                 break
 
         if cim_init is None:
-            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
-                           "Initiator %s does not exist in defined "
-                           "access group %s" %
-                           (init_id, access_group.id))
+            raise LsmError(
+                ErrorNumber.NO_STATE_CHANGE,
+                "Initiator %s does not exist in defined "
+                "access group %s" % (init_id, access_group.id))
 
         if len(cur_cim_inits) == 1:
-            raise LsmError(ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
-                           "Refuse to remove last initiator from access group")
+            raise LsmError(
+                ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
+                "Refuse to remove last initiator from access group")
 
         cim_gmms = self._c.cim_gmms_of_sys_id(access_group.system_id)
 
@@ -1441,22 +1475,25 @@ class Smis(IStorageAreaNetwork):
         self._c.invoke_method_wait('RemoveMembers', cim_gmms.path, in_params)
 
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
-        cim_init_mg = self._c.GetInstance(
-            cim_init_mg_path, PropertyList=cim_init_mg_pros)
+        cim_init_mg = self._c.GetInstance(cim_init_mg_path,
+                                          PropertyList=cim_init_mg_pros)
 
-        return smis_ag.cim_init_mg_to_lsm_ag(
-            self._c, cim_init_mg, access_group.system_id)
+        return smis_ag.cim_init_mg_to_lsm_ag(self._c, cim_init_mg,
+                                             access_group.system_id)
 
     @handle_cim_errors
-    def access_group_initiator_delete(self, access_group, init_id, init_type,
+    def access_group_initiator_delete(self,
+                                      access_group,
+                                      init_id,
+                                      init_type,
                                       flags=0):
         if self._c.is_netappe():
             # When using HidePaths to remove initiator, the whole SPC will be
             # removed. Before we find a workaround for this, I would like to
             # have this method disabled as NO_SUPPORT.
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "SMI-S plugin does not support "
-                           "access_group_initiator_delete() against NetApp-E")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT, "SMI-S plugin does not support "
+                "access_group_initiator_delete() against NetApp-E")
         init_id = smis_ag.lsm_init_id_to_snia(init_id)
         mask_type = smis_cap.mask_type(self._c, raise_error=True)
 
@@ -1470,8 +1507,10 @@ class Smis(IStorageAreaNetwork):
 
         cim_ccs = self._c.cim_ccs_of_sys_id(access_group.system_id)
 
-        hide_params = {'InitiatorPortIDs': [init_id],
-                       'ProtocolControllers': [cim_spc_path]}
+        hide_params = {
+            'InitiatorPortIDs': [init_id],
+            'ProtocolControllers': [cim_spc_path]
+        }
         self._c.invoke_method_wait('HidePaths', cim_ccs.path, hide_params)
 
         return None
@@ -1508,8 +1547,8 @@ class Smis(IStorageAreaNetwork):
                               SmisCommon.SMIS_SPEC_VER_1_4,
                               raise_error=True)
         cim_disk_pros = smis_disk.cim_disk_pros()
-        cim_disks = self._c.EnumerateInstances(
-            'CIM_DiskDrive', PropertyList=cim_disk_pros)
+        cim_disks = self._c.EnumerateInstances('CIM_DiskDrive',
+                                               PropertyList=cim_disk_pros)
         for cim_disk in cim_disks:
             if self._c.system_list and \
                smis_disk.sys_id_of_cim_disk(cim_disk) not in \
@@ -1542,8 +1581,7 @@ class Smis(IStorageAreaNetwork):
             property_list = merge_list(property_list, ['UsageRestriction'])
         all_cim_syss_path = [cim_sys_path]
         if smis_cap.multi_sys_is_supported(self._c):
-            all_cim_syss_path.extend(
-                self._leaf_cim_syss_path_of(cim_sys_path))
+            all_cim_syss_path.extend(self._leaf_cim_syss_path_of(cim_sys_path))
         for cur_cim_sys_path in all_cim_syss_path:
             cur_cim_fc_tgts = self._c.Associators(
                 cur_cim_sys_path,
@@ -1612,8 +1650,7 @@ class Smis(IStorageAreaNetwork):
             property_list = merge_list(property_list, ['Role'])
         all_cim_syss_path = [cim_sys_path]
         if smis_cap.multi_sys_is_supported(self._c):
-            all_cim_syss_path.extend(
-                self._leaf_cim_syss_path_of(cim_sys_path))
+            all_cim_syss_path.extend(self._leaf_cim_syss_path_of(cim_sys_path))
         for cur_cim_sys_path in all_cim_syss_path:
             cur_cim_iscsi_pgs = self._c.Associators(
                 cur_cim_sys_path,
@@ -1653,16 +1690,15 @@ class Smis(IStorageAreaNetwork):
         rc = []
         port_type = TargetPort.TYPE_ISCSI
         plugin_data = None
-        cim_tcps = self._c.Associators(
-            cim_iscsi_pg.path,
-            ResultClass='CIM_TCPProtocolEndpoint',
-            AssocClass='CIM_BindsTo',
-            PropertyList=['PortNumber'])
+        cim_tcps = self._c.Associators(cim_iscsi_pg.path,
+                                       ResultClass='CIM_TCPProtocolEndpoint',
+                                       AssocClass='CIM_BindsTo',
+                                       PropertyList=['PortNumber'])
         if len(cim_tcps) == 0:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "_cim_iscsi_pg_to_lsm():  "
-                           "No CIM_TCPProtocolEndpoint associated to %s"
-                           % cim_iscsi_pg.path)
+            raise LsmError(
+                ErrorNumber.PLUGIN_BUG, "_cim_iscsi_pg_to_lsm():  "
+                "No CIM_TCPProtocolEndpoint associated to %s" %
+                cim_iscsi_pg.path)
         iscsi_node_names = self._iscsi_node_names_of(cim_iscsi_pg.path)
 
         if len(iscsi_node_names) == 0:
@@ -1670,12 +1706,14 @@ class Smis(IStorageAreaNetwork):
 
         for cim_tcp in cim_tcps:
             tcp_port = cim_tcp['PortNumber']
-            cim_ips = self._c.Associators(
-                cim_tcp.path,
-                ResultClass='CIM_IPProtocolEndpoint',
-                AssocClass='CIM_BindsTo',
-                PropertyList=['IPv4Address', 'IPv6Address', 'SystemName',
-                              'EMCPortNumber', 'IPv6AddressType'])
+            cim_ips = self._c.Associators(cim_tcp.path,
+                                          ResultClass='CIM_IPProtocolEndpoint',
+                                          AssocClass='CIM_BindsTo',
+                                          PropertyList=[
+                                              'IPv4Address', 'IPv6Address',
+                                              'SystemName', 'EMCPortNumber',
+                                              'IPv6AddressType'
+                                          ])
             for cim_ip in cim_ips:
                 ipv4_addr = ''
                 ipv6_addr = ''
@@ -1736,36 +1774,31 @@ class Smis(IStorageAreaNetwork):
                     if ipv4_addr:
                         network_address = "%s:%s" % (ipv4_addr, tcp_port)
 
-                        rc.extend(
-                            [TargetPort(
-                                md5(
-                                    "%s:%s:%s" % (
-                                        mac_address, network_address,
-                                        iscsi_node_name)),
-                                port_type, iscsi_node_name,
-                                network_address, mac_address, port_name,
-                                system_id, plugin_data)
-                             for iscsi_node_name in iscsi_node_names])
+                        rc.extend([
+                            TargetPort(
+                                md5("%s:%s:%s" % (mac_address, network_address,
+                                                  iscsi_node_name)), port_type,
+                                iscsi_node_name, network_address, mac_address,
+                                port_name, system_id, plugin_data)
+                            for iscsi_node_name in iscsi_node_names
+                        ])
                     if ipv6_addr:
                         # DMTF or SNIA did defined the IPv6 string format.
                         # we just guess here.
                         if len(ipv6_addr) == 39:
                             ipv6_addr = ipv6_addr.replace(':', '')
                             if len(ipv6_addr) == 32:
-                                ipv6_addr = hex_string_format(
-                                    ipv6_addr, 32, 4)
+                                ipv6_addr = hex_string_format(ipv6_addr, 32, 4)
 
                         network_address = "[%s]:%s" % (ipv6_addr, tcp_port)
                         rc.extend([
                             TargetPort(
-                                md5(
-                                    "%s:%s:%s" % (
-                                        mac_address, network_address,
-                                        iscsi_node_name)),
-                                port_type, iscsi_node_name,
-                                network_address, mac_address, port_name,
-                                system_id, plugin_data)
-                            for iscsi_node_name in iscsi_node_names])
+                                md5("%s:%s:%s" % (mac_address, network_address,
+                                                  iscsi_node_name)), port_type,
+                                iscsi_node_name, network_address, mac_address,
+                                port_name, system_id, plugin_data)
+                            for iscsi_node_name in iscsi_node_names
+                        ])
         return rc
 
     def _leaf_cim_syss_path_of(self, cim_sys_path):
@@ -1809,22 +1842,24 @@ class Smis(IStorageAreaNetwork):
             # all systems from the same provider will not support
             # target_ports().
             if flag_fc_support is False and flag_iscsi_support is False:
-                raise LsmError(ErrorNumber.NO_SUPPORT,
-                               "Target SMI-S provider does not support any of"
-                               "these profiles: '%s %s', '%s %s'"
-                               % (SmisCommon.SMIS_SPEC_VER_1_4,
-                                  SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
-                                  SmisCommon.SMIS_SPEC_VER_1_1,
-                                  SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE))
+                raise LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "Target SMI-S provider does not support any of"
+                    "these profiles: '%s %s', '%s %s'" %
+                    (SmisCommon.SMIS_SPEC_VER_1_4,
+                     SmisCommon.SNIA_FC_TGT_PORT_PROFILE,
+                     SmisCommon.SMIS_SPEC_VER_1_1,
+                     SmisCommon.SNIA_ISCSI_TGT_PORT_PROFILE))
 
             if flag_fc_support:
                 # CIM_FCPort might be not belong to root cim_sys
                 # In that case, CIM_FCPort['SystemName'] will not be
                 # the name of root CIM_ComputerSystem.
-                cim_fc_tgt_pros = ['UsageRestriction', 'ElementName',
-                                   'SystemName', 'PermanentAddress',
-                                   'PortDiscriminator', 'LinkTechnology',
-                                   'DeviceID']
+                cim_fc_tgt_pros = [
+                    'UsageRestriction', 'ElementName', 'SystemName',
+                    'PermanentAddress', 'PortDiscriminator', 'LinkTechnology',
+                    'DeviceID'
+                ]
                 cim_fc_tgts = self._cim_fc_tgt_of(cim_sys.path,
                                                   cim_fc_tgt_pros)
                 rc.extend(
@@ -1874,9 +1909,8 @@ class Smis(IStorageAreaNetwork):
         [1] At least check whether CIM_TargetMaskingGroup is already used
             by other SPC.
         """
-        cim_tgt_mgs = self._c.EnumerateInstances(
-            'CIM_TargetMaskingGroup',
-            PropertyList=['ElementName'])
+        cim_tgt_mgs = self._c.EnumerateInstances('CIM_TargetMaskingGroup',
+                                                 PropertyList=['ElementName'])
         for cim_tgt_mg in cim_tgt_mgs:
             if cim_tgt_mg['ElementName'] == name:
                 return cim_tgt_mg.path
@@ -1890,9 +1924,8 @@ class Smis(IStorageAreaNetwork):
         platform of Group Masking and Mapping.
         When found CIM_DeviceMaskingGroup, make sure cim_vol is included.
         """
-        cim_dev_mgs = self._c.EnumerateInstances(
-            'CIM_DeviceMaskingGroup',
-            PropertyList=['ElementName'])
+        cim_dev_mgs = self._c.EnumerateInstances('CIM_DeviceMaskingGroup',
+                                                 PropertyList=['ElementName'])
         cim_dev_mg = None
         for tmp_cim_dev_mg in cim_dev_mgs:
             if tmp_cim_dev_mg['ElementName'] == name:
@@ -1921,8 +1954,7 @@ class Smis(IStorageAreaNetwork):
         return None
 
     @handle_cim_errors
-    def access_group_create(self, name, init_id, init_type, system,
-                            flags=0):
+    def access_group_create(self, name, init_id, init_type, system, flags=0):
         """
         Using 1.5.0 'Group Masking and Mapping' profile.
         Actually, only EMC VMAX/DMX support this now(July 2014).
@@ -1940,34 +1972,38 @@ class Smis(IStorageAreaNetwork):
 
         if init_type != AccessGroup.INIT_TYPE_WWPN and \
            init_type != AccessGroup.INIT_TYPE_ISCSI_IQN:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "SMI-S plugin only support creating FC/FCoE WWPN "
-                           "and iSCSI AccessGroup")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "SMI-S plugin only support creating FC/FCoE WWPN "
+                "and iSCSI AccessGroup")
 
         cim_sys = smis_sys.cim_sys_of_sys_id(self._c, system.id)
         if cim_sys.path.classname == 'Clar_StorageSystem':
             # EMC VNX/CX does not support Group M&M, which incorrectly exposed
             # in CIM_RegisteredProfile
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "access_group_create() is not supported by "
-                           "EMC VNX/CX which lacks the support of SNIA 1.5+ "
-                           "Group Masking and Mapping profile")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "access_group_create() is not supported by "
+                "EMC VNX/CX which lacks the support of SNIA 1.5+ "
+                "Group Masking and Mapping profile")
 
         flag_fc_support = smis_cap.fc_tgt_is_supported(self._c)
         flag_iscsi_support = smis_cap.iscsi_tgt_is_supported(self._c)
 
         if init_type == AccessGroup.INIT_TYPE_WWPN and not flag_fc_support:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Target SMI-S provider does not support "
-                           "FC target port, which not allow creating "
-                           "WWPN access group")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Target SMI-S provider does not support "
+                "FC target port, which not allow creating "
+                "WWPN access group")
 
         if init_type == AccessGroup.INIT_TYPE_ISCSI_IQN and \
            not flag_iscsi_support:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Target SMI-S provider does not support "
-                           "iSCSI target port, which not allow creating "
-                           "iSCSI IQN access group")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Target SMI-S provider does not support "
+                "iSCSI target port, which not allow creating "
+                "iSCSI IQN access group")
 
         cim_init_path = smis_ag.cim_init_path_check_or_create(
             self._c, system.id, init_id, init_type)
@@ -1975,15 +2011,19 @@ class Smis(IStorageAreaNetwork):
         # Create CIM_InitiatorMaskingGroup
         cim_gmms = self._c.cim_gmms_of_sys_id(system.id)
 
-        in_params = {'GroupName': name,
-                     'Members': [cim_init_path],
-                     'Type': dmtf.MASK_GROUP_TYPE_INIT}
+        in_params = {
+            'GroupName': name,
+            'Members': [cim_init_path],
+            'Type': dmtf.MASK_GROUP_TYPE_INIT
+        }
 
         cim_init_mg_pros = smis_ag.cim_init_mg_pros()
 
         try:
             cim_init_mg_path = self._c.invoke_method_wait(
-                'CreateGroup', cim_gmms.path, in_params,
+                'CreateGroup',
+                cim_gmms.path,
+                in_params,
                 out_key='MaskingGroup',
                 expect_class='CIM_InitiatorMaskingGroup')
         except (LsmError, pywbem.CIMError):
@@ -1995,29 +2035,31 @@ class Smis(IStorageAreaNetwork):
                 ResultClass='CIM_InitiatorMaskingGroup')
 
             if len(exist_cim_init_mg_paths) != 0:
-                raise LsmError(ErrorNumber.EXISTS_INITIATOR,
-                               "Initiator %s " % org_init_id +
-                               "already exist in other access group")
+                raise LsmError(
+                    ErrorNumber.EXISTS_INITIATOR,
+                    "Initiator %s " % org_init_id +
+                    "already exist in other access group")
 
             # 2. Requested name used by other group.
             exist_cim_init_mgs = self._cim_init_mg_of(
                 system.id, property_list=['ElementName'])
             for exist_cim_init_mg in exist_cim_init_mgs:
                 if exist_cim_init_mg['ElementName'] == name:
-                    raise LsmError(ErrorNumber.NAME_CONFLICT,
-                                   "Requested name %s is used by " % name +
-                                   "another access group")
+                    raise LsmError(
+                        ErrorNumber.NAME_CONFLICT,
+                        "Requested name %s is used by " % name +
+                        "another access group")
             raise
 
-        cim_init_mg = self._c.GetInstance(
-            cim_init_mg_path, PropertyList=cim_init_mg_pros)
+        cim_init_mg = self._c.GetInstance(cim_init_mg_path,
+                                          PropertyList=cim_init_mg_pros)
         return smis_ag.cim_init_mg_to_lsm_ag(self._c, cim_init_mg, system.id)
 
     @handle_cim_errors
     def access_group_delete(self, access_group, flags=0):
-        self._c.profile_check(
-            SmisCommon.SNIA_GROUP_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_5,
-            raise_error=True)
+        self._c.profile_check(SmisCommon.SNIA_GROUP_MASK_PROFILE,
+                              SmisCommon.SMIS_SPEC_VER_1_5,
+                              raise_error=True)
 
         cim_init_mg_path = smis_ag.lsm_ag_to_cim_init_mg_path(
             self._c, access_group)
@@ -2029,13 +2071,14 @@ class Smis(IStorageAreaNetwork):
             ResultClass='CIM_SCSIProtocolController')
 
         for cim_spc_path in cim_spcs_path:
-            if len(self._c.AssociatorNames(
-                    cim_spc_path,
-                    AssocClass='CIM_ProtocolControllerForUnit',
-                    ResultClass='CIM_StorageVolume')) >= 1:
-                raise LsmError(ErrorNumber.IS_MASKED,
-                               "Access Group %s has volume masked" %
-                               access_group.id)
+            if len(
+                    self._c.AssociatorNames(
+                        cim_spc_path,
+                        AssocClass='CIM_ProtocolControllerForUnit',
+                        ResultClass='CIM_StorageVolume')) >= 1:
+                raise LsmError(
+                    ErrorNumber.IS_MASKED,
+                    "Access Group %s has volume masked" % access_group.id)
 
         cim_gmms = self._c.cim_gmms_of_sys_id(access_group.system_id)
 

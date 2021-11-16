@@ -21,8 +21,8 @@ from lsm._common import error, info, LsmError, ErrorNumber, \
 from lsm._local_disk import LocalDisk
 
 from lsm._data import (Disk, Volume, Pool, System, FileSystem, FsSnapshot,
-                    NfsExport, BlockRange, AccessGroup, TargetPort,
-                    Capabilities, Battery)
+                       NfsExport, BlockRange, AccessGroup, TargetPort,
+                       Capabilities, Battery)
 from lsm._iplugin import IPlugin, IStorageAreaNetwork, \
     INetworkAttachedStorage, INfs
 

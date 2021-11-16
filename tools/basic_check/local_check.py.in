@@ -97,9 +97,9 @@ class SanityCheck(unittest.TestCase):
         for vol in self.c.volumes():
             blk_paths = LocalDisk.vpd83_search(vol.vpd83)
             if blk_paths:
-                self.local_vols.append(LocalVol(vol, blk_paths,
-                                                sys_hash[vol.system_id],
-                                                cap_hash[vol.system_id]))
+                self.local_vols.append(
+                    LocalVol(vol, blk_paths, sys_hash[vol.system_id],
+                             cap_hash[vol.system_id]))
                 print("\nDisk path of volume '%s(%s)': %s" %
                       (vol.name, vol.id, " ".join(blk_paths)))
         if not self.local_vols:
@@ -134,8 +134,9 @@ class SanityCheck(unittest.TestCase):
             vol = lv.vol
             blk_paths = lv.blk_paths
             if not supported(cap, [Cap.VOLUMES, Cap.VOLUME_CACHE_INFO]):
-                warn(vol, blk_paths, "Capabilities VOLUMES and "
-                                     "VOLUME_CACHE_INFO are not supported")
+                warn(
+                    vol, blk_paths, "Capabilities VOLUMES and "
+                    "VOLUME_CACHE_INFO are not supported")
                 continue
 
             cache_info = self.c.volume_cache_info(vol)
@@ -148,21 +149,23 @@ class SanityCheck(unittest.TestCase):
             if phy_disk_cache == Volume.PHYSICAL_DISK_CACHE_USE_DISK_SETTING:
                 flag_pass = False
                 fails.append(
-                    Failure(blk_paths, vol, sys,
-                            "Physical disk cache of volume is determined "
-                            "by the disk vendor which is not suggested, "
-                            "data loss might occurred on sudden power loss.",
-                            "lsmcli vpdcu --vol %s --policy DISABLE" % vol.id))
+                    Failure(
+                        blk_paths, vol, sys,
+                        "Physical disk cache of volume is determined "
+                        "by the disk vendor which is not suggested, "
+                        "data loss might occurred on sudden power loss.",
+                        "lsmcli vpdcu --vol %s --policy DISABLE" % vol.id))
 
             elif phy_disk_cache == Volume.PHYSICAL_DISK_CACHE_ENABLED:
                 flag_pass = False
                 fails.append(
-                    Failure(blk_paths, vol, sys,
-                            "Physical disk cache of volume is enabled which "
-                            "might(mostly) not be protected by "
-                            "battery/capacitor, data loss might occurred on "
-                            "sudden power loss.",
-                            "lsmcli vpdcu --vol %s --policy DISABLE" % vol.id))
+                    Failure(
+                        blk_paths, vol, sys,
+                        "Physical disk cache of volume is enabled which "
+                        "might(mostly) not be protected by "
+                        "battery/capacitor, data loss might occurred on "
+                        "sudden power loss.",
+                        "lsmcli vpdcu --vol %s --policy DISABLE" % vol.id))
 
             if write_cache_policy == Volume.WRITE_CACHE_POLICY_UNKNOWN:
                 warn(vol, blk_paths, "Unknown write cache policy")
@@ -171,11 +174,12 @@ class SanityCheck(unittest.TestCase):
             if write_cache_policy == Volume.WRITE_CACHE_POLICY_WRITE_BACK:
                 flag_pass = False
                 fails.append(
-                    Failure(blk_paths, vol, sys,
-                            "Write cache of volume is always enabled "
-                            "regardless of battery/capacitor status, "
-                            "data loss might occurred on sudden power loss.",
-                            "lsmcli vwcpu --vol %s --policy AUTO" % vol.id))
+                    Failure(
+                        blk_paths, vol, sys,
+                        "Write cache of volume is always enabled "
+                        "regardless of battery/capacitor status, "
+                        "data loss might occurred on sudden power loss.",
+                        "lsmcli vwcpu --vol %s --policy AUTO" % vol.id))
 
             if flag_pass:
                 flag_has_pass = True
@@ -209,9 +213,9 @@ class SanityCheck(unittest.TestCase):
             blk_paths = lv.blk_paths
             pool = pool_hash[vol.pool_id]
             if pool.status == Pool.STATUS_UNKNOWN:
-                warn(vol, blk_paths,
-                     "Unknown pool status %d %s" % (pool.status,
-                                                    pool.status_info))
+                warn(
+                    vol, blk_paths, "Unknown pool status %d %s" %
+                    (pool.status, pool.status_info))
             if not pool.status & Pool.STATUS_OK:
                 if supported(cap, [Cap.POOL_MEMBER_INFO]):
                     # Check member failure
@@ -223,18 +227,19 @@ class SanityCheck(unittest.TestCase):
                             disk = disk_hash[disk_id]
                             if not disk.status & Disk.STATUS_OK:
                                 fails.append(
-                                    Failure(blk_paths, vol, sys,
-                                            "Disk %s(%s) is not healthy: %d" %
-                                            (disk.name, disk_id, disk.status),
-                                            "Need investigation of output of"
-                                            "`lsmcli ld`"))
+                                    Failure(
+                                        blk_paths, vol, sys,
+                                        "Disk %s(%s) is not healthy: %d" %
+                                        (disk.name, disk_id, disk.status),
+                                        "Need investigation of output of"
+                                        "`lsmcli ld`"))
                                 continue
 
                 fails.append(
-                    Failure(blk_paths, vol, sys,
-                            "Pool is not healthy: %d '%s'" % (
-                                pool.status, pool.status_info),
-                            "Need investigation of output of `lsmcli lp`"))
+                    Failure(
+                        blk_paths, vol, sys, "Pool is not healthy: %d '%s'" %
+                        (pool.status, pool.status_info),
+                        "Need investigation of output of `lsmcli lp`"))
                 continue
             flag_has_pass = True
 
@@ -252,15 +257,15 @@ class SanityCheck(unittest.TestCase):
             vol = lv.vol
             blk_paths = lv.blk_paths
             if sys.status == System.STATUS_UNKNOWN:
-                warn(vol, blk_paths,
-                     "Unknown system status %d %s" % (sys.status,
-                                                      sys.status_info))
+                warn(
+                    vol, blk_paths, "Unknown system status %d %s" %
+                    (sys.status, sys.status_info))
             if not sys.status & System.STATUS_OK:
                 fails.append(
-                    Failure(blk_paths, vol, sys,
-                            "System is not healthy: %d '%s'" % (
-                                sys.status, sys.status_info),
-                            "Need investigation of output of `lsmcli ls`"))
+                    Failure(
+                        blk_paths, vol, sys, "System is not healthy: %d '%s'" %
+                        (sys.status, sys.status_info),
+                        "Need investigation of output of `lsmcli ls`"))
                 continue
             flag_has_pass = True
 

@@ -54,12 +54,14 @@ def _profile_register_load(wbem_conn):
     cim_rps = []
     for namespace in namespace_check_list:
         try:
-            cim_rps = wbem_conn.EnumerateInstances(
-                'CIM_RegisteredProfile',
-                namespace=namespace,
-                PropertyList=['RegisteredName', 'RegisteredVersion',
-                              'RegisteredOrganization'],
-                LocalOnly=False)
+            cim_rps = wbem_conn.EnumerateInstances('CIM_RegisteredProfile',
+                                                   namespace=namespace,
+                                                   PropertyList=[
+                                                       'RegisteredName',
+                                                       'RegisteredVersion',
+                                                       'RegisteredOrganization'
+                                                   ],
+                                                   LocalOnly=False)
         except pywbem.CIMError as e:
             if e.args[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                     e.args[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
@@ -95,8 +97,7 @@ def _profile_register_load(wbem_conn):
     return profile_dict, root_blk_cim_rp
 
 
-def _profile_check(profile_dict, profile_name, spec_ver,
-                   raise_error=False):
+def _profile_check(profile_dict, profile_name, spec_ver, raise_error=False):
     """
     Check whether we support certain profile at certain SNIA
     specification version.
@@ -112,8 +113,7 @@ def _profile_check(profile_dict, profile_name, spec_ver,
             raise LsmError(
                 ErrorNumber.NO_SUPPORT,
                 "SNIA SMI-S %s '%s' profile is not supported by " %
-                (profile_name, spec_ver) +
-                "target SMI-S provider")
+                (profile_name, spec_ver) + "target SMI-S provider")
         return False
 
     support_ver_num = _profile_spec_ver_to_num(profile_dict[profile_name])
@@ -140,8 +140,7 @@ def _profile_spec_ver_to_num(spec_ver_str):
     if len(tmp_list) == 2:
         tmp_list.extend([0])
     if len(tmp_list) == 3:
-        return (int(tmp_list[0]) * 10 ** 6 +
-                int(tmp_list[1]) * 10 ** 3 +
+        return (int(tmp_list[0]) * 10**6 + int(tmp_list[1]) * 10**3 +
                 int(tmp_list[2]))
     return None
 
@@ -186,14 +185,19 @@ class SmisCommon(object):
     _INVOKE_MAX_LOOP_COUNT = 60
     _INVOKE_CHECK_INTERVAL = 5
 
-    def __init__(self, url, username, password,
+    def __init__(self,
+                 url,
+                 username,
+                 password,
                  namespace=dmtf.DEFAULT_NAMESPACE,
-                 no_ssl_verify=False, debug_path=None, system_list=None,
+                 no_ssl_verify=False,
+                 debug_path=None,
+                 system_list=None,
                  ca_cert_file=None):
         self._wbem_conn = None
         self._profile_dict = {}
-        self.root_blk_cim_rp = None    # For root_cim_
-        self._vendor_product = None     # For vendor workaround codes.
+        self.root_blk_cim_rp = None  # For root_cim_
+        self._vendor_product = None  # For vendor workaround codes.
         self.system_list = system_list
         self._debug_path = debug_path
         self._ca_cert_file = ca_cert_file
@@ -201,13 +205,15 @@ class SmisCommon(object):
         if namespace is None:
             namespace = dmtf.DEFAULT_NAMESPACE
 
-        self._wbem_conn = pywbem.WBEMConnection(
-            url, (username, password), namespace, ca_certs=self._ca_cert_file)
+        self._wbem_conn = pywbem.WBEMConnection(url, (username, password),
+                                                namespace,
+                                                ca_certs=self._ca_cert_file)
         if no_ssl_verify:
             try:
-                self._wbem_conn = pywbem.WBEMConnection(
-                    url, (username, password), namespace,
-                    no_verification=True)
+                self._wbem_conn = pywbem.WBEMConnection(url,
+                                                        (username, password),
+                                                        namespace,
+                                                        no_verification=True)
             except TypeError:
                 # pywbem is not holding fix from
                 # https://bugzilla.redhat.com/show_bug.cgi?id=1039801
@@ -222,8 +228,10 @@ class SmisCommon(object):
             # while.
             self._profile_dict = {
                 # Provide a fake profile support status to pass the check.
-                SmisCommon.SNIA_BLK_ROOT_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
-                SmisCommon.SNIA_BLK_SRVS_PROFILE: SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_BLK_ROOT_PROFILE:
+                SmisCommon.SMIS_SPEC_VER_1_4,
+                SmisCommon.SNIA_BLK_SRVS_PROFILE:
+                SmisCommon.SMIS_SPEC_VER_1_4,
                 SmisCommon.SNIA_DISK_LITE_PROFILE:
                 SmisCommon.SMIS_SPEC_VER_1_4,
             }
@@ -247,9 +255,10 @@ class SmisCommon(object):
                 SmisCommon.SMIS_SPEC_VER_1_4
 
         # Check 'Array' 1.4 support status.
-        _profile_check(
-            self._profile_dict, SmisCommon.SNIA_BLK_ROOT_PROFILE,
-            SmisCommon.SMIS_SPEC_VER_1_4, raise_error=True)
+        _profile_check(self._profile_dict,
+                       SmisCommon.SNIA_BLK_ROOT_PROFILE,
+                       SmisCommon.SMIS_SPEC_VER_1_4,
+                       raise_error=True)
 
     def profile_check(self, profile_name, spec_ver, raise_error=False):
         """
@@ -267,8 +276,8 @@ class SmisCommon(object):
                 or
             False
         """
-        return _profile_check(
-            self._profile_dict, profile_name, spec_ver, raise_error)
+        return _profile_check(self._profile_dict, profile_name, spec_ver,
+                              raise_error)
 
     def _vendor_namespace(self):
         if self.root_blk_cim_rp:
@@ -293,16 +302,16 @@ class SmisCommon(object):
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
         params['LocalOnly'] = False
-        return self._wbem_conn.EnumerateInstances(
-            ClassName, namespace, **params)
+        return self._wbem_conn.EnumerateInstances(ClassName, namespace,
+                                                  **params)
 
     def EnumerateInstanceNames(self, ClassName, namespace=None, **params):
         if self._wbem_conn.default_namespace in dmtf.INTEROP_NAMESPACES:
             # We have to enumerate in vendor namespace
             self._wbem_conn.default_namespace = self._vendor_namespace()
         params['LocalOnly'] = False
-        return self._wbem_conn.EnumerateInstanceNames(
-            ClassName, namespace, **params)
+        return self._wbem_conn.EnumerateInstanceNames(ClassName, namespace,
+                                                      **params)
 
     def Associators(self, ObjectName, **params):
         return self._wbem_conn.Associators(ObjectName, **params)
@@ -337,20 +346,17 @@ class SmisCommon(object):
         if property_list is None:
             property_list = SmisCommon.cim_job_pros()
         else:
-            property_list = merge_list(
-                property_list, SmisCommon.cim_job_pros())
+            property_list = merge_list(property_list,
+                                       SmisCommon.cim_job_pros())
 
-        cim_jobs = self.EnumerateInstances(
-            'CIM_ConcreteJob',
-            PropertyList=property_list)
+        cim_jobs = self.EnumerateInstances('CIM_ConcreteJob',
+                                           PropertyList=property_list)
         real_job_id = SmisCommon.parse_job_id(job_id)[0]
         for cim_job in cim_jobs:
             if md5(cim_job['InstanceID']) == real_job_id:
                 return cim_job
 
-        raise LsmError(
-            ErrorNumber.NOT_FOUND_JOB,
-            "Job %s not found" % job_id)
+        raise LsmError(ErrorNumber.NOT_FOUND_JOB, "Job %s not found" % job_id)
 
     @staticmethod
     def _job_id_of_cim_job(cim_job, retrieve_data, method_data):
@@ -362,8 +368,8 @@ class SmisCommon(object):
         method_data is any string a method would like store for error
         handling by job_status().
         """
-        return "%s@%d@%s" % (
-            md5(cim_job['InstanceID']), int(retrieve_data), str(method_data))
+        return "%s@%d@%s" % (md5(
+            cim_job['InstanceID']), int(retrieve_data), str(method_data))
 
     @staticmethod
     def parse_job_id(job_id):
@@ -392,10 +398,9 @@ class SmisCommon(object):
                     os.makedirs(self._debug_path)
 
                 if os.path.isdir(self._debug_path):
-                    debug_fn = "%s_%s" % (
-                        file_prefix, datetime.datetime.now().isoformat())
-                    debug_full = os.path.join(
-                        self._debug_path, debug_fn)
+                    debug_fn = "%s_%s" % (file_prefix,
+                                          datetime.datetime.now().isoformat())
+                    debug_full = os.path.join(self._debug_path, debug_fn)
 
                     # Dump the request & reply to a file
                     with open(debug_full, 'w') as d:
@@ -407,8 +412,13 @@ class SmisCommon(object):
             # data when we are most likely already in a bad spot
             pass
 
-    def invoke_method(self, cmd, cim_path, in_params, out_handler=None,
-                      error_handler=None, retrieve_data=None,
+    def invoke_method(self,
+                      cmd,
+                      cim_path,
+                      in_params,
+                      out_handler=None,
+                      error_handler=None,
+                      retrieve_data=None,
                       method_data=None):
         """
         cmd
@@ -438,8 +448,8 @@ class SmisCommon(object):
         if retrieve_data is None:
             retrieve_data = SmisCommon.JOB_RETRIEVE_NONE
         try:
-            (rc, out) = self._wbem_conn.InvokeMethod(
-                cmd, cim_path, **in_params)
+            (rc, out) = self._wbem_conn.InvokeMethod(cmd, cim_path,
+                                                     **in_params)
 
             # Check to see if operation is done
             if rc == SmisCommon.SNIA_INVOKE_OK:
@@ -450,8 +460,9 @@ class SmisCommon(object):
 
             elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
                 # We have an async operation
-                job_id = SmisCommon._job_id_of_cim_job(
-                    out['Job'], retrieve_data, method_data)
+                job_id = SmisCommon._job_id_of_cim_job(out['Job'],
+                                                       retrieve_data,
+                                                       method_data)
                 return job_id, None
             elif rc == SmisCommon.SNIA_INVOKE_NOT_SUPPORTED:
                 raise LsmError(
@@ -472,8 +483,12 @@ class SmisCommon(object):
             else:
                 raise
 
-    def invoke_method_wait(self, cmd, cim_path, in_params,
-                           out_key=None, expect_class=None,
+    def invoke_method_wait(self,
+                           cmd,
+                           cim_path,
+                           in_params,
+                           out_key=None,
+                           expect_class=None,
                            flag_out_array=False):
         """
         InvokeMethod and wait it until done.
@@ -504,16 +519,18 @@ class SmisCommon(object):
                                 "elements: %s" % out[out_key])
                     return out[out_key]
                 else:
-                    raise LsmError(ErrorNumber.PLUGIN_BUG,
-                                   "invoke_method_wait(), %s not exist "
-                                   "in out %s" % (out_key, list(out.items())))
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_BUG,
+                        "invoke_method_wait(), %s not exist "
+                        "in out %s" % (out_key, list(out.items())))
 
             elif rc == SmisCommon.SNIA_INVOKE_ASYNC:
                 cim_job = {}
                 cim_job_path = out['Job']
                 loop_counter = 0
-                job_pros = ['JobState', 'ErrorDescription',
-                            'OperationalStatus']
+                job_pros = [
+                    'JobState', 'ErrorDescription', 'OperationalStatus'
+                ]
                 cim_xxxs_path = []
                 while loop_counter <= SmisCommon._INVOKE_MAX_LOOP_COUNT:
                     cim_job = self.GetInstance(cim_job_path,
@@ -527,9 +544,8 @@ class SmisCommon(object):
                         continue
                     elif job_state == dmtf.JOB_STATE_COMPLETED:
                         if not SmisCommon.cim_job_completed_ok(cim_job):
-                            raise LsmError(
-                                ErrorNumber.PLUGIN_BUG,
-                                str(cim_job['ErrorDescription']))
+                            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                                           str(cim_job['ErrorDescription']))
                         if expect_class is None:
                             return None
                         cim_xxxs_path = self.AssociatorNames(
@@ -547,8 +563,7 @@ class SmisCommon(object):
                     raise LsmError(
                         ErrorNumber.TIMEOUT,
                         "The job generated by %s() failed to finish in %ds" %
-                        (cmd,
-                         SmisCommon._INVOKE_CHECK_INTERVAL *
+                        (cmd, SmisCommon._INVOKE_CHECK_INTERVAL *
                          SmisCommon._INVOKE_MAX_LOOP_COUNT))
 
                 if len(cim_xxxs_path) == 1:
@@ -559,8 +574,8 @@ class SmisCommon(object):
                         "invoke_method_wait(): got unexpected(not 1) "
                         "return from CIM_AffectedJobElement: "
                         "%s, out: %s, job: %s" %
-                        (cim_xxxs_path, list(out.items()),
-                         list(cim_job.items())))
+                        (cim_xxxs_path, list(out.items()), list(
+                            cim_job.items())))
             else:
                 self._dump_wbem_xml(cmd)
                 raise LsmError(
@@ -578,9 +593,8 @@ class SmisCommon(object):
         property_list = ['SystemName']
 
         try:
-            cim_srvs = self.EnumerateInstances(
-                srv_name,
-                PropertyList=property_list)
+            cim_srvs = self.EnumerateInstances(srv_name,
+                                               PropertyList=property_list)
             for cim_srv in cim_srvs:
                 if cim_srv['SystemName'] == sys_id:
                     return cim_srv
@@ -604,8 +618,8 @@ class SmisCommon(object):
         Using 'SystemName' property as system id of a service which is defined
         by DMTF CIM_Service.
         """
-        return self._cim_srv_of_sys_id(
-            'CIM_StorageConfigurationService', sys_id, raise_error)
+        return self._cim_srv_of_sys_id('CIM_StorageConfigurationService',
+                                       sys_id, raise_error)
 
     def cim_rs_of_sys_id(self, sys_id, raise_error=True):
         """
@@ -613,8 +627,8 @@ class SmisCommon(object):
         Using 'SystemName' property as system id of a service which is defined
         by DMTF CIM_Service.
         """
-        return self._cim_srv_of_sys_id(
-            'CIM_ReplicationService', sys_id, raise_error)
+        return self._cim_srv_of_sys_id('CIM_ReplicationService', sys_id,
+                                       raise_error)
 
     def cim_gmms_of_sys_id(self, sys_id, raise_error=True):
         """
@@ -623,8 +637,8 @@ class SmisCommon(object):
         Using 'SystemName' property as system id of a service which is defined
         by DMTF CIM_Service.
         """
-        return self._cim_srv_of_sys_id(
-            'CIM_GroupMaskingMappingService', sys_id, raise_error)
+        return self._cim_srv_of_sys_id('CIM_GroupMaskingMappingService',
+                                       sys_id, raise_error)
 
     def cim_ccs_of_sys_id(self, sys_id, raise_error=True):
         """
@@ -633,8 +647,8 @@ class SmisCommon(object):
         Using 'SystemName' property as system id of a service which is defined
         by DMTF CIM_Service.
         """
-        return self._cim_srv_of_sys_id(
-            'CIM_ControllerConfigurationService', sys_id, raise_error)
+        return self._cim_srv_of_sys_id('CIM_ControllerConfigurationService',
+                                       sys_id, raise_error)
 
     def cim_hwms_of_sys_id(self, sys_id, raise_error=True):
         """
@@ -657,10 +671,9 @@ class SmisCommon(object):
         op = status['OperationalStatus']
 
         if (len(op) > 1 and
-            ((op[0] == dmtf.OP_STATUS_OK and
-              op[1] == dmtf.OP_STATUS_COMPLETED) or
-             (op[0] == dmtf.OP_STATUS_COMPLETED and
-              op[1] == dmtf.OP_STATUS_OK))):
+            ((op[0] == dmtf.OP_STATUS_OK and op[1] == dmtf.OP_STATUS_COMPLETED)
+             or (op[0] == dmtf.OP_STATUS_COMPLETED
+                 and op[1] == dmtf.OP_STATUS_OK))):
             rc = True
 
         return rc

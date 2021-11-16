@@ -74,7 +74,6 @@ SCS_CAP_VOLUME_MODIFY = pywbem.Uint16(7)
 INTEROP_NAMESPACES = ['interop', 'root/interop', 'root/PG_Interop']
 DEFAULT_NAMESPACE = 'interop'
 
-
 # DMTF CIM 2.37.0 experimental CIM_StoragePool['Usage']
 POOL_USAGE_UNRESTRICTED = 2
 POOL_USAGE_RESERVED_FOR_SYSTEM = 3
@@ -163,8 +162,8 @@ def _op_status_to_str(dmtf_op_status):
         return ''
 
 
-def op_status_list_conv(conv_dict, dmtf_op_status_list,
-                        unknown_value, other_value):
+def op_status_list_conv(conv_dict, dmtf_op_status_list, unknown_value,
+                        other_value):
     status = 0
     status_info_list = []
     for dmtf_op_status in dmtf_op_status_list:
@@ -178,6 +177,7 @@ def op_status_list_conv(conv_dict, dmtf_op_status_list,
     if status == 0:
         status = unknown_value
     return status, " ".join(status_info_list)
+
 
 # CIM_ConcreteJob['JobState']
 JOB_STATE_NEW = 2

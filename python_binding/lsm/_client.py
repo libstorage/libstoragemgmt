@@ -16,10 +16,9 @@
 import os
 import sys
 from stat import S_ISSOCK
-from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery,
-                 Disk, AccessGroup, FileSystem, FsSnapshot,
-                 uri_parse, LsmError, ErrorNumber,
-                 INetworkAttachedStorage, TargetPort)
+from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery, Disk,
+                 AccessGroup, FileSystem, FsSnapshot, uri_parse, LsmError,
+                 ErrorNumber, INetworkAttachedStorage, TargetPort)
 
 from lsm._common import return_requires as _return_requires
 from lsm._common import UDS_PATH as _UDS_PATH
@@ -50,9 +49,10 @@ def _check_search_key(search_key, supported_keys):
 
 # Descriptive exception about daemon not running.
 def _raise_no_daemon():
-    raise LsmError(ErrorNumber.DAEMON_NOT_RUNNING,
-                   "The libStorageMgmt daemon is not running (process "
-                   "name lsmd), please start service")
+    raise LsmError(
+        ErrorNumber.DAEMON_NOT_RUNNING,
+        "The libStorageMgmt daemon is not running (process "
+        "name lsmd), please start service")
 
 
 # Main client class for library.
@@ -73,10 +73,10 @@ class Client(INetworkAttachedStorage):
     FLAG_VOLUME_CREATE_USE_IO_PASSTHROUGH = 1 << 1
     FLAG_VOLUME_CREATE_DISABLE_SYSTEM_CACHE = 1 << 2
     FLAG_VOLUME_CREATE_DISABLE_IO_PASSTHROUGH = 1 << 3
-
     """
     Client side class used for managing storage that utilises RPC mechanism.
     """
+
     # Method added so that the interface for the client RPC and the plug-in
     # itself match.
     def plugin_register(self, uri, plain_text_password, timeout_ms, flags=0):
@@ -135,7 +135,10 @@ class Client(INetworkAttachedStorage):
     # @param    timeout_ms              The timeout in ms
     # @param    flags                   Reserved for future use, must be zero.
     # @returns None
-    def __init__(self, uri, plain_text_password=None, timeout_ms=30000,
+    def __init__(self,
+                 uri,
+                 plain_text_password=None,
+                 timeout_ms=30000,
                  flags=0):
         self._uri = uri
         self._password = plain_text_password
@@ -386,8 +389,13 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(None)
-    def iscsi_chap_auth(self, init_id, in_user, in_password,
-                        out_user, out_password, flags=FLAG_RSVD):
+    def iscsi_chap_auth(self,
+                        init_id,
+                        in_user,
+                        in_password,
+                        out_user,
+                        out_password,
+                        flags=FLAG_RSVD):
         """
         Register a user/password for the specified initiator for CHAP
         authentication.
@@ -421,7 +429,11 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new volume), when one is None the other is
     #           valid.
     @_return_requires(six.string_types[0], Volume)
-    def volume_create(self, pool, volume_name, size_bytes, provisioning,
+    def volume_create(self,
+                      pool,
+                      volume_name,
+                      size_bytes,
+                      provisioning,
                       flags=FLAG_RSVD):
         """
         Creates a volume, given a pool, volume name, size and provisioning
@@ -461,7 +473,11 @@ class Client(INetworkAttachedStorage):
     # @returns  A tuple (job_id, new replicated volume), when one is
     #           None the other is valid.
     @_return_requires(six.string_types[0], Volume)
-    def volume_replicate(self, pool, rep_type, volume_src, name,
+    def volume_replicate(self,
+                         pool,
+                         rep_type,
+                         volume_src,
+                         name,
                          flags=FLAG_RSVD):
         """
         Replicates a volume from the specified pool.
@@ -496,7 +512,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns Job id or None when completed, else raises LsmError on errors.
     @_return_requires(six.string_types[0])
-    def volume_replicate_range(self, rep_type, volume_src, volume_dest, ranges,
+    def volume_replicate_range(self,
+                               rep_type,
+                               volume_src,
+                               volume_dest,
+                               ranges,
                                flags=FLAG_RSVD):
         """
         Replicates a portion of a volume to itself or another volume.  The src,
@@ -599,7 +619,9 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  List of access groups
     @_return_requires([AccessGroup])
-    def access_groups(self, search_key=None, search_value=None,
+    def access_groups(self,
+                      search_key=None,
+                      search_value=None,
                       flags=FLAG_RSVD):
         """
         Returns a list of access groups
@@ -616,7 +638,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags               Reserved for future use, must be zero.
     # @returns AccessGroup on success, else raises LsmError
     @_return_requires(AccessGroup)
-    def access_group_create(self, name, init_id, init_type, system,
+    def access_group_create(self,
+                            name,
+                            init_id,
+                            init_type,
+                            system,
                             flags=FLAG_RSVD):
         """
         Creates an access group and add the specified initiator id,
@@ -646,7 +672,10 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
-    def access_group_initiator_add(self, access_group, init_id, init_type,
+    def access_group_initiator_add(self,
+                                   access_group,
+                                   init_id,
+                                   init_type,
                                    flags=FLAG_RSVD):
         """
         Adds an initiator to an access group
@@ -663,12 +692,16 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns None on success, throws LsmError on errors.
     @_return_requires(AccessGroup)
-    def access_group_initiator_delete(self, access_group, init_id, init_type,
+    def access_group_initiator_delete(self,
+                                      access_group,
+                                      init_id,
+                                      init_type,
                                       flags=FLAG_RSVD):
         """
         Deletes an initiator from an access group
         """
-        init_id = AccessGroup.initiator_id_verify(init_id, None,
+        init_id = AccessGroup.initiator_id_verify(init_id,
+                                                  None,
                                                   raise_exception=True)[2]
         return self._tp.rpc('access_group_initiator_delete',
                             _del_self(locals()))
@@ -679,7 +712,8 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns list of volumes
     @_return_requires([Volume])
-    def volumes_accessible_by_access_group(self, access_group,
+    def volumes_accessible_by_access_group(self,
+                                           access_group,
                                            flags=FLAG_RSVD):
         """
         Returns the list of volumes that access group has access to.
@@ -832,7 +866,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns  None on success, else job id
     @_return_requires(six.string_types[0])
-    def fs_file_clone(self, fs, src_file_name, dest_file_name, snapshot=None,
+    def fs_file_clone(self,
+                      fs,
+                      src_file_name,
+                      dest_file_name,
+                      snapshot=None,
                       flags=FLAG_RSVD):
         """
         Creates a thinly provisioned clone of src to dest.
@@ -903,8 +941,13 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
     @_return_requires(six.string_types[0])
-    def fs_snapshot_restore(self, fs, snapshot, files, restore_files,
-                            all_files=False, flags=FLAG_RSVD):
+    def fs_snapshot_restore(self,
+                            fs,
+                            snapshot,
+                            files,
+                            restore_files,
+                            all_files=False,
+                            flags=FLAG_RSVD):
         """
         WARNING: Destructive!
 
@@ -995,10 +1038,17 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns NfsExport on success, else raises LsmError
     @_return_requires(NfsExport)
-    def export_fs(self, fs_id, export_path, root_list, rw_list, ro_list,
+    def export_fs(self,
+                  fs_id,
+                  export_path,
+                  root_list,
+                  rw_list,
+                  ro_list,
                   anon_uid=NfsExport.ANON_UID_GID_NA,
                   anon_gid=NfsExport.ANON_UID_GID_NA,
-                  auth_type=None, options=None, flags=FLAG_RSVD):
+                  auth_type=None,
+                  options=None,
+                  flags=FLAG_RSVD):
         """
         Exports a filesystem as specified in the arguments
         """
@@ -1026,7 +1076,9 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero
     # @returns List of target ports, else raises LsmError
     @_return_requires([TargetPort])
-    def target_ports(self, search_key=None, search_value=None,
+    def target_ports(self,
+                     search_key=None,
+                     search_value=None,
                      flags=FLAG_RSVD):
         """
         Returns a list of target ports
@@ -1306,7 +1358,11 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Flags
     # @returns  the newly created volume, lsmError on errors
     @_return_requires(Volume)
-    def volume_raid_create(self, name, raid_type, disks, strip_size,
+    def volume_raid_create(self,
+                           name,
+                           raid_type,
+                           disks,
+                           strip_size,
                            flags=FLAG_RSVD):
         """
         lsm.Client.volume_raid_create(self, name, raid_type, disks,
@@ -1395,9 +1451,8 @@ class Client(INetworkAttachedStorage):
                 The strip_size == Volume.VCR_STRIP_SIZE_DEFAULT is supported.
         """
         if len(disks) == 0:
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input disks argument: no disk included")
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Illegal input disks argument: no disk included")
 
         if raid_type == Volume.RAID_TYPE_RAID1 and len(disks) != 2:
             raise LsmError(
@@ -1687,10 +1742,10 @@ class Client(INetworkAttachedStorage):
         """
         if (pdc != Volume.PHYSICAL_DISK_CACHE_ENABLED) and \
            (pdc != Volume.PHYSICAL_DISK_CACHE_DISABLED):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument pdc should be "
-                           "Volume.PHYSICAL_DISK_CACHE_ENABLED or "
-                           "Volume.PHYSICAL_DISK_CACHE_DISABLED")
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT, "Argument pdc should be "
+                "Volume.PHYSICAL_DISK_CACHE_ENABLED or "
+                "Volume.PHYSICAL_DISK_CACHE_DISABLED")
 
         return self._tp.rpc('volume_physical_disk_cache_update',
                             _del_self(locals()))
@@ -1750,11 +1805,11 @@ class Client(INetworkAttachedStorage):
         if wcp != Volume.WRITE_CACHE_POLICY_WRITE_BACK and \
            wcp != Volume.WRITE_CACHE_POLICY_AUTO and \
            wcp != Volume.WRITE_CACHE_POLICY_WRITE_THROUGH:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument wcp should be "
-                           "Volume.WRITE_CACHE_POLICY_WRITE_BACK or "
-                           "Volume.WRITE_CACHE_POLICY_AUTO or "
-                           "Volume.WRITE_CACHE_POLICY_WRITE_THROUGH")
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT, "Argument wcp should be "
+                "Volume.WRITE_CACHE_POLICY_WRITE_BACK or "
+                "Volume.WRITE_CACHE_POLICY_AUTO or "
+                "Volume.WRITE_CACHE_POLICY_WRITE_THROUGH")
         return self._tp.rpc('volume_write_cache_policy_update',
                             _del_self(locals()))
 
@@ -1798,9 +1853,9 @@ class Client(INetworkAttachedStorage):
         """
         if rcp != Volume.READ_CACHE_POLICY_ENABLED and \
            rcp != Volume.READ_CACHE_POLICY_DISABLED:
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Argument rcp should be "
-                           "Volume.READ_CACHE_POLICY_ENABLED or "
-                           "Volume.READ_CACHE_POLICY_DISABLED")
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT, "Argument rcp should be "
+                "Volume.READ_CACHE_POLICY_ENABLED or "
+                "Volume.READ_CACHE_POLICY_DISABLED")
         return self._tp.rpc('volume_read_cache_policy_update',
                             _del_self(locals()))

@@ -59,14 +59,11 @@ def handle_cim_errors(method):
                     # library.
                     raise LsmError(ErrorNumber.NETWORK_ERROR, str(ce))
                 elif 'SSL error' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
                 elif 'The web server returned a bad status line' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
                 elif 'HTTP error' in desc:
-                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                                   desc)
+                    raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION, desc)
             raise LsmError(ErrorNumber.PLUGIN_BUG, desc)
         except AuthError:
             raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, "Unauthorized user")
@@ -76,6 +73,7 @@ def handle_cim_errors(method):
             error("Unexpected exception:\n" + traceback.format_exc())
             raise LsmError(ErrorNumber.PLUGIN_BUG, str(e),
                            traceback.format_exc())
+
     return cim_wrapper
 
 

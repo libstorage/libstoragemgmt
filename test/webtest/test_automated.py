@@ -59,19 +59,18 @@ def run_test(cmdline, output_dir, sys_id, uri, password):
 
     # We should probably put more information in here
     with open(fn + ".ec", 'w') as error_file:
-        error_file.write(yaml.dump(dict(ec=str(ec),
-                                        error_file=fn + ".error",
-                                        uri=uri)))
+        error_file.write(
+            yaml.dump(dict(ec=str(ec), error_file=fn + ".error", uri=uri)))
         error_file.flush()
 
 
 if __name__ == '__main__':
-    time_limit_seconds = int(
-        os.getenv('LSM_TEST_TMO_SECS', 90 * 60))  # 90 minutes
+    time_limit_seconds = int(os.getenv('LSM_TEST_TMO_SECS',
+                                       90 * 60))  # 90 minutes
 
     if len(sys.argv) != 4:
-        print('Syntax: %s <array_file> <plugin unit test> <output directory>'
-              % (sys.argv[0]))
+        print('Syntax: %s <array_file> <plugin unit test> <output directory>' %
+              (sys.argv[0]))
         sys.exit(1)
     else:
         run = True
@@ -80,13 +79,15 @@ if __name__ == '__main__':
         arrays_to_test = test_hardware.TestArrays().providers(sys.argv[1])
 
         for system in arrays_to_test:
-            (u, credentials) = test_hardware.TestArrays.uri_password_get(system)
+            (u,
+             credentials) = test_hardware.TestArrays.uri_password_get(system)
             name = system['COMPANY']
             ip = system['IP']
             system_id = "%s-%s" % (name, ip)
 
-            p = Process(target=run_test, args=(sys.argv[2], sys.argv[3],
-                                               system_id, u, credentials))
+            p = Process(target=run_test,
+                        args=(sys.argv[2], sys.argv[3], system_id, u,
+                              credentials))
             p.name = system_id
             p.start()
             process_list.append(p)

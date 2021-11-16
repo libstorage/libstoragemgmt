@@ -26,6 +26,7 @@ from lsm._common import SocketEOF as _SocketEOF
 from lsm._data import DataDecoder as _DataDecoder
 from lsm._data import DataEncoder as _DataEncoder
 
+
 class TransPort(object):
     """
     Provides wire serialization by using json.  Loosely conforms to json-rpc,
@@ -104,9 +105,10 @@ class TransPort(object):
                 if os.access(path, os.R_OK | os.W_OK):
                     s.connect(path)
                 else:
-                    raise LsmError(ErrorNumber.PLUGIN_SOCKET_PERMISSION,
-                                   "Permissions are incorrect for IPC "
-                                   "socket file")
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_SOCKET_PERMISSION,
+                        "Permissions are incorrect for IPC "
+                        "socket file")
             else:
                 raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
                                "Plug-in appears to not exist")
@@ -159,8 +161,14 @@ class TransPort(object):
         """
         Used to transmit an error.
         """
-        e = {'id': msg_id, 'error': {'code': error_code, 'message': msg,
-                                     'data': data}}
+        e = {
+            'id': msg_id,
+            'error': {
+                'code': error_code,
+                'message': msg,
+                'data': data
+            }
+        }
         self._send_msg(json.dumps(e, cls=_DataEncoder))
 
     def send_resp(self, result, msg_id=100):
@@ -193,10 +201,8 @@ def _server(s):
         while msg['method'] != 'done':
 
             if msg['method'] == 'error':
-                srv.send_error(
-                    msg['id'],
-                    msg['params']['errorcode'],
-                    msg['params']['errormsg'])
+                srv.send_error(msg['id'], msg['params']['errorcode'],
+                               msg['params']['errormsg'])
             else:
                 srv.send_resp(msg['params'])
             msg = srv.read_req()
@@ -207,12 +213,12 @@ def _server(s):
 
 class _TestTransport(unittest.TestCase):
     def setUp(self):
-        (self.c, self.s) = socket.socketpair(
-            socket.AF_UNIX, socket.SOCK_STREAM)
+        (self.c, self.s) = socket.socketpair(socket.AF_UNIX,
+                                             socket.SOCK_STREAM)
 
         self.client = TransPort(self.c)
 
-        self.server = threading.Thread(target=_server, args=(self.s,))
+        self.server = threading.Thread(target=_server, args=(self.s, ))
         self.server.start()
 
     def test_simple(self):
@@ -233,8 +239,10 @@ class _TestTransport(unittest.TestCase):
         self.assertRaises(LsmError, self.client.read_resp)
 
         try:
-            self.client.send_req('error', {'errorcode': e_code,
-                                           'errormsg': e_msg})
+            self.client.send_req('error', {
+                'errorcode': e_code,
+                'errormsg': e_msg
+            })
             self.client.read_resp()
         except LsmError as e:
             self.assertTrue(e.code == e_code)

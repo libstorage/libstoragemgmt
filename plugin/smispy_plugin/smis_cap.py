@@ -12,12 +12,10 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 
-
 from lsm import Capabilities, LsmError, ErrorNumber
 
 from smispy_plugin import dmtf
 from smispy_plugin.smis_common import SmisCommon
-
 
 MASK_TYPE_NO_SUPPORT = 0
 MASK_TYPE_MASK = 1
@@ -34,9 +32,10 @@ def _rs_supported_capabilities(smis_common, system_id, cap):
             cim_rs.path,
             AssocClass='CIM_ElementCapabilities',
             ResultClass='CIM_ReplicationServiceCapabilities',
-            PropertyList=['SupportedReplicationTypes',
-                          'SupportedAsynchronousActions',
-                          'SupportedSynchronousActions'])[0]
+            PropertyList=[
+                'SupportedReplicationTypes', 'SupportedAsynchronousActions',
+                'SupportedSynchronousActions'
+            ])[0]
 
         s_rt = rs_cap['SupportedReplicationTypes']
         async_actions = rs_cap['SupportedAsynchronousActions']
@@ -105,9 +104,10 @@ def _bsp_cap_set(smis_common, system_id, cap):
         cim_scs.path,
         AssocClass='CIM_ElementCapabilities',
         ResultClass='CIM_StorageConfigurationCapabilities',
-        PropertyList=['SupportedAsynchronousActions',
-                      'SupportedSynchronousActions',
-                      'SupportedStorageElementTypes'])[0]
+        PropertyList=[
+            'SupportedAsynchronousActions', 'SupportedSynchronousActions',
+            'SupportedStorageElementTypes'
+        ])[0]
 
     element_types = cim_scs_cap['SupportedStorageElementTypes']
     sup_actions = []
@@ -178,9 +178,9 @@ def _group_mask_map_cap_set(smis_common, cim_sys_path, cap):
     cap.set(Capabilities.ACCESS_GROUP_INITIATOR_DELETE)
 
     cim_gmm_cap_pros = [
-        'SupportedAsynchronousActions',
-        'SupportedSynchronousActions',
-        'SupportedDeviceGroupFeatures']
+        'SupportedAsynchronousActions', 'SupportedSynchronousActions',
+        'SupportedDeviceGroupFeatures'
+    ]
 
     cim_gmm_cap = smis_common.Associators(
         cim_sys_path,
@@ -196,17 +196,17 @@ def _group_mask_map_cap_set(smis_common, cim_sys_path, cap):
 
     # DeleteMaskingView() is optional, this is required by volume_unmask()
     # when empty dev group in spc not allowed.
-    elif ((dmtf.GMM_CAP_DELETE_SPC in
-           cim_gmm_cap['SupportedSynchronousActions']) or
-          (dmtf.GMM_CAP_DELETE_SPC in
-           cim_gmm_cap['SupportedAsynchronousActions'])):
+    elif (
+        (dmtf.GMM_CAP_DELETE_SPC in cim_gmm_cap['SupportedSynchronousActions'])
+            or (dmtf.GMM_CAP_DELETE_SPC
+                in cim_gmm_cap['SupportedAsynchronousActions'])):
         cap.set(Capabilities.VOLUME_UNMASK)
 
     # DeleteGroup is optional, this is required by access_group_delete()
-    if ((dmtf.GMM_CAP_DELETE_GROUP in
-         cim_gmm_cap['SupportedSynchronousActions']) or
-        (dmtf.GMM_CAP_DELETE_GROUP in
-         cim_gmm_cap['SupportedAsynchronousActions'])):
+    if ((dmtf.GMM_CAP_DELETE_GROUP
+         in cim_gmm_cap['SupportedSynchronousActions'])
+            or (dmtf.GMM_CAP_DELETE_GROUP
+                in cim_gmm_cap['SupportedAsynchronousActions'])):
         cap.set(Capabilities.ACCESS_GROUP_DELETE)
     return None
 
@@ -274,13 +274,11 @@ def mask_type(smis_common, raise_error=False):
                                  raise_error=False):
         return MASK_TYPE_MASK
     if raise_error:
-        raise LsmError(ErrorNumber.NO_SUPPORT,
-                       "Target SMI-S provider does not support "
-                       "%s version %s or %s version %s" %
-                       (SmisCommon.SNIA_MASK_PROFILE,
-                        SmisCommon.SMIS_SPEC_VER_1_4,
-                        SmisCommon.SNIA_GROUP_MASK_PROFILE,
-                        SmisCommon.SMIS_SPEC_VER_1_5))
+        raise LsmError(
+            ErrorNumber.NO_SUPPORT, "Target SMI-S provider does not support "
+            "%s version %s or %s version %s" %
+            (SmisCommon.SNIA_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_4,
+             SmisCommon.SNIA_GROUP_MASK_PROFILE, SmisCommon.SMIS_SPEC_VER_1_5))
     return MASK_TYPE_NO_SUPPORT
 
 
@@ -298,9 +296,7 @@ def fc_tgt_is_supported(smis_common):
     # Bug reported.
     if not flag_fc_support:
         flag_fc_support = smis_common.profile_check(
-            'FC Target Port',
-            SmisCommon.SMIS_SPEC_VER_1_4,
-            raise_error=False)
+            'FC Target Port', SmisCommon.SMIS_SPEC_VER_1_4, raise_error=False)
     if flag_fc_support:
         return True
     else:

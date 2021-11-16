@@ -24,14 +24,11 @@ import errno
 import re
 import json
 
-
-from lsm import (
-    IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber, uri_parse,
-    System, Pool, size_human_2_size_bytes, search_property, Volume, Disk,
-    LocalDisk, Battery)
+from lsm import (IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber,
+                 uri_parse, System, Pool, size_human_2_size_bytes,
+                 search_property, Volume, Disk, LocalDisk, Battery)
 
 from arcconf_plugin.utils import cmd_exec, ExecError
-
 
 ZERO = 0
 
@@ -80,19 +77,16 @@ def _handle_errors(method):
         except KeyError as key_error:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Expected key missing from arcconf output:%s" %
-                key_error)
+                "Expected key missing from arcconf output:%s" % key_error)
         except ExecError as exec_error:
             if 'No controllers detected' in exec_error.stdout:
-                raise LsmError(
-                    ErrorNumber.NOT_FOUND_SYSTEM,
-                    "No Controllers detected by arcconf.")
+                raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
+                               "No Controllers detected by arcconf.")
             else:
                 raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
         except Exception as common_error:
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Got unexpected error %s" % common_error)
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unexpected error %s" % common_error)
 
     return _wrapper
 
@@ -106,20 +100,19 @@ def _arcconf_size_to_lsm(arcconf_size):
     re_regex = re.compile("^([0-9.]+) +([EPTGMK])B")
     re_match = re_regex.match(arcconf_size)
     if re_match:
-        return size_human_2_size_bytes(
-            "%s%siB" % (re_match.group(1), re_match.group(2)))
+        return size_human_2_size_bytes("%s%siB" %
+                                       (re_match.group(1), re_match.group(2)))
 
     raise LsmError(
         ErrorNumber.PLUGIN_BUG,
-        "_arcconf_size_to_lsm(): Got unexpected size string %s" %
-        arcconf_size)
+        "_arcconf_size_to_lsm(): Got unexpected size string %s" % arcconf_size)
 
 
 def _lsm_size_bytes_to_arcconf_mb(lsm_size):
     """
     Arcconf normally follows the size to be in MB
     """
-    return lsm_size/(1024*1024)
+    return lsm_size / (1024 * 1024)
 
 
 def _pool_status_of(arcconf_array):
@@ -189,13 +182,12 @@ _ARCCONF_RAID_LEVEL_CONV = {
     '60': Volume.RAID_TYPE_RAID60,
 }
 
-
 _ARCCONF_VENDOR_RAID_LEVELS = ['1adm', '1+0adm']
 
-
 _LSM_RAID_TYPE_CONV = dict(
-    list(zip(list(_ARCCONF_RAID_LEVEL_CONV.values()),
-             list(_ARCCONF_RAID_LEVEL_CONV.keys()))))
+    list(
+        zip(list(_ARCCONF_RAID_LEVEL_CONV.values()),
+            list(_ARCCONF_RAID_LEVEL_CONV.keys()))))
 
 _BATTERY_STATUS_CONV = {
     "Recharging": Battery.STATUS_CHARGING,
@@ -219,16 +211,14 @@ def _lsm_raid_type_to_arcconf(raid_type):
             return Volume.RAID_TYPE_RAID0
         return _LSM_RAID_TYPE_CONV[raid_type]
     except KeyError:
-        raise LsmError(
-            ErrorNumber.PLUGIN_BUG,
-            "Not supported raid type %d" % raid_type)
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
+                       "Not supported raid type %d" % raid_type)
 
 
 class Arcconf(IPlugin):
     _DEFAULT_BIN_PATHS = [
-        "/usr/bin/arcconf",
-        "/usr/sbin/arcconf",
-        "/usr/Arcconf/arcconf"]
+        "/usr/bin/arcconf", "/usr/sbin/arcconf", "/usr/Arcconf/arcconf"
+    ]
 
     def __init__(self):
         self._arcconf_bin = None
@@ -255,9 +245,8 @@ class Arcconf(IPlugin):
         if not self._arcconf_bin:
             self._arcconf_bin = Arcconf.find_arcconf()
             if not self._arcconf_bin:
-                raise LsmError(
-                    ErrorNumber.INVALID_ARGUMENT,
-                    "arcconf is not installed correctly")
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "arcconf is not installed correctly")
 
         self._arcconf_exec(['list'])
 
@@ -289,9 +278,7 @@ class Arcconf(IPlugin):
     def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
         if system.id not in list(s.id for s in cur_lsm_syss):
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.SYS_FW_VERSION_GET)
@@ -319,8 +306,7 @@ class Arcconf(IPlugin):
             if os_error.errno == errno.ENOENT:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
-                    "arcconf binary '%s' does not exist." %
-                    self._arcconf_bin)
+                    "arcconf binary '%s' does not exist." % self._arcconf_bin)
             else:
                 raise
 
@@ -337,9 +323,8 @@ class Arcconf(IPlugin):
             if tmp[0].strip() == 'Controllers found':
                 total_cntrls = int(tmp[1].strip())
         except ExecError:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "Failed to get controller count")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
+                           "Failed to get controller count")
 
         return total_cntrls
 
@@ -378,7 +363,8 @@ class Arcconf(IPlugin):
 
         for cntrl in range(total_cntrl):
             ctrl_info = getconfig_cntrls_info[cntrl]['Controller']
-            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'], ctrl_info['deviceName'])
+            ctrl_name = "%s %s" % (ctrl_info['deviceVendor'],
+                                   ctrl_info['deviceName'])
             sys_id = ctrl_info['serialNumber']
             status = ctrl_info['controllerStatus']
             if status == CONTROLLER_STATUS_WORKING:
@@ -407,14 +393,15 @@ class Arcconf(IPlugin):
             physical_slot = ctrl_info['physicalSlot']
             status_info += ' "slot"=[%s]' % str(physical_slot)
 
-            rc_lsm_syss.append(System(sys_id,
-                                      ctrl_name,
-                                      status,
-                                      status_info,
-                                      plugin_data,
-                                      _fw_version=fw_ver,
-                                      _mode=mode,
-                                      _read_cache_pct=read_cache_pct))
+            rc_lsm_syss.append(
+                System(sys_id,
+                       ctrl_name,
+                       status,
+                       status_info,
+                       plugin_data,
+                       _fw_version=fw_ver,
+                       _mode=mode,
+                       _read_cache_pct=read_cache_pct))
 
         return rc_lsm_syss
 
@@ -439,13 +426,13 @@ class Arcconf(IPlugin):
         status_info = ''
         plugin_data = '%s:%s' % (ctrl_num, array_id)
 
-        return Pool(
-            pool_id, name, elem_type, unsupported_actions,
-            total_space, free_space, status, status_info,
-            sys_id, plugin_data)
+        return Pool(pool_id, name, elem_type, unsupported_actions, total_space,
+                    free_space, status, status_info, sys_id, plugin_data)
 
     @_handle_errors
-    def pools(self, search_key=None, search_value=None,
+    def pools(self,
+              search_key=None,
+              search_value=None,
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         getconfig_cntrls_info = self._get_detail_info_list()
@@ -462,15 +449,18 @@ class Arcconf(IPlugin):
                 arcconf_array = {}
                 for array in range(num_array):
                     arcconf_array['arrayID'] = array_infos[array]['arrayID']
-                    arcconf_array['arrayName'] = array_infos[array]['arrayName']
-                    arcconf_array['blockSize'] = array_infos[array]['blockSize']
-                    arcconf_array['totalSize'] = array_infos[array]['totalSize']
+                    arcconf_array['arrayName'] = array_infos[array][
+                        'arrayName']
+                    arcconf_array['blockSize'] = array_infos[array][
+                        'blockSize']
+                    arcconf_array['totalSize'] = array_infos[array][
+                        'totalSize']
                     arcconf_array['unUsedSpace'] = \
                         array_infos[array]['unUsedSpace']
                     arcconf_array['sys_id'] = sys_id
                     arcconf_array['ctrl_num'] = arcconf_ctrl_num
-                    lsm_pools.append(Arcconf._arcconf_array_to_lsm_pool(
-                        arcconf_array))
+                    lsm_pools.append(
+                        Arcconf._arcconf_array_to_lsm_pool(arcconf_array))
         return search_property(lsm_pools, search_key, search_value)
 
     @staticmethod
@@ -501,12 +491,13 @@ class Arcconf(IPlugin):
                                                 stripe_size, full_stripe_size,
                                                 ld_id, array_num, ctrl_num)
         volume_id = "%s:%s" % (sys_id, ld_id)
-        return Volume(
-            volume_id, vol_name, vpd83, block_size, num_of_blocks,
-            admin_status, sys_id, pool_id, plugin_data)
+        return Volume(volume_id, vol_name, vpd83, block_size, num_of_blocks,
+                      admin_status, sys_id, pool_id, plugin_data)
 
     @_handle_errors
-    def volumes(self, search_key=None, search_value=None,
+    def volumes(self,
+                search_key=None,
+                search_value=None,
                 flags=Client.FLAG_RSVD):
         """
         """
@@ -517,7 +508,7 @@ class Arcconf(IPlugin):
 
         for decoded_json in getconfig_cntrls_info:
             sys_id = decoded_json['Controller']['serialNumber']
-            arcconf_ctrl_num = str(cntrl+1)
+            arcconf_ctrl_num = str(cntrl + 1)
             cntrl += 1
 
             if 'LogicalDrive' in decoded_json['Controller']:
@@ -529,10 +520,8 @@ class Arcconf(IPlugin):
                     for array_id in chunk_data:
                         # consumerArrayID in all the chunk will be same
                         consumer_array_id = array_id['consumerArrayID']
-                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(ld_info,
-                                                             consumer_array_id,
-                                                             sys_id,
-                                                             arcconf_ctrl_num)
+                    lsm_vol = Arcconf._arcconf_ld_to_lsm_vol(
+                        ld_info, consumer_array_id, sys_id, arcconf_ctrl_num)
                     lsm_vols.append(lsm_vol)
 
         return search_property(lsm_vols, search_key, search_value)
@@ -567,13 +556,23 @@ class Arcconf(IPlugin):
             vpd83 = ''
         rpm = arcconf_disk['rotationalSpeed']
 
-        return Disk(
-            disk_id, disk_name, disk_type, blk_size, blk_count,
-            status, sys_id, _plugin_data=plugin_data, _vpd83=vpd83,
-            _location=disk_location, _rpm=rpm, _link_type=link_type)
+        return Disk(disk_id,
+                    disk_name,
+                    disk_type,
+                    blk_size,
+                    blk_count,
+                    status,
+                    sys_id,
+                    _plugin_data=plugin_data,
+                    _vpd83=vpd83,
+                    _location=disk_location,
+                    _rpm=rpm,
+                    _link_type=link_type)
 
     @_handle_errors
-    def disks(self, search_key=None, search_value=None,
+    def disks(self,
+              search_key=None,
+              search_value=None,
               flags=Client.FLAG_RSVD):
 
         rc_lsm_disks = []
@@ -605,11 +604,13 @@ class Arcconf(IPlugin):
             Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
             Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID50,
             Volume.RAID_TYPE_RAID10, Volume.RAID_TYPE_RAID6,
-            Volume.RAID_TYPE_RAID60]
+            Volume.RAID_TYPE_RAID60
+        ]
 
         supported_strip_sizes = [
-            16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024, 512 * 1024,
-            1024 * 1024]
+            16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024,
+            512 * 1024, 1024 * 1024
+        ]
 
         return supported_raid_types, supported_strip_sizes
 
@@ -626,7 +627,11 @@ class Arcconf(IPlugin):
         return self._arcconf_cap_get()
 
     @_handle_errors
-    def volume_raid_create(self, name, raid_type, disks, strip_size,
+    def volume_raid_create(self,
+                           name,
+                           raid_type,
+                           disks,
+                           strip_size,
                            flags=Client.FLAG_RSVD):
         """
 
@@ -664,8 +669,10 @@ class Arcconf(IPlugin):
 
             disk_channel = str(disk_channel.strip())
             disk_device = str(disk_device.strip())
-            arcconf_disk_ids.append({'Channel': disk_channel,
-                                     'Device': disk_device})
+            arcconf_disk_ids.append({
+                'Channel': disk_channel,
+                'Device': disk_device
+            })
 
         cmds = ["create", ctrl_num, "logicaldrive", "max", arcconf_raid_level]
         for disk_channel_device in arcconf_disk_ids:
@@ -731,8 +738,7 @@ class Arcconf(IPlugin):
                 if ld_id == ld_info[ld]['logicalDriveID']:
                     raise LsmError(ErrorNumber.PLUGIN_BUG,
                                    "volume_delete failed unexpectedly")
-            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                           "Volume not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
         return None
 
     @_handle_errors
@@ -761,8 +767,8 @@ class Arcconf(IPlugin):
         full_stripe_size = int(volume_info[3]) * 1024
         device_count = 0
 
-        array_info = self._arcconf_exec(['GETCONFIGJSON', ctrl_id, 'ARRAY',
-                                         array_id], flag_force=True)
+        array_info = self._arcconf_exec(
+            ['GETCONFIGJSON', ctrl_id, 'ARRAY', array_id], flag_force=True)
         array_json_info = self._filter_cmd_output(array_info)['Array']
         for chunk in array_json_info['Chunk']:
             if 'deviceID' in chunk.keys():
@@ -779,12 +785,12 @@ class Arcconf(IPlugin):
                     "volume_raid_info(): Got logical drive %s entry, "
                     "but no physicaldrive entry" % volume.id)
 
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_VOLUME,
-                "Volume not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
 
-        return [raid_level, stripe_size, device_count, stripe_size,
-                full_stripe_size]
+        return [
+            raid_level, stripe_size, device_count, stripe_size,
+            full_stripe_size
+        ]
 
     @_handle_errors
     def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
@@ -824,12 +830,13 @@ class Arcconf(IPlugin):
                 raid_level = volume['raidLevel']
 
         for device in device_info:
-            if 'HardDrive'in device.keys():
+            if 'HardDrive' in device.keys():
                 for hard_drive in device['HardDrive']:
                     chunk_data = hard_drive['Chunk']
                     for chunk in chunk_data:
-                        if ('consumerArrayID' in chunk.keys()) and (
-                                chunk['consumerArrayID'] == array_id):
+                        if ('consumerArrayID'
+                                in chunk.keys()) and (chunk['consumerArrayID']
+                                                      == array_id):
                             device_id.append(
                                 str(hard_drive['serialNumber'].strip()))
 
@@ -864,13 +871,15 @@ class Arcconf(IPlugin):
                 raise LsmError(ErrorNumber.NO_STATE_CHANGE,
                                'Volume is already in Optimal state!')
             else:
-                self._arcconf_exec(['SETSTATE', ctrl_id, 'LOGICALDRIVE',
-                                    volume_id, 'OPTIMAL'], flag_force=True)
+                self._arcconf_exec([
+                    'SETSTATE', ctrl_id, 'LOGICALDRIVE', volume_id, 'OPTIMAL'
+                ],
+                                   flag_force=True)
         except ExecError:
-            volume_data = self._arcconf_exec(['GETCONFIGJSON', ctrl_id,
-                                              'LOGICALDRIVE', volume_id])
-            volume_json_data = self._filter_cmd_output(volume_data)[
-                'LogicalDrive']
+            volume_data = self._arcconf_exec(
+                ['GETCONFIGJSON', ctrl_id, 'LOGICALDRIVE', volume_id])
+            volume_json_data = self._filter_cmd_output(
+                volume_data)['LogicalDrive']
             volume_state = volume_json_data['state']
             if volume_state == LOGICAL_DEVICE_OFFLINE:
                 raise LsmError(ErrorNumber.NO_STATE_CHANGE,
@@ -902,8 +911,10 @@ class Arcconf(IPlugin):
         volume_id = str(volume_info[4])
 
         try:
-            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id,
-                                'TIME', '3600'], flag_force=True)
+            self._arcconf_exec([
+                'IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'TIME', '3600'
+            ],
+                               flag_force=True)
         except ExecError:
             raise LsmError(ErrorNumber.PLUGIN_BUG,
                            'Volume-ident-led-on failed unexpectedly')
@@ -930,8 +941,9 @@ class Arcconf(IPlugin):
         volume_id = str(volume_info[4])
 
         try:
-            self._arcconf_exec(['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id,
-                                'STOP'], flag_force=True)
+            self._arcconf_exec(
+                ['IDENTIFY', ctrl_id, 'LOGICALDRIVE', volume_id, 'STOP'],
+                flag_force=True)
         except ExecError:
             raise LsmError(ErrorNumber.NO_STATE_CHANGE,
                            'Looks like none of the LEDs are blinking.')

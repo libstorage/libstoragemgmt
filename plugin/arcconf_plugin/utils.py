@@ -23,9 +23,11 @@ def cmd_exec(cmds):
     Execute provided command and return the STDOUT as string.
     Raise ExecError if command return code is not zero
     """
-    cmd_popen = subprocess.Popen(
-        cmds, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        env={"PATH": os.getenv("PATH")}, universal_newlines=True)
+    cmd_popen = subprocess.Popen(cmds,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 env={"PATH": os.getenv("PATH")},
+                                 universal_newlines=True)
     str_stdout = "".join(list(cmd_popen.stdout)).strip()
     str_stderr = "".join(list(cmd_popen.stderr)).strip()
     errno = cmd_popen.wait()

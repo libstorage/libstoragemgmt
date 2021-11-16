@@ -18,15 +18,14 @@ import sys
 from datetime import datetime
 
 from lsm import (size_bytes_2_size_human, LsmError, ErrorNumber, Battery,
-                 System, Pool, Disk, Volume, AccessGroup,
-                 FileSystem, FsSnapshot, NfsExport, TargetPort, LocalDisk)
+                 System, Pool, Disk, Volume, AccessGroup, FileSystem,
+                 FsSnapshot, NfsExport, TargetPort, LocalDisk)
 
 try:
     from collections import OrderedDict
 except ImportError:
     # python 2.6 or earlier, use backport
     from ordereddict import OrderedDict
-
 
 BIT_MAP_STRING_SPLITTER = ','
 
@@ -66,8 +65,9 @@ def _enum_type_to_str(int_type, conv_dict):
 
 
 def _str_to_enum(type_str, conv_dict):
-    keys = [k for k, v in list(conv_dict.items())
-            if v.lower() == type_str.lower()]
+    keys = [
+        k for k, v in list(conv_dict.items()) if v.lower() == type_str.lower()
+    ]
     if len(keys) > 0:
         return keys[0]
     raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -331,8 +331,8 @@ def disk_link_speed_to_str(link_speed):
 
 class PlugData(object):
     def __init__(self, description, plugin_version):
-            self.desc = description
-            self.version = plugin_version
+        self.desc = description
+        self.version = plugin_version
 
 
 class VolumeRAIDInfo(object):
@@ -357,10 +357,11 @@ class VolumeRAIDInfo(object):
     }
 
     VOL_CREATE_RAID_TYPES_STR = [
-        'RAID0', 'RAID1', 'RAID5', 'RAID6', 'RAID10', 'RAID50', 'RAID60']
+        'RAID0', 'RAID1', 'RAID5', 'RAID6', 'RAID10', 'RAID50', 'RAID60'
+    ]
 
-    def __init__(self, vol_id, raid_type, strip_size, disk_count,
-                 min_io_size, opt_io_size):
+    def __init__(self, vol_id, raid_type, strip_size, disk_count, min_io_size,
+                 opt_io_size):
         self.vol_id = vol_id
         self.raid_type = raid_type
         self.strip_size = strip_size
@@ -393,8 +394,7 @@ class PoolRAIDInfo(object):
 
     @staticmethod
     def member_type_to_str(member_type):
-        return _enum_type_to_str(
-            member_type, PoolRAIDInfo._MEMBER_TYPE_MAP)
+        return _enum_type_to_str(member_type, PoolRAIDInfo._MEMBER_TYPE_MAP)
 
 
 class VcrCap(object):
@@ -478,32 +478,31 @@ class VolumeRAMCacheInfo(object):
 
     @staticmethod
     def phy_disk_cache_status_to_str(phy_disk_cache):
-        return _enum_type_to_str(
-            phy_disk_cache, VolumeRAMCacheInfo._PHY_DISK_CACHE_STATUS_MAP)
+        return _enum_type_to_str(phy_disk_cache,
+                                 VolumeRAMCacheInfo._PHY_DISK_CACHE_STATUS_MAP)
 
     @staticmethod
     def w_cache_policy_to_str(w_cache_p):
-        return _enum_type_to_str(
-            w_cache_p, VolumeRAMCacheInfo._W_CACHE_POLICY_MAP)
+        return _enum_type_to_str(w_cache_p,
+                                 VolumeRAMCacheInfo._W_CACHE_POLICY_MAP)
 
     @staticmethod
     def w_cache_status_to_str(w_cache_status):
-        return _enum_type_to_str(
-            w_cache_status, VolumeRAMCacheInfo._W_CACHE_STATUS_MAP)
+        return _enum_type_to_str(w_cache_status,
+                                 VolumeRAMCacheInfo._W_CACHE_STATUS_MAP)
 
     @staticmethod
     def r_cache_policy_to_str(r_cache_p):
-        return _enum_type_to_str(
-            r_cache_p, VolumeRAMCacheInfo._R_CACHE_POLICY_MAP)
+        return _enum_type_to_str(r_cache_p,
+                                 VolumeRAMCacheInfo._R_CACHE_POLICY_MAP)
 
     @staticmethod
     def r_cache_status_to_str(r_cache_status):
-        return _enum_type_to_str(
-            r_cache_status, VolumeRAMCacheInfo._R_CACHE_STATUS_MAP)
+        return _enum_type_to_str(r_cache_status,
+                                 VolumeRAMCacheInfo._R_CACHE_STATUS_MAP)
 
 
 class DisplayData(object):
-
     def __init__(self):
         pass
 
@@ -600,13 +599,11 @@ class DisplayData(object):
     VOL_HEADER['admin_state'] = 'Disabled'
     VOL_HEADER['pool_id'] = 'Pool ID'
     VOL_HEADER['system_id'] = 'System ID'
-    VOL_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
+    VOL_HEADER['sd_paths'] = 'Disk Paths'  # This is appended by cmdline.py
 
     VOL_COLUMN_SKIP_KEYS = ['block_size', 'num_of_blocks']
 
-    VOL_VALUE_CONV_ENUM = {
-        'admin_state': vol_admin_state_to_str
-    }
+    VOL_VALUE_CONV_ENUM = {'admin_state': vol_admin_state_to_str}
 
     VOL_VALUE_CONV_HUMAN = ['size_bytes', 'block_size']
 
@@ -628,7 +625,7 @@ class DisplayData(object):
     DISK_HEADER['status'] = 'Status'
     DISK_HEADER['system_id'] = 'System ID'
     DISK_HEADER['vpd83'] = 'SCSI VPD 0x83'
-    DISK_HEADER['sd_paths'] = 'Disk Paths'    # This is appended by cmdline.py
+    DISK_HEADER['sd_paths'] = 'Disk Paths'  # This is appended by cmdline.py
     DISK_HEADER['rpm'] = 'Revolutions Per Minute'
     DISK_HEADER['link_type'] = 'Link Type'
     DISK_HEADER['location'] = 'Location'
@@ -685,8 +682,7 @@ class DisplayData(object):
 
     FS_COLUMN_SKIP_KEYS = []
 
-    FS_VALUE_CONV_ENUM = {
-    }
+    FS_VALUE_CONV_ENUM = {}
 
     FS_VALUE_CONV_HUMAN = ['total_space', 'free_space']
 
@@ -705,9 +701,7 @@ class DisplayData(object):
 
     FS_SNAP_COLUMN_SKIP_KEYS = []
 
-    FS_SNAP_VALUE_CONV_ENUM = {
-        'ts': datetime.fromtimestamp
-    }
+    FS_SNAP_VALUE_CONV_ENUM = {'ts': datetime.fromtimestamp}
 
     FS_SNAP_VALUE_CONV_HUMAN = []
 
@@ -781,9 +775,10 @@ class DisplayData(object):
 
     VOL_RAID_INFO_VALUE_CONV_ENUM = {
         'raid_type': VolumeRAIDInfo.raid_type_to_str,
-        }
+    }
     VOL_RAID_INFO_VALUE_CONV_HUMAN = [
-        'strip_size', 'min_io_size', 'opt_io_size']
+        'strip_size', 'min_io_size', 'opt_io_size'
+    ]
 
     VALUE_CONVERT[VolumeRAIDInfo] = {
         'headers': VOL_RAID_INFO_HEADER,
@@ -803,7 +798,7 @@ class DisplayData(object):
     POOL_RAID_INFO_VALUE_CONV_ENUM = {
         'raid_type': VolumeRAIDInfo.raid_type_to_str,
         'member_type': PoolRAIDInfo.member_type_to_str,
-        }
+    }
     POOL_RAID_INFO_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[PoolRAIDInfo] = {
@@ -821,7 +816,8 @@ class DisplayData(object):
     VCR_CAP_COLUMN_SKIP_KEYS = []
 
     VCR_CAP_VALUE_CONV_ENUM = {
-        'raid_types': lambda i: [VolumeRAIDInfo.raid_type_to_str(x) for x in i]
+        'raid_types':
+        lambda i: [VolumeRAIDInfo.raid_type_to_str(x) for x in i]
     }
     VCR_CAP_VALUE_CONV_HUMAN = ['strip_sizes']
 
@@ -941,8 +937,12 @@ class DisplayData(object):
         return max_width
 
     @staticmethod
-    def _data_dict_gen(obj, flag_human, flag_enum, display_way,
-                       extra_properties=None, flag_dsp_all_data=False):
+    def _data_dict_gen(obj,
+                       flag_human,
+                       flag_enum,
+                       display_way,
+                       extra_properties=None,
+                       flag_dsp_all_data=False):
         data_dict = OrderedDict()
         value_convert = DisplayData.VALUE_CONVERT[type(obj)]
         headers = value_convert['headers']
@@ -968,16 +968,18 @@ class DisplayData(object):
 
         for key in display_keys:
             key_str = headers[key]
-            value = DisplayData._get_man_pro_value(
-                obj, key, value_conv_enum, value_conv_human, flag_human,
-                flag_enum)
+            value = DisplayData._get_man_pro_value(obj, key, value_conv_enum,
+                                                   value_conv_human,
+                                                   flag_human, flag_enum)
             data_dict[key_str] = value
 
         return data_dict
 
     @staticmethod
-    def display_data(objs, display_way=None,
-                     flag_human=True, flag_enum=False,
+    def display_data(objs,
+                     display_way=None,
+                     flag_human=True,
+                     flag_enum=False,
                      extra_properties=None,
                      splitter=None,
                      flag_with_header=True,
@@ -994,17 +996,18 @@ class DisplayData(object):
         data_dict_list = []
         if type(objs[0]) in list(DisplayData.VALUE_CONVERT.keys()):
             for obj in objs:
-                data_dict = DisplayData._data_dict_gen(
-                    obj, flag_human, flag_enum, display_way,
-                    extra_properties, flag_dsp_all_data)
+                data_dict = DisplayData._data_dict_gen(obj, flag_human,
+                                                       flag_enum, display_way,
+                                                       extra_properties,
+                                                       flag_dsp_all_data)
                 data_dict_list.extend([data_dict])
         else:
             return None
         if display_way == DisplayData.DISPLAY_WAY_SCRIPT:
             DisplayData.display_data_script_way(data_dict_list, splitter)
         elif display_way == DisplayData.DISPLAY_WAY_COLUMN:
-            DisplayData._display_data_column_way(
-                data_dict_list, splitter, flag_with_header)
+            DisplayData._display_data_column_way(data_dict_list, splitter,
+                                                 flag_with_header)
         return True
 
     @staticmethod
@@ -1029,14 +1032,11 @@ class DisplayData(object):
                 if cur_value_width > value_column_width:
                     value_column_width = cur_value_width
 
-        row_format = '%%-%ds%s%%-%ds' % (key_column_width,
-                                         splitter,
+        row_format = '%%-%ds%s%%-%ds' % (key_column_width, splitter,
                                          value_column_width)
-        sub_row_format = '%s%s%%-%ds' % (' ' * key_column_width,
-                                         splitter,
+        sub_row_format = '%s%s%%-%ds' % (' ' * key_column_width, splitter,
                                          value_column_width)
-        obj_splitter = '%s%s%s' % ('-' * key_column_width,
-                                   '-' * len(splitter),
+        obj_splitter = '%s%s%s' % ('-' * key_column_width, '-' * len(splitter),
                                    '-' * value_column_width)
 
         for data_dict in data_dict_list:

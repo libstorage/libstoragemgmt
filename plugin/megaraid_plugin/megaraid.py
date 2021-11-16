@@ -23,8 +23,8 @@ import tempfile
 import shutil
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
-                 Capabilities, LsmError, ErrorNumber, System, Client,
-                 Disk, VERSION, IPlugin, Pool, Volume, Battery, int_div)
+                 Capabilities, LsmError, ErrorNumber, System, Client, Disk,
+                 VERSION, IPlugin, Pool, Volume, Battery, int_div)
 
 from megaraid_plugin.utils import cmd_exec, ExecError
 
@@ -48,9 +48,8 @@ def _handle_errors(method):
         except ExecError as exec_error:
             raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
         except Exception as common_error:
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Got unexpected error %s" % common_error)
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unexpected error %s" % common_error)
 
     return _wrapper
 
@@ -129,13 +128,12 @@ def _mega_size_to_lsm(mega_size):
     re_regex = re.compile("^([0-9.]+) *([EPTGMK])B$")
     re_match = re_regex.match(mega_size)
     if re_match:
-        return size_human_2_size_bytes(
-            "%s%siB" % (re_match.group(1), re_match.group(2)))
+        return size_human_2_size_bytes("%s%siB" %
+                                       (re_match.group(1), re_match.group(2)))
 
     raise LsmError(
         ErrorNumber.PLUGIN_BUG,
-        "_mega_size_to_lsm(): Got unexpected LSI size string %s" %
-        mega_size)
+        "_mega_size_to_lsm(): Got unexpected LSI size string %s" % mega_size)
 
 
 _POOL_STATUS_MAP = {
@@ -187,8 +185,8 @@ _LSM_RAID_TYPE_CONV = {
 
 
 def _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info):
-    raid_type = _RAID_TYPE_MAP.get(
-        vd_basic_info['TYPE'], Volume.RAID_TYPE_UNKNOWN)
+    raid_type = _RAID_TYPE_MAP.get(vd_basic_info['TYPE'],
+                                   Volume.RAID_TYPE_UNKNOWN)
 
     # In LSI, four disks or more RAID1 is actually a RAID10.
     if raid_type == Volume.RAID_TYPE_RAID1 and \
@@ -202,9 +200,8 @@ def _lsm_raid_type_to_mega(lsm_raid_type):
     try:
         return _LSM_RAID_TYPE_CONV[lsm_raid_type]
     except KeyError:
-        raise LsmError(
-            ErrorNumber.NO_SUPPORT,
-            "RAID type %d not supported" % lsm_raid_type)
+        raise LsmError(ErrorNumber.NO_SUPPORT,
+                       "RAID type %d not supported" % lsm_raid_type)
 
 
 def _disk_rpm_of(disk_show_basic_dict):
@@ -288,14 +285,10 @@ def _mega_bbu_to_lsm(sys_id, bbu_show_all_output):
 
     battery_type = Battery.TYPE_CHEMICAL
     name = "LSI BBU: %s %s %s %s %s %s" % (
-        design_info['Manufacture Name'],
-        design_info['Device Name'],
-        design_info['Device Chemistry'],
-        design_info['Design Capacity'],
-        design_info['Design Voltage'],
-        design_info['Date of Manufacture'])
-    battery_id = "%s_BBU_%s" % (
-        sys_id, design_info['Serial Number'])
+        design_info['Manufacture Name'], design_info['Device Name'],
+        design_info['Device Chemistry'], design_info['Design Capacity'],
+        design_info['Design Voltage'], design_info['Date of Manufacture'])
+    battery_id = "%s_BBU_%s" % (sys_id, design_info['Serial Number'])
     status = _bbu_status_to_lsm(bbu_info['Battery State'])
     plugin_data = None
 
@@ -308,10 +301,9 @@ def _mega_cv_to_lsm(sys_id, cv_show_all_output):
 
     battery_type = Battery.TYPE_CAPACITOR
     battery_id = "%s_CV_%s" % (sys_id, design_info['Serial Number'])
-    name = "LSI CacheVault: %s %s %s" % (
-        design_info['Device Name'],
-        design_info['Design Capacity'],
-        design_info['Date of Manufacture'])
+    name = "LSI CacheVault: %s %s %s" % (design_info['Device Name'],
+                                         design_info['Design Capacity'],
+                                         design_info['Date of Manufacture'])
     status = _cv_status_to_lsm(cv_info['State'])
 
     plugin_data = None
@@ -331,12 +323,13 @@ class MegaRAID(IPlugin):
     _DEFAULT_BIN_PATHS = [
         "/opt/MegaRAID/storcli/storcli64", "/opt/MegaRAID/storcli/storcli",
         "/opt/MegaRAID/perccli/perccli64", "/opt/MegaRAID/perccli/perccli",
-        "/opt/hpe/storcli/storcli64"]
+        "/opt/hpe/storcli/storcli64"
+    ]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
 
     def __init__(self):
         self._storcli_bin = None
-        self._tmo_ms = 3000    # TODO(Gris Ge): Not implemented yet.
+        self._tmo_ms = 3000  # TODO(Gris Ge): Not implemented yet.
         self._tmp_dir = tempfile.mkdtemp()
 
     def __del__(self):
@@ -368,9 +361,10 @@ class MegaRAID(IPlugin):
                         return
                 except Exception:
                     pass
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Both storcli and perccli are installed, but none "
-                           "could find a valid MegaRAID card")
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Both storcli and perccli are installed, but none "
+                "could find a valid MegaRAID card")
 
         raise LsmError(
             ErrorNumber.INVALID_ARGUMENT,
@@ -421,9 +415,7 @@ class MegaRAID(IPlugin):
     def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
         if system.id not in list(s.id for s in cur_lsm_syss):
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.DISK_VPD83_GET)
@@ -482,8 +474,8 @@ class MegaRAID(IPlugin):
             return output
 
     def _ctrl_count(self):
-        ctrl_count = self._storcli_exec(
-            ["show", "ctrlcount"]).get("Controller Count")
+        ctrl_count = self._storcli_exec(["show",
+                                         "ctrlcount"]).get("Controller Count")
         if ctrl_count < 1:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_SYSTEM,
@@ -505,15 +497,15 @@ class MegaRAID(IPlugin):
                 if lsi_status_info[key_name] != 0 and \
                    lsi_status_info[key_name] != 'No' and \
                    lsi_status_info[key_name] != 'NA':
-                    status_info += " %s:%s" % (
-                        key_name, lsi_status_info[key_name])
+                    status_info += " %s:%s" % (key_name,
+                                               lsi_status_info[key_name])
 
         return status, status_info
 
     def _sys_id_of_ctrl_num(self, ctrl_num, ctrl_show_all_output=None):
         if ctrl_show_all_output is None:
-            return self._storcli_exec(
-                ["/c%d" % ctrl_num, "show"])['Serial Number']
+            return self._storcli_exec(["/c%d" % ctrl_num,
+                                       "show"])['Serial Number']
         else:
             return ctrl_show_all_output['Basics']['Serial Number']
 
@@ -528,8 +520,8 @@ class MegaRAID(IPlugin):
                 ctrl_show_all_output['Basics']['Model'],
                 ctrl_show_all_output['Bus']['Host Interface'],
                 ctrl_show_all_output['Basics']['PCI Address'])
-            (status, status_info) = self._lsm_status_of_ctrl(
-                ctrl_show_all_output)
+            (status,
+             status_info) = self._lsm_status_of_ctrl(ctrl_show_all_output)
             plugin_data = "/c%d" % ctrl_num
             # Since PCI slot sequence might change.
             # This string just stored for quick system verification.
@@ -548,13 +540,20 @@ class MegaRAID(IPlugin):
             # be excuted first.
 
             rc_lsm_syss.append(
-                System(sys_id, sys_name, status, status_info, plugin_data,
-                       _fw_version=fw_ver, _mode=mode))
+                System(sys_id,
+                       sys_name,
+                       status,
+                       status_info,
+                       plugin_data,
+                       _fw_version=fw_ver,
+                       _mode=mode))
 
         return rc_lsm_syss
 
     @_handle_errors
-    def disks(self, search_key=None, search_value=None,
+    def disks(self,
+              search_key=None,
+              search_value=None,
               flags=Client.FLAG_RSVD):
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
@@ -576,8 +575,8 @@ class MegaRAID(IPlugin):
 
             try:
                 disk_show_output.update(
-                    self._storcli_exec(
-                        ["/c%d/sall" % ctrl_num, "show", "all"]))
+                    self._storcli_exec(["/c%d/sall" % ctrl_num, "show",
+                                        "all"]))
             except (ExecError, TypeError, LsmError):
                 pass
 
@@ -588,8 +587,8 @@ class MegaRAID(IPlugin):
 
                 mega_disk_path = re_match.group(1)
                 # Assuming only 1 disk attached to each slot.
-                disk_show_basic_dict = disk_show_output[
-                    "Drive %s" % mega_disk_path][0]
+                disk_show_basic_dict = disk_show_output["Drive %s" %
+                                                        mega_disk_path][0]
                 disk_show_attr_dict = disk_show_output[drive_name][
                     'Drive %s Device attributes' % mega_disk_path]
                 disk_show_stat_dict = disk_show_output[drive_name][
@@ -604,11 +603,11 @@ class MegaRAID(IPlugin):
                 blk_size = size_human_2_size_bytes(
                     disk_show_basic_dict['SeSz'])
                 blk_count = _blk_count_of(disk_show_attr_dict['Coerced size'])
-                status = _disk_status_of(
-                    disk_show_basic_dict, disk_show_stat_dict)
+                status = _disk_status_of(disk_show_basic_dict,
+                                         disk_show_stat_dict)
 
-                plugin_data = "%s:%s" % (
-                    ctrl_num, disk_show_basic_dict['EID:Slt'])
+                plugin_data = "%s:%s" % (ctrl_num,
+                                         disk_show_basic_dict['EID:Slt'])
                 vpd83 = disk_show_attr_dict["WWN"].lower()
                 if vpd83 == 'na':
                     vpd83 = ''
@@ -616,10 +615,17 @@ class MegaRAID(IPlugin):
                 link_type = _disk_link_type_of(disk_show_basic_dict)
 
                 rc_lsm_disks.append(
-                    Disk(
-                        disk_id, disk_name, disk_type, blk_size, blk_count,
-                        status, sys_id, plugin_data, _vpd83=vpd83, _rpm=rpm,
-                        _link_type=link_type))
+                    Disk(disk_id,
+                         disk_name,
+                         disk_type,
+                         blk_size,
+                         blk_count,
+                         status,
+                         sys_id,
+                         plugin_data,
+                         _vpd83=vpd83,
+                         _rpm=rpm,
+                         _link_type=link_type))
 
         return search_property(rc_lsm_disks, search_key, search_value)
 
@@ -663,13 +669,13 @@ class MegaRAID(IPlugin):
 
         plugin_data = "/c%d/d%s" % (ctrl_num, dg_top['DG'])
 
-        return Pool(
-            pool_id, name, elem_type, unsupported_actions,
-            total_space, free_space, status, status_info,
-            sys_id, plugin_data)
+        return Pool(pool_id, name, elem_type, unsupported_actions, total_space,
+                    free_space, status, status_info, sys_id, plugin_data)
 
     @_handle_errors
-    def pools(self, search_key=None, search_value=None,
+    def pools(self,
+              search_key=None,
+              search_value=None,
               flags=Client.FLAG_RSVD):
         lsm_pools = []
         for ctrl_num in range(self._ctrl_count()):
@@ -699,9 +705,9 @@ class MegaRAID(IPlugin):
                 if dg_top['DG'] == '-':
                     continue
                 lsm_pools.append(
-                    self._dg_top_to_lsm_pool(
-                        dg_top, free_space_list, ctrl_num, dg_show_output,
-                        int(dg_top['DG']) in cc_dg_ids))
+                    self._dg_top_to_lsm_pool(dg_top, free_space_list, ctrl_num,
+                                             dg_show_output,
+                                             int(dg_top['DG']) in cc_dg_ids))
 
         return search_property(lsm_pools, search_key, search_value)
 
@@ -725,12 +731,13 @@ class MegaRAID(IPlugin):
             admin_state = Volume.ADMIN_STATE_DISABLED
         pool_id = _pool_id_of(dg_id, sys_id)
         plugin_data = vd_path
-        return Volume(
-            vol_id, name, vpd83, block_size, num_of_blocks, admin_state,
-            sys_id, pool_id, plugin_data)
+        return Volume(vol_id, name, vpd83, block_size, num_of_blocks,
+                      admin_state, sys_id, pool_id, plugin_data)
 
     @_handle_errors
-    def volumes(self, search_key=None, search_value=None,
+    def volumes(self,
+                search_key=None,
+                search_value=None,
                 flags=Client.FLAG_RSVD):
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
@@ -750,9 +757,9 @@ class MegaRAID(IPlugin):
                     vd_prop_info = vol_show_output['VD%d Properties' % vd_id]
 
                     lsm_vols.append(
-                        MegaRAID._vd_to_lsm_vol(
-                            vd_id, dg_id, sys_id, vd_basic_info,
-                            vd_pd_info_list, vd_prop_info, key_name))
+                        MegaRAID._vd_to_lsm_vol(vd_id, dg_id, sys_id,
+                                                vd_basic_info, vd_pd_info_list,
+                                                vd_prop_info, key_name))
 
         return search_property(lsm_vols, search_key, search_value)
 
@@ -771,9 +778,8 @@ class MegaRAID(IPlugin):
 
         raid_type = _mega_raid_type_to_lsm(vd_basic_info, vd_prop_info)
         strip_size = _mega_size_to_lsm(vd_prop_info['Strip Size'])
-        disk_count = (
-            int(vd_prop_info['Number of Drives Per Span']) *
-            int(vd_prop_info['Span Depth']))
+        disk_count = (int(vd_prop_info['Number of Drives Per Span']) *
+                      int(vd_prop_info['Span Depth']))
         if raid_type == Volume.RAID_TYPE_RAID0:
             strip_count = disk_count
         elif raid_type == Volume.RAID_TYPE_RAID1:
@@ -803,7 +809,8 @@ class MegaRAID(IPlugin):
 
         return [
             raid_type, strip_size, disk_count, strip_size,
-            strip_size * strip_count]
+            strip_size * strip_count
+        ]
 
     @_handle_errors
     def pool_member_info(self, pool, flags=Client.FLAG_RSVD):
@@ -815,15 +822,13 @@ class MegaRAID(IPlugin):
         except ExecError as exec_error:
             try:
                 json_output = json.loads(exec_error.stdout)
-                detail_error = json_output[
-                    'Controllers'][0]['Command Status']['Detailed Status']
+                detail_error = json_output['Controllers'][0]['Command Status'][
+                    'Detailed Status']
             except Exception:
                 raise exec_error
 
             if detail_error and detail_error[0]['Status'] == 'Not found':
-                raise LsmError(
-                    ErrorNumber.NOT_FOUND_POOL,
-                    "Pool not found")
+                raise LsmError(ErrorNumber.NOT_FOUND_POOL, "Pool not found")
             raise
 
         ctrl_num = lsi_dg_path.split('/')[1][1:]
@@ -848,8 +853,8 @@ class MegaRAID(IPlugin):
             if dg_top['Arr'] == '-' and \
                dg_top['Row'] == '-' and \
                int(dg_top['DG']) == int(dg_num):
-                raid_type = _RAID_TYPE_MAP.get(
-                    dg_top['Type'], Volume.RAID_TYPE_UNKNOWN)
+                raid_type = _RAID_TYPE_MAP.get(dg_top['Type'],
+                                               Volume.RAID_TYPE_UNKNOWN)
                 break
 
         if raid_type == Volume.RAID_TYPE_RAID1 and len(disk_ids) >= 4:
@@ -858,8 +863,8 @@ class MegaRAID(IPlugin):
         return raid_type, Pool.MEMBER_TYPE_DISK, disk_ids
 
     def _vcr_cap_get(self, mega_sys_path):
-        cap_output = self._storcli_exec(
-            [mega_sys_path, "show", "all"])['Capabilities']
+        cap_output = self._storcli_exec([mega_sys_path, "show",
+                                         "all"])['Capabilities']
 
         mega_raid_types = \
             cap_output['RAID Level Supported'].replace(', \n', '').split(', ')
@@ -867,19 +872,15 @@ class MegaRAID(IPlugin):
         supported_raid_types = []
         for cur_mega_raid_type in list(_RAID_TYPE_MAP.keys()):
             if cur_mega_raid_type in mega_raid_types:
-                supported_raid_types.append(
-                    _RAID_TYPE_MAP[cur_mega_raid_type])
+                supported_raid_types.append(_RAID_TYPE_MAP[cur_mega_raid_type])
 
         supported_raid_types = sorted(list(set(supported_raid_types)))
 
         min_strip_size = _mega_size_to_lsm(cap_output['Min Strip Size'])
         max_strip_size = _mega_size_to_lsm(cap_output['Max Strip Size'])
 
-        supported_strip_sizes = list(
-            min_strip_size * (2 ** i)
-            for i in range(
-                0, int(math.log(int_div(max_strip_size, min_strip_size), 2)
-                       + 1)))
+        supported_strip_sizes = list(min_strip_size * (2**i) for i in range(
+            0, int(math.log(int_div(max_strip_size, min_strip_size), 2) + 1)))
 
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         # The math above is to generate a list like:
@@ -894,15 +895,17 @@ class MegaRAID(IPlugin):
         """
         cur_lsm_syss = list(s for s in self.systems() if s.id == system.id)
         if len(cur_lsm_syss) != 1:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
 
         lsm_sys = cur_lsm_syss[0]
         return self._vcr_cap_get(lsm_sys.plugin_data)
 
     @_handle_errors
-    def volume_raid_create(self, name, raid_type, disks, strip_size,
+    def volume_raid_create(self,
+                           name,
+                           raid_type,
+                           disks,
+                           strip_size,
                            flags=Client.FLAG_RSVD):
         """
         Work flow:
@@ -956,8 +959,9 @@ class MegaRAID(IPlugin):
             drives_str = "drives=%s:%s" % (enclosure_str, ','.join(slot_nums))
 
         cmds = [
-            "/c%s" % ctrl_num, "add", "vd", mega_raid_type,
-            'size=all', "name=%s" % name, drives_str]
+            "/c%s" % ctrl_num, "add", "vd", mega_raid_type, 'size=all',
+            "name=%s" % name, drives_str
+        ]
 
         if raid_type == Volume.RAID_TYPE_RAID10 or \
            raid_type == Volume.RAID_TYPE_RAID50 or \
@@ -982,15 +986,13 @@ class MegaRAID(IPlugin):
                 self._vcr_cap_get("/c%s" % ctrl_num)
 
             if raid_type not in supported_raid_types:
-                raise LsmError(
-                    ErrorNumber.NO_SUPPORT,
-                    "Provided 'raid_type' is not supported")
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Provided 'raid_type' is not supported")
 
             if strip_size != Volume.VCR_STRIP_SIZE_DEFAULT and \
                strip_size not in supported_strip_sizes:
-                raise LsmError(
-                    ErrorNumber.NO_SUPPORT,
-                    "Provided 'strip_size' is not supported")
+                raise LsmError(ErrorNumber.NO_SUPPORT,
+                               "Provided 'strip_size' is not supported")
 
             raise
 
@@ -1019,7 +1021,9 @@ class MegaRAID(IPlugin):
         return lsm_vols[0]
 
     @_handle_errors
-    def batteries(self, search_key=None, search_value=None,
+    def batteries(self,
+                  search_key=None,
+                  search_value=None,
                   flags=Client.FLAG_RSVD):
         """
         Depending on these commands:
@@ -1072,8 +1076,8 @@ class MegaRAID(IPlugin):
         sys_all_output = self._storcli_exec(
             ["/%s" % vd_path.split('/')[1], "show", "all"])
 
-        ram_size = _mega_size_to_lsm(
-            sys_all_output['HwCfg'].get('On Board Memory Size', '0 KB'))
+        ram_size = _mega_size_to_lsm(sys_all_output['HwCfg'].get(
+            'On Board Memory Size', '0 KB'))
         if ram_size > 0:
             flag_has_ram = True
 
@@ -1107,8 +1111,7 @@ class MegaRAID(IPlugin):
             write_cache_policy = Volume.WRITE_CACHE_POLICY_WRITE_BACK
         else:
             raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Unknown I/O type %s for volume %s" %
+                ErrorNumber.PLUGIN_BUG, "Unknown I/O type %s for volume %s" %
                 (lsi_cache_setting, vd_path))
 
         if flag_has_ram:
@@ -1134,11 +1137,15 @@ class MegaRAID(IPlugin):
                 "Unknown disk cache policy '%s' for volume %s" %
                 (lsi_disk_cache_setting, vd_path))
 
-        return [write_cache_policy, write_cache_status,
-                read_cache_policy, read_cache_status, phy_disk_cache]
+        return [
+            write_cache_policy, write_cache_status, read_cache_policy,
+            read_cache_status, phy_disk_cache
+        ]
 
     @_handle_errors
-    def volume_physical_disk_cache_update(self, volume, pdc,
+    def volume_physical_disk_cache_update(self,
+                                          volume,
+                                          pdc,
                                           flags=Client.FLAG_RSVD):
         """
         Depending on "storcli /c0/vX set pdcache=<on|off>" command.
@@ -1149,8 +1156,7 @@ class MegaRAID(IPlugin):
         elif pdc == Volume.PHYSICAL_DISK_CACHE_DISABLED:
             cmd.append("pdcache=off")
         else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Got unknown pdc: %d" % pdc)
+            raise LsmError(ErrorNumber.PLUGIN_BUG, "Got unknown pdc: %d" % pdc)
         try:
             self._storcli_exec(cmd)
             # On SSD disk, the command will return 0 for failure, only
@@ -1165,7 +1171,9 @@ class MegaRAID(IPlugin):
             raise
 
     @_handle_errors
-    def volume_write_cache_policy_update(self, volume, wcp,
+    def volume_write_cache_policy_update(self,
+                                         volume,
+                                         wcp,
                                          flags=Client.FLAG_RSVD):
         """
         Depending on "storcli /c0/vX set wrcache=<wt|wb|awb>" command.
@@ -1193,20 +1201,22 @@ class MegaRAID(IPlugin):
                 self._storcli_exec([vd_path, "set", "iopolicy=Direct"])
             cmd.append("wrcache=wt")
         else:
-            raise LsmError(ErrorNumber.PLUGIN_BUG,
-                           "Got unknown wcp: %d" % wcp)
+            raise LsmError(ErrorNumber.PLUGIN_BUG, "Got unknown wcp: %d" % wcp)
         self._storcli_exec(cmd)
 
     @_handle_errors
-    def volume_read_cache_policy_update(self, volume, rcp,
+    def volume_read_cache_policy_update(self,
+                                        volume,
+                                        rcp,
                                         flags=Client.FLAG_RSVD):
         """
         storcli always enable read cache and no way to change it
         """
-        raise LsmError(ErrorNumber.NO_SUPPORT,
-                       "MegaRAID always enable read cache and refused to "
-                       "change that. You can change read ahead cache "
-                       "setting via storcli/perccli")
+        raise LsmError(
+            ErrorNumber.NO_SUPPORT,
+            "MegaRAID always enable read cache and refused to "
+            "change that. You can change read ahead cache "
+            "setting via storcli/perccli")
 
     @_handle_errors
     def volume_delete(self, volume, flags=Client.FLAG_RSVD):
@@ -1216,9 +1226,7 @@ class MegaRAID(IPlugin):
         """
         lsm_vols = self.volumes(search_key='id', search_value=volume.id)
         if len(lsm_vols) == 0:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_VOLUME,
-                "Volume not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")
 
         cmd = [lsm_vols[0].plugin_data, 'del', 'force']
         self._storcli_exec(cmd)

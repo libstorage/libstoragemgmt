@@ -22,7 +22,8 @@ def get_cim_rps(c):
     for n in INTEROP_NAMESPACES:
         try:
             cim_rps = c.EnumerateInstances('CIM_RegisteredProfile',
-                                           namespace=n, localonly=False)
+                                           namespace=n,
+                                           localonly=False)
         except CIMError as e:
             if e[0] == pywbem.CIM_ERR_NOT_SUPPORTED or \
                e[0] == pywbem.CIM_ERR_INVALID_NAMESPACE or \
@@ -45,15 +46,15 @@ def systems(url, username, password):
 
     try:
         try:
-            conn = pywbem.WBEMConnection(
-                url, (username, password), DEFAULT_NAMESPACE,
-                no_verification=True)
+            conn = pywbem.WBEMConnection(url, (username, password),
+                                         DEFAULT_NAMESPACE,
+                                         no_verification=True)
         except Exception as ei:
             # Some versions of pywbem don't support the parameter
             # 'no_verification'
             if 'no_verification' in str(ei):
-                conn = pywbem.WBEMConnection(
-                    url, (username, password), DEFAULT_NAMESPACE)
+                conn = pywbem.WBEMConnection(url, (username, password),
+                                             DEFAULT_NAMESPACE)
             else:
                 raise
 
@@ -62,7 +63,8 @@ def systems(url, username, password):
 
             if rps:
                 cim_systems = conn.Associators(
-                    rps.path, ResultClass='CIM_ComputerSystem',
+                    rps.path,
+                    ResultClass='CIM_ComputerSystem',
                     AssocClass='CIM_ElementConformsToProfile')
                 if len(cim_systems):
                     print('Found %d system(s)' % (len(cim_systems)))

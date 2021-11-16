@@ -108,42 +108,23 @@ def get_result(r, method):
 def to_html(results):
     PREAMBLE_FILE = os.getenv('LSM_PREAMBLE_FILE', "")
     preamble = ""
-    methods = ['capabilities',
-               'systems', 'plugin_info', 'pools', 'job_status', 'job_free',
-               'iscsi_chap_auth',
-               'volumes', 'volume_create', 'volume_delete', 'volume_resize',
-               'volume_replicate', 'volume_replicate_range_block_size',
-               'volume_replicate_range', 'volume_enable', 'volume_disable',
-               'disks', 'target_ports',
-               'volume_mask',
-               'volume_unmask',
-               'volume_child_dependency',
-               'volume_child_dependency_rm',
-               'access_groups',
-               'access_groups_granted_to_volume',
-               'access_group_create',
-               'access_group_delete',
-               'volumes_accessible_by_access_group',
-               'access_groups_granted_to_volume',
-               'access_group_initiator_add',
-               'access_group_initiator_delete',
-               'fs',
-               'fs_create',
-               'fs_delete',
-               'fs_resize',
-               'fs_clone',
-               'fs_file_clone',
-               'fs_snapshots',
-               'fs_snapshot_create',
-               'fs_snapshot_delete',
-               'fs_snapshot_restore',
-               'fs_child_dependency',
-               'fs_child_dependency_rm',
-               'export_auth',
-               'exports',
-               'export_fs',
-               'export_remove'
-               ]
+    methods = [
+        'capabilities', 'systems', 'plugin_info', 'pools', 'job_status',
+        'job_free', 'iscsi_chap_auth', 'volumes', 'volume_create',
+        'volume_delete', 'volume_resize', 'volume_replicate',
+        'volume_replicate_range_block_size', 'volume_replicate_range',
+        'volume_enable', 'volume_disable', 'disks', 'target_ports',
+        'volume_mask', 'volume_unmask', 'volume_child_dependency',
+        'volume_child_dependency_rm', 'access_groups',
+        'access_groups_granted_to_volume', 'access_group_create',
+        'access_group_delete', 'volumes_accessible_by_access_group',
+        'access_groups_granted_to_volume', 'access_group_initiator_add',
+        'access_group_initiator_delete', 'fs', 'fs_create', 'fs_delete',
+        'fs_resize', 'fs_clone', 'fs_file_clone', 'fs_snapshots',
+        'fs_snapshot_create', 'fs_snapshot_delete', 'fs_snapshot_restore',
+        'fs_child_dependency', 'fs_child_dependency_rm', 'export_auth',
+        'exports', 'export_fs', 'export_remove'
+    ]
 
     ch = []
     row_data = []
@@ -182,23 +163,25 @@ def to_html(results):
 
     # Build HTML
     text = '<!DOCTYPE html>'
-    text += str(html(
-                head(link(rel="stylesheet", type="text/css",
-                          href="../../test.css"),
-                     title("libStorageMgmt test results"), ),
-                body(
-                    HTML(h1("%s Results generated @ %s") %
-                         (preamble, time.strftime("%c"))),
-                    div(table(_table_header(ch), _table_body(row_data)),
-                        _class="angled_table"),
-                    div(pre(
-                        "                  Legend\n"
+    text += str(
+        html(
+            head(
+                link(rel="stylesheet", type="text/css", href="../../test.css"),
+                title("libStorageMgmt test results"),
+            ),
+            body(
+                HTML(
+                    h1("%s Results generated @ %s") %
+                    (preamble, time.strftime("%c"))),
+                div(table(_table_header(ch), _table_body(row_data)),
+                    _class="angled_table"),
+                div(
+                    pre("                  Legend\n"
                         "                  P = Pass (Method called and returned without error)\n"
                         "                  F = Fail (Method call returned an error)\n"
                         "                  U = Unsupported or unable to test due to other errors\n"
                         "                  * = Unable to connect to array or provider totally unsupported\n"
-                        "                  + = hyper link to error log")))
-                ))
+                        "                  + = hyper link to error log")))))
 
     return bs(text).prettify()
 

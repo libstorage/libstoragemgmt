@@ -20,12 +20,12 @@ import six
 from lsm import LsmError, ErrorNumber
 
 from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
-                       _local_disk_health_status_get,
-                       _local_disk_rpm_get, _local_disk_list,
-                       _local_disk_link_type_get, _local_disk_ident_led_on,
-                       _local_disk_ident_led_off, _local_disk_fault_led_on,
-                       _local_disk_fault_led_off, _local_disk_serial_num_get,
-                       _local_disk_led_status_get, _local_disk_link_speed_get)
+                       _local_disk_health_status_get, _local_disk_rpm_get,
+                       _local_disk_list, _local_disk_link_type_get,
+                       _local_disk_ident_led_on, _local_disk_ident_led_off,
+                       _local_disk_fault_led_on, _local_disk_fault_led_off,
+                       _local_disk_serial_num_get, _local_disk_led_status_get,
+                       _local_disk_link_speed_get)
 
 
 def _use_c_lib_function(func_ref, arg):
@@ -36,7 +36,6 @@ def _use_c_lib_function(func_ref, arg):
 
 
 class LocalDisk(object):
-
     @staticmethod
     def vpd83_search(vpd83):
         """
