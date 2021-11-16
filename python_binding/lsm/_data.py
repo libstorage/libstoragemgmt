@@ -38,7 +38,6 @@ class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
     """
-
     def default(self, my_class):
         if not isinstance(my_class, IData):
             raise ValueError('incorrect class type:' + str(type(my_class)))
@@ -50,7 +49,6 @@ class DataDecoder(json.JSONDecoder):
     """
     Custom json decoder for objects derived from ILsmData
     """
-
     @staticmethod
     def __process_dict(d):
         """
@@ -102,7 +100,6 @@ class IData(with_metaclass(_ABCMeta, object)):
     Base class functionality of serializable
     classes.
     """
-
     def _to_dict(self):
         """
         Represent the class as a dictionary
@@ -168,23 +165,23 @@ class Disk(IData):
 
     TYPE_UNKNOWN = 0
     TYPE_OTHER = 1
-    TYPE_ATA = 3     # IDE disk which is seldomly used.
+    TYPE_ATA = 3  # IDE disk which is seldomly used.
     TYPE_SATA = 4
     TYPE_SAS = 5
     TYPE_FC = 6
-    TYPE_SOP = 7     # SCSI over PCIe(SSD)
+    TYPE_SOP = 7  # SCSI over PCIe(SSD)
     TYPE_SCSI = 8
-    TYPE_LUN = 9   # Remote LUN was treated as a disk.
+    TYPE_LUN = 9  # Remote LUN was treated as a disk.
 
     # Due to complexity of disk types, we are defining these beside DMTF
     # standards:
-    TYPE_NL_SAS = 51    # Near-Line SAS==SATA disk + SAS port.
+    TYPE_NL_SAS = 51  # Near-Line SAS==SATA disk + SAS port.
 
     # in DMTF CIM 2.34.0+ CIM_DiskDrive['DiskType'], they also defined
     # SSD and HYBRID disk type. We use it as fallback.
-    TYPE_HDD = 52    # Normal HDD
-    TYPE_SSD = 53    # Solid State Drive
-    TYPE_HYBRID = 54    # uses a combination of HDD and SSD
+    TYPE_HDD = 52  # Normal HDD
+    TYPE_SSD = 53  # Solid State Drive
+    TYPE_HYBRID = 54  # uses a combination of HDD and SSD
 
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
@@ -247,9 +244,18 @@ class Disk(IData):
     HEALTH_STATUS_WARN = 1
     HEALTH_STATUS_GOOD = 2
 
-    def __init__(self, _id, _name, _disk_type, _block_size, _num_of_blocks,
-                 _status, _system_id, _plugin_data=None, _vpd83='',
-                 _location='', _rpm=RPM_NO_SUPPORT,
+    def __init__(self,
+                 _id,
+                 _name,
+                 _disk_type,
+                 _block_size,
+                 _num_of_blocks,
+                 _status,
+                 _system_id,
+                 _plugin_data=None,
+                 _vpd83='',
+                 _location='',
+                 _rpm=RPM_NO_SUPPORT,
                  _link_type=LINK_TYPE_NO_SUPPORT):
         self._id = _id
         self._name = _name
@@ -260,10 +266,10 @@ class Disk(IData):
         self._system_id = _system_id
         self._plugin_data = _plugin_data
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                           "expecting 32 or 16 lower case hex characters" %
-                           _vpd83)
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                "expecting 32 or 16 lower case hex characters" % _vpd83)
         self._vpd83 = _vpd83
         self._location = _location
         self._rpm = _rpm
@@ -297,9 +303,10 @@ class Disk(IData):
         String. Disk location in storage topology. New in version 1.3.
         """
         if self._location == '':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.location property is not supported by this "
-                           "plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.location property is not supported by this "
+                "plugin yet")
         return self._location
 
     @property
@@ -353,9 +360,10 @@ class Disk(IData):
                 PCI-E, e.g. NVMe
         """
         if self._link_type == Disk.LINK_TYPE_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Disk.link_type is not supported by this plugin "
-                           "yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "Disk.link_type is not supported by this plugin "
+                "yet")
         return self._link_type
 
     def __str__(self):
@@ -462,21 +470,29 @@ class Volume(IData):
     PHYSICAL_DISK_CACHE_DISABLED = 3
     PHYSICAL_DISK_CACHE_USE_DISK_SETTING = 4
 
-    def __init__(self, _id, _name, _vpd83, _block_size, _num_of_blocks,
-                 _admin_state, _system_id, _pool_id, _plugin_data=None):
-        self._id = _id                        # Identifier
-        self._name = _name                    # Human recognisable name
+    def __init__(self,
+                 _id,
+                 _name,
+                 _vpd83,
+                 _block_size,
+                 _num_of_blocks,
+                 _admin_state,
+                 _system_id,
+                 _pool_id,
+                 _plugin_data=None):
+        self._id = _id  # Identifier
+        self._name = _name  # Human recognisable name
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
-            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                           "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                           "expecting 32 or 16 lower case hex characters" %
-                           _vpd83)
-        self._vpd83 = _vpd83                  # SCSI page 83 unique ID
-        self._block_size = _block_size        # Block size
+            raise LsmError(
+                ErrorNumber.INVALID_ARGUMENT,
+                "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
+                "expecting 32 or 16 lower case hex characters" % _vpd83)
+        self._vpd83 = _vpd83  # SCSI page 83 unique ID
+        self._block_size = _block_size  # Block size
         self._num_of_blocks = _num_of_blocks  # Number of blocks
-        self._admin_state = _admin_state      # enable or disabled by admin
-        self._system_id = _system_id          # System id this volume belongs
-        self._pool_id = _pool_id              # Pool id this volume belongs
+        self._admin_state = _admin_state  # enable or disabled by admin
+        self._system_id = _system_id  # System id this volume belongs
+        self._pool_id = _pool_id  # Pool id this volume belongs
         self._plugin_data = _plugin_data
 
     @property
@@ -520,8 +536,15 @@ class System(IData):
     READ_CACHE_PCT_NO_SUPPORT = -2
     READ_CACHE_PCT_UNKNOWN = -1
 
-    def __init__(self, _id, _name, _status, _status_info, _plugin_data=None,
-                 _fw_version='', _mode=None, _read_cache_pct=None):
+    def __init__(self,
+                 _id,
+                 _name,
+                 _status,
+                 _status_info,
+                 _plugin_data=None,
+                 _fw_version='',
+                 _mode=None,
+                 _read_cache_pct=None):
         self._id = _id
         self._name = _name
         self._status = _status
@@ -545,9 +568,10 @@ class System(IData):
             "Package: 23.32.0-0009, FW: 3.440.05-3712"
         """
         if self._fw_version == '':
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "System.fw_version() is not supported by this "
-                           "plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "System.fw_version() is not supported by this "
+                "plugin yet")
         return self._fw_version
 
     @property
@@ -580,9 +604,10 @@ class System(IData):
                 then be 100 - read_cache_pct
         """
         if self._read_cache_pct == System.READ_CACHE_PCT_NO_SUPPORT:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "System.read_cache_pct is not supported by this "
-                           "plugin yet")
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "System.read_cache_pct is not supported by this "
+                "plugin yet")
         return self._read_cache_pct
 
 
@@ -616,7 +641,7 @@ class Pool(IData):
     ELEMENT_TYPE_DELTA = 1 << 4
     ELEMENT_TYPE_VOLUME_FULL = 1 << 5
     ELEMENT_TYPE_VOLUME_THIN = 1 << 6
-    ELEMENT_TYPE_SYS_RESERVED = 1 << 10     # Reserved for system use
+    ELEMENT_TYPE_SYS_RESERVED = 1 << 10  # Reserved for system use
 
     # Unsupported actions, what pool cannot be used for
     UNSUPPORTED_VOLUME_GROW = 1 << 0
@@ -639,22 +664,30 @@ class Pool(IData):
     MEMBER_TYPE_DISK = 2
     MEMBER_TYPE_POOL = 3
 
-    def __init__(self, _id, _name, _element_type, _unsupported_actions,
-                 _total_space, _free_space,
-                 _status, _status_info, _system_id, _plugin_data=None):
-        self._id = _id                      # Identifier
-        self._name = _name                  # Human recognisable name
+    def __init__(self,
+                 _id,
+                 _name,
+                 _element_type,
+                 _unsupported_actions,
+                 _total_space,
+                 _free_space,
+                 _status,
+                 _status_info,
+                 _system_id,
+                 _plugin_data=None):
+        self._id = _id  # Identifier
+        self._name = _name  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
 
         # What pool cannot be used for
         self._unsupported_actions = _unsupported_actions
 
-        self._total_space = _total_space    # Total size
-        self._free_space = _free_space      # Free space available
-        self._status = _status              # Status of pool.
-        self._status_info = _status_info    # Additional status text of pool
-        self._system_id = _system_id        # System id this pool belongs
-        self._plugin_data = _plugin_data    # Plugin private data
+        self._total_space = _total_space  # Total size
+        self._free_space = _free_space  # Free space available
+        self._status = _status  # Status of pool.
+        self._status_info = _status_info  # Additional status text of pool
+        self._system_id = _system_id  # System id this pool belongs
+        self._plugin_data = _plugin_data  # Plugin private data
 
 
 @default_property('id', doc="Unique identifier")
@@ -667,8 +700,14 @@ class Pool(IData):
 class FileSystem(IData):
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
-    def __init__(self, _id, _name, _total_space, _free_space, _pool_id,
-                 _system_id, _plugin_data=None):
+    def __init__(self,
+                 _id,
+                 _name,
+                 _total_space,
+                 _free_space,
+                 _pool_id,
+                 _system_id,
+                 _plugin_data=None):
         self._id = _id
         self._name = _name
         self._total_space = _total_space
@@ -683,7 +722,6 @@ class FileSystem(IData):
 @default_property('ts', doc="Time stamp the snapshot was created")
 @default_property("plugin_data", doc="Private plugin data")
 class FsSnapshot(IData):
-
     def __init__(self, _id, _name, _ts, _plugin_data=None):
         self._id = _id
         self._name = _name
@@ -707,21 +745,31 @@ class NfsExport(IData):
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = -2
 
-    def __init__(self, _id, _fs_id, _export_path, _auth, _root, _rw, _ro,
-                 _anonuid, _anongid, _options, _plugin_data=None):
+    def __init__(self,
+                 _id,
+                 _fs_id,
+                 _export_path,
+                 _auth,
+                 _root,
+                 _rw,
+                 _ro,
+                 _anonuid,
+                 _anongid,
+                 _options,
+                 _plugin_data=None):
         assert (_fs_id is not None)
         assert (_export_path is not None)
 
         self._id = _id
-        self._fs_id = _fs_id          # File system exported
-        self._export_path = _export_path     # Export path
-        self._auth = _auth            # Authentication type
-        self._root = _root            # List of hosts with no_root_squash
-        self._rw = _rw                # List of hosts with read/write
-        self._ro = _ro                # List of hosts with read/only
-        self._anonuid = _anonuid      # uid for anonymous user id
-        self._anongid = _anongid      # gid for anonymous group id
-        self._options = _options      # NFS options
+        self._fs_id = _fs_id  # File system exported
+        self._export_path = _export_path  # Export path
+        self._auth = _auth  # Authentication type
+        self._root = _root  # List of hosts with no_root_squash
+        self._rw = _rw  # List of hosts with read/write
+        self._ro = _ro  # List of hosts with read/only
+        self._anonuid = _anonuid  # uid for anonymous user id
+        self._anongid = _anongid  # gid for anonymous group id
+        self._options = _options  # NFS options
         self._plugin_data = _plugin_data
 
 
@@ -750,15 +798,20 @@ class AccessGroup(IData):
     INIT_TYPE_ISCSI_IQN = 5
     INIT_TYPE_ISCSI_WWPN_MIXED = 7
 
-    def __init__(self, _id, _name, _init_ids, _init_type, _system_id,
+    def __init__(self,
+                 _id,
+                 _name,
+                 _init_ids,
+                 _init_type,
+                 _system_id,
                  _plugin_data=None):
         self._id = _id
-        self._name = _name                # AccessGroup name
+        self._name = _name  # AccessGroup name
         # A list of Initiator ID strings.
         self._init_ids = AccessGroup._standardize_init_list(_init_ids)
 
         self._init_type = _init_type
-        self._system_id = _system_id      # System id this group belongs
+        self._system_id = _system_id  # System id this group belongs
         self._plugin_data = _plugin_data
 
     @staticmethod
@@ -774,7 +827,8 @@ class AccessGroup(IData):
                                "Invalid initiator ID %s" % i)
         return rc
 
-    _regex_wwpn = re.compile(r"""
+    _regex_wwpn = re.compile(
+        r"""
         ^(0x|0X)?([0-9A-Fa-f]{2})
         (([\.:\-])?[0-9A-Fa-f]{2}){7}$
         """, re.X)
@@ -863,9 +917,15 @@ class TargetPort(IData):
     TYPE_FCOE = 3
     TYPE_ISCSI = 4
 
-    def __init__(self, _id, _port_type, _service_address,
-                 _network_address, _physical_address, _physical_name,
-                 _system_id, _plugin_data=None):
+    def __init__(self,
+                 _id,
+                 _port_type,
+                 _service_address,
+                 _network_address,
+                 _physical_address,
+                 _physical_name,
+                 _system_id,
+                 _plugin_data=None):
         self._id = _id
         self._port_type = _port_type
         self._service_address = _service_address
@@ -901,9 +961,9 @@ class Capabilities(IData):
     UNSUPPORTED = 0
     SUPPORTED = 1
 
-    _NUM = 512              # Indicate the maximum capability integer
+    _NUM = 512  # Indicate the maximum capability integer
 
-    _CAP_NUM_BEGIN = 20     # Indicate the first capability integer
+    _CAP_NUM_BEGIN = 20  # Indicate the first capability integer
 
     # Block operations
     VOLUMES = 20
@@ -1011,8 +1071,10 @@ class Capabilities(IData):
     DISK_VPD83_GET = 223
 
     def _to_dict(self):
-        return {'class': self.__class__.__name__,
-                'cap': ''.join(['%02x' % b for b in self._cap])}
+        return {
+            'class': self.__class__.__name__,
+            'cap': ''.join(['%02x' % b for b in self._cap])
+        }
 
     def __init__(self, _cap=None):
         if _cap is not None:
@@ -1090,7 +1152,12 @@ class Battery(IData):
     STATUS_DEGRADED = 1 << 6
     STATUS_ERROR = 1 << 7
 
-    def __init__(self, _id, _name, _type, _status, _system_id,
+    def __init__(self,
+                 _id,
+                 _name,
+                 _type,
+                 _status,
+                 _system_id,
                  _plugin_data=None):
         self._id = _id
         self._name = _name

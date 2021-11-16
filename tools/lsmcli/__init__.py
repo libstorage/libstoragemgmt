@@ -13,6 +13,6 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 
 try:
-	from .cmdline import cmd_line_wrapper
+    from .cmdline import cmd_line_wrapper
 except ImportError:
-	from cmdline import cmd_line_wrapper
+    from cmdline import cmd_line_wrapper

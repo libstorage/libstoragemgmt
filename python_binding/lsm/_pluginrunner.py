@@ -25,6 +25,7 @@ import errno
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
 
+
 def search_property(lsm_objs, search_key, search_value):
     """
     This method does not check whether lsm_obj contain requested property.
@@ -41,7 +42,6 @@ class PluginRunner(object):
     Plug-in side common code which uses the passed in plugin to do meaningful
     work.
     """
-
     @staticmethod
     def _is_number(val):
         """
@@ -106,8 +106,8 @@ class PluginRunner(object):
                         if params is None:
                             result = getattr(self.plugin, method)()
                         else:
-                            result = getattr(self.plugin, method)(
-                                **msg['params'])
+                            result = getattr(self.plugin,
+                                             method)(**msg['params'])
                     else:
                         raise LsmError(ErrorNumber.NO_SUPPORT,
                                        "Unsupported operation")

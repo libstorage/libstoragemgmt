@@ -21,11 +21,10 @@ import os
 import time
 import sqlite3
 
-
 from lsm import (size_human_2_size_bytes)
 from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
-                 FsSnapshot, NfsExport, md5, LsmError, TargetPort,
-                 ErrorNumber, JobStatus, Battery, int_div)
+                 FsSnapshot, NfsExport, md5, LsmError, TargetPort, ErrorNumber,
+                 JobStatus, Battery, int_div)
 
 
 def _handle_errors(method):
@@ -36,9 +35,8 @@ def _handle_errors(method):
             if type(args[0]) is SimArray and hasattr(args[0], 'bs_obj'):
                 args[0].bs_obj.trans_rollback()
             if str(sql_error) == 'database is locked':
-                raise LsmError(
-                    ErrorNumber.TIMEOUT,
-                    "Timeout to require lock on state file")
+                raise LsmError(ErrorNumber.TIMEOUT,
+                               "Timeout to require lock on state file")
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "Got unexpected error from sqlite3: %s" % str(sql_error))
@@ -49,9 +47,9 @@ def _handle_errors(method):
         except Exception as base_error:
             if type(args[0]) is SimArray and hasattr(args[0], 'bs_obj'):
                 args[0].bs_obj.trans_rollback()
-            raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "Got unexpected error: %s" % str(base_error))
+            raise LsmError(ErrorNumber.PLUGIN_BUG,
+                           "Got unexpected error: %s" % str(base_error))
+
     return wrapper
 
 
@@ -117,13 +115,11 @@ class PoolRAID(object):
         if raid_type not in list(PoolRAID._RAID_DISK_CHK.keys()):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "data_disk_count(): Got unsupported raid type(%d)" %
-                raid_type)
+                "data_disk_count(): Got unsupported raid type(%d)" % raid_type)
 
         if PoolRAID._RAID_DISK_CHK[raid_type](disk_count) is False:
             raise LsmError(
-                ErrorNumber.PLUGIN_BUG,
-                "data_disk_count(): Illegal disk count"
+                ErrorNumber.PLUGIN_BUG, "data_disk_count(): Illegal disk count"
                 "(%d) for raid type(%d)" % (disk_count, raid_type))
         return PoolRAID._RAID_PARITY_DISK_COUNT_FUNC[raid_type](disk_count)
 
@@ -150,14 +146,15 @@ class BackStore(object):
     _ID_FMT_LEN = 5
 
     SUPPORTED_VCR_RAID_TYPES = [
-        Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1,
-        Volume.RAID_TYPE_RAID5, Volume.RAID_TYPE_RAID6,
-        Volume.RAID_TYPE_RAID10, Volume.RAID_TYPE_RAID50,
-        Volume.RAID_TYPE_RAID60]
+        Volume.RAID_TYPE_RAID0, Volume.RAID_TYPE_RAID1, Volume.RAID_TYPE_RAID5,
+        Volume.RAID_TYPE_RAID6, Volume.RAID_TYPE_RAID10,
+        Volume.RAID_TYPE_RAID50, Volume.RAID_TYPE_RAID60
+    ]
 
     SUPPORTED_VCR_STRIP_SIZES = [
         8 * 1024, 16 * 1024, 32 * 1024, 64 * 1024, 128 * 1024, 256 * 1024,
-        512 * 1024, 1024 * 1024]
+        512 * 1024, 1024 * 1024
+    ]
 
     def __init__(self, statefile, timeout):
         if not os.path.exists(statefile):
@@ -167,8 +164,9 @@ class BackStore(object):
 
         self.statefile = statefile
         self.lastrowid = None
-        self.sql_conn = sqlite3.connect(
-            statefile, timeout=int(int_div(timeout, 1000)), isolation_level="IMMEDIATE")
+        self.sql_conn = sqlite3.connect(statefile,
+                                        timeout=int(int_div(timeout, 1000)),
+                                        isolation_level="IMMEDIATE")
         self.sql_conn.row_factory = _dict_factory
         # Create tables no matter exist or not. No lock required.
 
@@ -788,13 +786,14 @@ class BackStore(object):
             ;
             """
 
-        sql_cmd = sql_cmd.format(**{
-            'ID_PADDING': '0' * BackStore._ID_FMT_LEN,
-            'ID_FMT_LEN': BackStore._ID_FMT_LEN,
-            'AG_INIT_TYPE_MIXED': AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
-            'AG_INIT_TYPE_UNKNOWN': AccessGroup.INIT_TYPE_UNKNOWN,
-            'SPLITTER': BackStore._LIST_SPLITTER,
-        })
+        sql_cmd = sql_cmd.format(
+            **{
+                'ID_PADDING': '0' * BackStore._ID_FMT_LEN,
+                'ID_FMT_LEN': BackStore._ID_FMT_LEN,
+                'AG_INIT_TYPE_MIXED': AccessGroup.INIT_TYPE_ISCSI_WWPN_MIXED,
+                'AG_INIT_TYPE_UNKNOWN': AccessGroup.INIT_TYPE_UNKNOWN,
+                'SPLITTER': BackStore._LIST_SPLITTER,
+            })
 
         sql_cur = self.sql_conn.cursor()
         try:
@@ -837,8 +836,7 @@ class BackStore(object):
             return
         else:
             self._data_add(
-                'systems',
-                {
+                'systems', {
                     'id': BackStore.SYS_ID,
                     'name': BackStore.SYS_NAME,
                     'status': System.STATUS_OK,
@@ -854,8 +852,7 @@ class BackStore(object):
             pool_1_disks = []
             for i in range(0, 2):
                 self._data_add(
-                    'disks',
-                    {
+                    'disks', {
                         'disk_prefix': "2TiB SATA Disk",
                         'total_space': size_bytes_2t,
                         'disk_type': Disk.TYPE_SATA,
@@ -871,8 +868,7 @@ class BackStore(object):
             # Add 6 SAS disks(2TiB)
             for i in range(0, 6):
                 self._data_add(
-                    'disks',
-                    {
+                    'disks', {
                         'disk_prefix': "2EiB SAS Disk",
                         'total_space': size_bytes_1e,
                         'disk_type': Disk.TYPE_SAS,
@@ -889,8 +885,7 @@ class BackStore(object):
             # Add 5 SATA SSD disks(512GiB)
             for i in range(0, 5):
                 self._data_add(
-                    'disks',
-                    {
+                    'disks', {
                         'disk_prefix': "512GiB SSD Disk",
                         'total_space': size_bytes_512g,
                         'disk_type': Disk.TYPE_SSD,
@@ -906,8 +901,7 @@ class BackStore(object):
             # Add 7 SAS SSD disks(2TiB)
             for i in range(0, 7):
                 self._data_add(
-                    'disks',
-                    {
+                    'disks', {
                         'disk_prefix': "2TiB SSD Disk",
                         'total_space': size_bytes_2t,
                         'disk_type': Disk.TYPE_SSD,
@@ -922,41 +916,35 @@ class BackStore(object):
                 name='Pool 1',
                 raid_type=Volume.RAID_TYPE_RAID1,
                 sim_disk_ids=pool_1_disks,
-                element_type=Pool.ELEMENT_TYPE_POOL |
-                Pool.ELEMENT_TYPE_FS |
-                Pool.ELEMENT_TYPE_VOLUME |
-                Pool.ELEMENT_TYPE_DELTA |
-                Pool.ELEMENT_TYPE_SYS_RESERVED,
-                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
-                Pool.UNSUPPORTED_VOLUME_SHRINK)
+                element_type=Pool.ELEMENT_TYPE_POOL | Pool.ELEMENT_TYPE_FS
+                | Pool.ELEMENT_TYPE_VOLUME | Pool.ELEMENT_TYPE_DELTA
+                | Pool.ELEMENT_TYPE_SYS_RESERVED,
+                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW
+                | Pool.UNSUPPORTED_VOLUME_SHRINK)
 
-            self.sim_pool_create_sub_pool(
-                name='Pool 2(sub pool of Pool 1)',
-                parent_pool_id=pool_1_id,
-                element_type=Pool.ELEMENT_TYPE_FS |
-                Pool.ELEMENT_TYPE_VOLUME |
-                Pool.ELEMENT_TYPE_DELTA,
-                size=size_bytes_512g)
+            self.sim_pool_create_sub_pool(name='Pool 2(sub pool of Pool 1)',
+                                          parent_pool_id=pool_1_id,
+                                          element_type=Pool.ELEMENT_TYPE_FS
+                                          | Pool.ELEMENT_TYPE_VOLUME
+                                          | Pool.ELEMENT_TYPE_DELTA,
+                                          size=size_bytes_512g)
 
-            self.sim_pool_create_from_disk(
-                name='Pool 3',
-                raid_type=Volume.RAID_TYPE_RAID1,
-                sim_disk_ids=ssd_pool_disks,
-                element_type=Pool.ELEMENT_TYPE_FS |
-                Pool.ELEMENT_TYPE_VOLUME |
-                Pool.ELEMENT_TYPE_DELTA)
+            self.sim_pool_create_from_disk(name='Pool 3',
+                                           raid_type=Volume.RAID_TYPE_RAID1,
+                                           sim_disk_ids=ssd_pool_disks,
+                                           element_type=Pool.ELEMENT_TYPE_FS
+                                           | Pool.ELEMENT_TYPE_VOLUME
+                                           | Pool.ELEMENT_TYPE_DELTA)
 
-            self.sim_pool_create_from_disk(
-                name='lsm_test_aggr',
-                element_type=Pool.ELEMENT_TYPE_FS |
-                Pool.ELEMENT_TYPE_VOLUME |
-                Pool.ELEMENT_TYPE_DELTA,
-                raid_type=Volume.RAID_TYPE_RAID0,
-                sim_disk_ids=test_pool_disks)
+            self.sim_pool_create_from_disk(name='lsm_test_aggr',
+                                           element_type=Pool.ELEMENT_TYPE_FS
+                                           | Pool.ELEMENT_TYPE_VOLUME
+                                           | Pool.ELEMENT_TYPE_DELTA,
+                                           raid_type=Volume.RAID_TYPE_RAID0,
+                                           sim_disk_ids=test_pool_disks)
 
             self._data_add(
-                'tgts',
-                {
+                'tgts', {
                     'port_type': TargetPort.TYPE_FC,
                     'service_address': '50:0a:09:86:99:4b:8d:c5',
                     'network_address': '50:0a:09:86:99:4b:8d:c5',
@@ -965,8 +953,7 @@ class BackStore(object):
                 })
 
             self._data_add(
-                'tgts',
-                {
+                'tgts', {
                     'port_type': TargetPort.TYPE_FCOE,
                     'service_address': '50:0a:09:86:99:4b:8d:c6',
                     'network_address': '50:0a:09:86:99:4b:8d:c6',
@@ -974,8 +961,7 @@ class BackStore(object):
                     'physical_name': 'FCoE_b_0c',
                 })
             self._data_add(
-                'tgts',
-                {
+                'tgts', {
                     'port_type': TargetPort.TYPE_ISCSI,
                     'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                     'network_address': 'sim-iscsi-tgt-3.example.com:3260',
@@ -983,8 +969,7 @@ class BackStore(object):
                     'physical_name': 'iSCSI_c_0d',
                 })
             self._data_add(
-                'tgts',
-                {
+                'tgts', {
                     'port_type': TargetPort.TYPE_ISCSI,
                     'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                     'network_address': '10.0.0.1:3260',
@@ -992,8 +977,7 @@ class BackStore(object):
                     'physical_name': 'iSCSI_c_0e',
                 })
             self._data_add(
-                'tgts',
-                {
+                'tgts', {
                     'port_type': TargetPort.TYPE_ISCSI,
                     'service_address': 'iqn.1986-05.com.example:sim-tgt-03',
                     'network_address': '[2001:470:1f09:efe:a64e:31ff::1]:3260',
@@ -1002,16 +986,14 @@ class BackStore(object):
                 })
 
             self._data_add(
-                'batteries',
-                {
+                'batteries', {
                     'name': 'Battery SIMB01, 8000 mAh, 05 March 2016',
                     'type': Battery.TYPE_CHEMICAL,
                     'status': Battery.STATUS_OK,
                 })
 
             self._data_add(
-                'batteries',
-                {
+                'batteries', {
                     'name': 'Capacitor SIMC01, 500 J, 05 March 2016',
                     'type': Battery.TYPE_CAPACITOR,
                     'status': Battery.STATUS_OK,
@@ -1044,7 +1026,9 @@ class BackStore(object):
 
     def _data_add(self, table_name, data_dict):
         keys = list(data_dict.keys())
-        values = ['' if v is None else str(v) for v in list(data_dict.values())]
+        values = [
+            '' if v is None else str(v) for v in list(data_dict.values())
+        ]
 
         sql_cmd = "INSERT INTO %s (%s) VALUES (%s);" % \
                   (table_name,
@@ -1086,13 +1070,15 @@ class BackStore(object):
         Return a job id(Integer)
         """
         self._data_add(
-            "jobs",
-            {
-                "duration": os.getenv(
-                    "LSM_SIM_TIME", BackStore.JOB_DEFAULT_DURATION),
-                "timestamp": time.time(),
-                "data_type": job_data_type,
-                "data_id": data_id,
+            "jobs", {
+                "duration":
+                os.getenv("LSM_SIM_TIME", BackStore.JOB_DEFAULT_DURATION),
+                "timestamp":
+                time.time(),
+                "data_type":
+                job_data_type,
+                "data_id":
+                data_id,
             })
         return self.lastrowid
 
@@ -1104,16 +1090,15 @@ class BackStore(object):
         Return (progress, data_type, data) tuple.
         progress is the integer of percent.
         """
-        sim_job = self._data_find('jobs', 'id=%s' % sim_job_id,
+        sim_job = self._data_find('jobs',
+                                  'id=%s' % sim_job_id,
                                   flag_unique=True)
         if sim_job is None:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_JOB, "Job not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_JOB, "Job not found")
 
         if sim_job['duration'] != 0:
-            progress = int(
-                (time.time() - float(sim_job['timestamp'])) /
-                sim_job['duration'] * 100)
+            progress = int((time.time() - float(sim_job['timestamp'])) /
+                           sim_job['duration'] * 100)
         else:
             progress = 100
 
@@ -1146,8 +1131,8 @@ class BackStore(object):
     def lsm_disk_ids_of_pool(self, sim_pool_id):
         return list(
             d['lsm_disk_id']
-            for d in self._data_find(
-                'disks_view', 'owner_pool_id="%s"' % sim_pool_id))
+            for d in self._data_find('disks_view', 'owner_pool_id="%s"' %
+                                     sim_pool_id))
 
     def sim_disks(self):
         """
@@ -1162,11 +1147,15 @@ class BackStore(object):
         return self._get_table('pools_view')
 
     def sim_pool_of_id(self, sim_pool_id):
-        return self._sim_data_of_id(
-            "pools_view", sim_pool_id, ErrorNumber.NOT_FOUND_POOL, "Pool")
+        return self._sim_data_of_id("pools_view", sim_pool_id,
+                                    ErrorNumber.NOT_FOUND_POOL, "Pool")
 
-    def sim_pool_create_from_disk(self, name, sim_disk_ids, raid_type,
-                                  element_type, unsupported_actions=0,
+    def sim_pool_create_from_disk(self,
+                                  name,
+                                  sim_disk_ids,
+                                  raid_type,
+                                  element_type,
+                                  unsupported_actions=0,
                                   strip_size=0):
         if strip_size == 0:
             strip_size = BackStore.DEFAULT_STRIP_SIZE
@@ -1176,8 +1165,7 @@ class BackStore(object):
             strip_size = BackStore.BLK_SIZE
 
         self._data_add(
-            'pools',
-            {
+            'pools', {
                 'name': name,
                 'status': Pool.STATUS_OK,
                 'status_info': '',
@@ -1188,30 +1176,31 @@ class BackStore(object):
                 'strip_size': strip_size,
             })
 
-        data_disk_count = PoolRAID.data_disk_count(
-            raid_type, len(sim_disk_ids))
+        data_disk_count = PoolRAID.data_disk_count(raid_type,
+                                                   len(sim_disk_ids))
 
         # update disk owner
         sim_pool_id = self.lastrowid
         for sim_disk_id in sim_disk_ids[:data_disk_count]:
-            self._data_update(
-                'disks', sim_disk_id, 'owner_pool_id', sim_pool_id)
-            self._data_update(
-                'disks', sim_disk_id, 'role', 'DATA')
+            self._data_update('disks', sim_disk_id, 'owner_pool_id',
+                              sim_pool_id)
+            self._data_update('disks', sim_disk_id, 'role', 'DATA')
 
         for sim_disk_id in sim_disk_ids[data_disk_count:]:
-            self._data_update(
-                'disks', sim_disk_id, 'owner_pool_id', sim_pool_id)
-            self._data_update(
-                'disks', sim_disk_id, 'role', 'PARITY')
+            self._data_update('disks', sim_disk_id, 'owner_pool_id',
+                              sim_pool_id)
+            self._data_update('disks', sim_disk_id, 'role', 'PARITY')
 
         return sim_pool_id
 
-    def sim_pool_create_sub_pool(self, name, parent_pool_id, size,
-                                 element_type, unsupported_actions=0):
+    def sim_pool_create_sub_pool(self,
+                                 name,
+                                 parent_pool_id,
+                                 size,
+                                 element_type,
+                                 unsupported_actions=0):
         self._data_add(
-            'pools',
-            {
+            'pools', {
                 'name': name,
                 'status': Pool.STATUS_OK,
                 'status_info': '',
@@ -1230,27 +1219,27 @@ class BackStore(object):
             sim_pool_id)[0][0]
 
     def sim_pool_data_disks_count(self, sim_pool_id=None):
-        return self._sql_exec(
-            "SELECT COUNT(id) FROM disks WHERE "
-            "owner_pool_id=%s and role='DATA';" % sim_pool_id)[0][0]
+        return self._sql_exec("SELECT COUNT(id) FROM disks WHERE "
+                              "owner_pool_id=%s and role='DATA';" %
+                              sim_pool_id)[0][0]
 
     def sim_vols(self, sim_ag_id=None):
         """
         Return a list of sim_vol dict.
         """
         if sim_ag_id:
-            return self._data_find(
-                'volumes_by_ag_view', 'ag_id=%s' % sim_ag_id)
+            return self._data_find('volumes_by_ag_view',
+                                   'ag_id=%s' % sim_ag_id)
         else:
             return self._get_table('volumes_view')
 
     def _sim_data_of_id(self, table_name, data_id, lsm_error_no, data_name):
-        sim_data = self._data_find(
-            table_name, 'id=%s' % data_id, flag_unique=True)
+        sim_data = self._data_find(table_name,
+                                   'id=%s' % data_id,
+                                   flag_unique=True)
         if sim_data is None:
             if lsm_error_no:
-                raise LsmError(
-                    lsm_error_no, "%s not found" % data_name)
+                raise LsmError(lsm_error_no, "%s not found" % data_name)
             else:
                 return None
         return sim_data
@@ -1259,9 +1248,8 @@ class BackStore(object):
         """
         Return sim_vol if found. Raise error if not found.
         """
-        return self._sim_data_of_id(
-            "volumes_view", sim_vol_id, ErrorNumber.NOT_FOUND_VOLUME,
-            "Volume")
+        return self._sim_data_of_id("volumes_view", sim_vol_id,
+                                    ErrorNumber.NOT_FOUND_VOLUME, "Volume")
 
     def _check_pool_free_space(self, sim_pool_id, size_bytes):
         sim_pool = self.sim_pool_of_id(sim_pool_id)
@@ -1308,22 +1296,20 @@ class BackStore(object):
         sim_vol = self.sim_vol_of_id(sim_vol_id)
 
         if self._sim_ag_ids_of_masked_vol(sim_vol_id):
-            raise LsmError(
-                ErrorNumber.IS_MASKED,
-                "Volume is masked to access group")
+            raise LsmError(ErrorNumber.IS_MASKED,
+                           "Volume is masked to access group")
 
         dst_sim_vol_ids = self.dst_sim_vol_ids_of_src(sim_vol_id)
         if len(dst_sim_vol_ids) >= 1:
             for dst_sim_vol_id in dst_sim_vol_ids:
                 if dst_sim_vol_id != sim_vol_id:
                     # Don't raise error on volume internal replication.
-                    raise LsmError(
-                        ErrorNumber.HAS_CHILD_DEPENDENCY,
-                        "Requested volume has child dependency")
+                    raise LsmError(ErrorNumber.HAS_CHILD_DEPENDENCY,
+                                   "Requested volume has child dependency")
         if sim_vol['is_hw_raid_vol']:
             # Reset disk roles
-            for d in self._data_find('disks_view',
-                                     'owner_pool_id="%s"' % sim_vol["pool_id"]):
+            for d in self._data_find('disks_view', 'owner_pool_id="%s"' %
+                                     sim_vol["pool_id"]):
                 self._data_update("disks", d["id"], 'role', None)
 
             # Delete the parent pool instead if found a HW RAID volume.
@@ -1335,15 +1321,14 @@ class BackStore(object):
         self.sim_vol_of_id(sim_vol_id)
         self.sim_ag_of_id(sim_ag_id)
         exist_mask = self._data_find(
-            'vol_masks', 'ag_id="%s" AND vol_id="%s"' %
-            (sim_ag_id, sim_vol_id))
+            'vol_masks',
+            'ag_id="%s" AND vol_id="%s"' % (sim_ag_id, sim_vol_id))
         if exist_mask:
             raise LsmError(
                 ErrorNumber.NO_STATE_CHANGE,
                 "Volume is already masked to requested access group")
 
-        self._data_add(
-            "vol_masks", {'ag_id': sim_ag_id, 'vol_id': sim_vol_id})
+        self._data_add("vol_masks", {'ag_id': sim_ag_id, 'vol_id': sim_vol_id})
 
         return None
 
@@ -1355,28 +1340,26 @@ class BackStore(object):
         if exist_mask:
             self._data_delete('vol_masks', condition)
         else:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume is not masked to requested access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume is not masked to requested access group")
         return None
 
     def _sim_vol_ids_of_masked_ag(self, sim_ag_id):
-        return list(
-            m['vol_id'] for m in self._data_find(
-                'vol_masks', 'ag_id="%s"' % sim_ag_id))
+        return list(m['vol_id']
+                    for m in self._data_find('vol_masks', 'ag_id="%s"' %
+                                             sim_ag_id))
 
     def _sim_ag_ids_of_masked_vol(self, sim_vol_id):
-        return list(
-            m['ag_id'] for m in self._data_find(
-                'vol_masks', 'vol_id="%s"' % sim_vol_id))
+        return list(m['ag_id']
+                    for m in self._data_find('vol_masks', 'vol_id="%s"' %
+                                             sim_vol_id))
 
     def sim_vol_resize(self, sim_vol_id, new_size_bytes):
         new_size_bytes = BackStore._block_rounding(new_size_bytes)
         sim_vol = self.sim_vol_of_id(sim_vol_id)
         if sim_vol['total_space'] == new_size_bytes:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume size is identical to requested")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume size is identical to requested")
 
         sim_pool = self.sim_pool_of_id(sim_vol['pool_id'])
 
@@ -1390,20 +1373,18 @@ class BackStore(object):
                     "Requested pool does not allow volume size grow")
 
             if sim_pool['free_space'] < increment:
-                raise LsmError(
-                    ErrorNumber.NOT_ENOUGH_SPACE, "Insufficient space in pool")
+                raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
+                               "Insufficient space in pool")
 
         elif sim_pool['unsupported_actions'] & Pool.UNSUPPORTED_VOLUME_SHRINK:
-            raise LsmError(
-                ErrorNumber.NO_SUPPORT,
-                "Requested pool does not allow volume size grow")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Requested pool does not allow volume size grow")
 
         # TODO(Gris Ge): If a volume is in a replication relationship, resize
         #                should be handled properly.
-        self._data_update(
-            'volumes', sim_vol_id, "total_space", new_size_bytes)
-        self._data_update(
-            'volumes', sim_vol_id, "consumed_size", new_size_bytes)
+        self._data_update('volumes', sim_vol_id, "total_space", new_size_bytes)
+        self._data_update('volumes', sim_vol_id, "consumed_size",
+                          new_size_bytes)
 
     def dst_sim_vol_ids_of_src(self, src_sim_vol_id):
         """
@@ -1411,10 +1392,14 @@ class BackStore(object):
         """
         self.sim_vol_of_id(src_sim_vol_id)
         return list(
-            d['dst_vol_id'] for d in self._data_find(
-                'vol_reps', 'src_vol_id="%s"' % src_sim_vol_id))
+            d['dst_vol_id']
+            for d in self._data_find('vol_reps', 'src_vol_id="%s"' %
+                                     src_sim_vol_id))
 
-    def sim_vol_replica(self, src_sim_vol_id, dst_sim_vol_id, rep_type,
+    def sim_vol_replica(self,
+                        src_sim_vol_id,
+                        dst_sim_vol_id,
+                        rep_type,
                         blk_ranges=None):
         self.sim_vol_of_id(src_sim_vol_id)
         self.sim_vol_of_id(dst_sim_vol_id)
@@ -1429,8 +1414,9 @@ class BackStore(object):
             return
 
         cur_src_sim_vol_ids = list(
-            r['src_vol_id'] for r in self._data_find(
-                'vol_reps', 'dst_vol_id="%s"' % dst_sim_vol_id))
+            r['src_vol_id']
+            for r in self._data_find('vol_reps', 'dst_vol_id="%s"' %
+                                     dst_sim_vol_id))
 
         if len(cur_src_sim_vol_ids) == 1:
             # We already have a relationship, do not need to add more
@@ -1438,8 +1424,7 @@ class BackStore(object):
 
         # Add the relationship
         self._data_add(
-            'vol_reps',
-            {
+            'vol_reps', {
                 'src_vol_id': src_sim_vol_id,
                 'dst_vol_id': dst_sim_vol_id,
                 'rep_type': rep_type,
@@ -1450,22 +1435,19 @@ class BackStore(object):
     def sim_vol_src_replica_break(self, src_sim_vol_id):
 
         if not self.dst_sim_vol_ids_of_src(src_sim_vol_id):
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Provided volume is not a replication source")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Provided volume is not a replication source")
 
-        self._data_delete(
-            'vol_reps', 'src_vol_id="%s"' % src_sim_vol_id)
+        self._data_delete('vol_reps', 'src_vol_id="%s"' % src_sim_vol_id)
 
     def sim_vol_state_change(self, sim_vol_id, new_admin_state):
         sim_vol = self.sim_vol_of_id(sim_vol_id)
         if sim_vol['admin_state'] == new_admin_state:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Volume admin state is identical to requested")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Volume admin state is identical to requested")
 
-        self._data_update(
-            'volumes', sim_vol_id, "admin_state", new_admin_state)
+        self._data_update('volumes', sim_vol_id, "admin_state",
+                          new_admin_state)
 
     @staticmethod
     def _sim_ag_format(sim_ag):
@@ -1479,8 +1461,8 @@ class BackStore(object):
 
     def sim_ags(self, sim_vol_id=None):
         if sim_vol_id:
-            sim_ags = self._data_find(
-                'ags_by_vol_view', 'vol_id=%s' % sim_vol_id)
+            sim_ags = self._data_find('ags_by_vol_view',
+                                      'vol_id=%s' % sim_vol_id)
         else:
             sim_ags = self._get_table('ags_view')
 
@@ -1488,13 +1470,11 @@ class BackStore(object):
 
     def _sim_init_create(self, init_type, init_id, sim_ag_id):
         try:
-            self._data_add(
-                "inits",
-                {
-                    'id': init_id,
-                    'init_type': init_type,
-                    'owner_ag_id': sim_ag_id
-                })
+            self._data_add("inits", {
+                'id': init_id,
+                'init_type': init_type,
+                'owner_ag_id': sim_ag_id
+            })
         except sqlite3.IntegrityError as sql_error:
             raise LsmError(
                 ErrorNumber.EXISTS_INITIATOR,
@@ -1513,8 +1493,7 @@ class BackStore(object):
         except sqlite3.IntegrityError as sql_error:
             raise LsmError(
                 ErrorNumber.NAME_CONFLICT,
-                "Name '%s' is already in use by other access group" %
-                name)
+                "Name '%s' is already in use by other access group" % name)
 
         self._sim_init_create(init_type, init_id, sim_ag_id)
 
@@ -1523,24 +1502,21 @@ class BackStore(object):
     def sim_ag_delete(self, sim_ag_id):
         self.sim_ag_of_id(sim_ag_id)
         if self._sim_vol_ids_of_masked_ag(sim_ag_id):
-            raise LsmError(
-                ErrorNumber.IS_MASKED,
-                "Access group has volume masked to")
+            raise LsmError(ErrorNumber.IS_MASKED,
+                           "Access group has volume masked to")
 
         self._data_delete('ags', 'id="%s"' % sim_ag_id)
 
     def sim_ag_init_add(self, sim_ag_id, init_id, init_type):
         sim_ag = self.sim_ag_of_id(sim_ag_id)
         if init_id in sim_ag['init_ids']:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Initiator already in access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Initiator already in access group")
 
         if init_type != AccessGroup.INIT_TYPE_ISCSI_IQN and \
            init_type != AccessGroup.INIT_TYPE_WWPN:
-            raise LsmError(
-                ErrorNumber.NO_SUPPORT,
-                "Only support iSCSI IQN and WWPN initiator type")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Only support iSCSI IQN and WWPN initiator type")
 
         self._sim_init_create(init_type, init_id, sim_ag_id)
         return None
@@ -1548,9 +1524,8 @@ class BackStore(object):
     def sim_ag_init_delete(self, sim_ag_id, init_id):
         sim_ag = self.sim_ag_of_id(sim_ag_id)
         if init_id not in sim_ag['init_ids']:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "Initiator is not in defined access group")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "Initiator is not in defined access group")
         if len(sim_ag['init_ids']) == 1:
             raise LsmError(
                 ErrorNumber.LAST_INIT_IN_ACCESS_GROUP,
@@ -1559,9 +1534,9 @@ class BackStore(object):
         self._data_delete('inits', 'id="%s"' % init_id)
 
     def sim_ag_of_id(self, sim_ag_id):
-        sim_ag = self._sim_data_of_id(
-            "ags_view", sim_ag_id, ErrorNumber.NOT_FOUND_ACCESS_GROUP,
-            "Access Group")
+        sim_ag = self._sim_data_of_id("ags_view", sim_ag_id,
+                                      ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                                      "Access Group")
         BackStore._sim_ag_format(sim_ag)
         return sim_ag
 
@@ -1576,16 +1551,15 @@ class BackStore(object):
         if not raise_error:
             lsm_error_no = None
 
-        return self._sim_data_of_id(
-            "fss_view", sim_fs_id, lsm_error_no, "File System")
+        return self._sim_data_of_id("fss_view", sim_fs_id, lsm_error_no,
+                                    "File System")
 
     def sim_fs_create(self, name, size_bytes, sim_pool_id):
         size_bytes = BackStore._block_rounding(size_bytes)
         self._check_pool_free_space(sim_pool_id, size_bytes)
         try:
             self._data_add(
-                "fss",
-                {
+                "fss", {
                     'name': name,
                     'total_space': size_bytes,
                     'consumed_size': size_bytes,
@@ -1593,17 +1567,15 @@ class BackStore(object):
                     'pool_id': sim_pool_id,
                 })
         except sqlite3.IntegrityError as sql_error:
-            raise LsmError(
-                ErrorNumber.NAME_CONFLICT,
-                "Name '%s' is already in use by other fs" % name)
+            raise LsmError(ErrorNumber.NAME_CONFLICT,
+                           "Name '%s' is already in use by other fs" % name)
         return self.lastrowid
 
     def sim_fs_delete(self, sim_fs_id):
         self.sim_fs_of_id(sim_fs_id)
         if self.clone_dst_sim_fs_ids_of_src(sim_fs_id):
-            raise LsmError(
-                ErrorNumber.HAS_CHILD_DEPENDENCY,
-                "Requested file system has child dependency")
+            raise LsmError(ErrorNumber.HAS_CHILD_DEPENDENCY,
+                           "Requested file system has child dependency")
 
         self._data_delete("fss", 'id="%s"' % sim_fs_id)
 
@@ -1612,9 +1584,8 @@ class BackStore(object):
         sim_fs = self.sim_fs_of_id(sim_fs_id)
 
         if sim_fs['total_space'] == new_size_bytes:
-            raise LsmError(
-                ErrorNumber.NO_STATE_CHANGE,
-                "File System size is identical to requested")
+            raise LsmError(ErrorNumber.NO_STATE_CHANGE,
+                           "File System size is identical to requested")
 
         # TODO(Gris Ge): If a fs is in a clone/snapshot relationship, resize
         #                should be handled properly.
@@ -1623,24 +1594,21 @@ class BackStore(object):
 
         if new_size_bytes > sim_fs['total_space'] and \
            sim_pool['free_space'] < new_size_bytes - sim_fs['total_space']:
-            raise LsmError(
-                ErrorNumber.NOT_ENOUGH_SPACE, "Insufficient space in pool")
+            raise LsmError(ErrorNumber.NOT_ENOUGH_SPACE,
+                           "Insufficient space in pool")
 
-        self._data_update(
-            'fss', sim_fs_id, "total_space", new_size_bytes)
-        self._data_update(
-            'fss', sim_fs_id, "consumed_size", new_size_bytes)
-        self._data_update(
-            'fss', sim_fs_id, "free_space", new_size_bytes)
+        self._data_update('fss', sim_fs_id, "total_space", new_size_bytes)
+        self._data_update('fss', sim_fs_id, "consumed_size", new_size_bytes)
+        self._data_update('fss', sim_fs_id, "free_space", new_size_bytes)
 
     def sim_fs_snaps(self, sim_fs_id):
         self.sim_fs_of_id(sim_fs_id)
         return self._data_find('fs_snaps_view', 'fs_id="%s"' % sim_fs_id)
 
     def sim_fs_snap_of_id(self, sim_fs_snap_id, sim_fs_id=None):
-        sim_fs_snap = self._sim_data_of_id(
-            'fs_snaps_view', sim_fs_snap_id, ErrorNumber.NOT_FOUND_FS_SS,
-            'File system snapshot')
+        sim_fs_snap = self._sim_data_of_id('fs_snaps_view', sim_fs_snap_id,
+                                           ErrorNumber.NOT_FOUND_FS_SS,
+                                           'File system snapshot')
         if sim_fs_id and sim_fs_snap['fs_id'] != sim_fs_id:
             raise LsmError(
                 ErrorNumber.NOT_FOUND_FS_SS,
@@ -1651,13 +1619,11 @@ class BackStore(object):
     def sim_fs_snap_create(self, sim_fs_id, name):
         self.sim_fs_of_id(sim_fs_id)
         try:
-            self._data_add(
-                'fs_snaps',
-                {
-                    'name': name,
-                    'fs_id': sim_fs_id,
-                    'timestamp': int(time.time()),
-                })
+            self._data_add('fs_snaps', {
+                'name': name,
+                'fs_id': sim_fs_id,
+                'timestamp': int(time.time()),
+            })
         except sqlite3.IntegrityError as sql_error:
             raise LsmError(
                 ErrorNumber.NAME_CONFLICT,
@@ -1692,12 +1658,10 @@ class BackStore(object):
             # We just check snapshot existence
             self.sim_fs_snap_of_id(sim_fs_snap_id, src_sim_fs_id)
 
-        self._data_add(
-            'fs_clones',
-            {
-                'src_fs_id': src_sim_fs_id,
-                'dst_fs_id': dst_sim_fs_id,
-            })
+        self._data_add('fs_clones', {
+            'src_fs_id': src_sim_fs_id,
+            'dst_fs_id': dst_sim_fs_id,
+        })
 
     def sim_fs_file_clone(self, sim_fs_id, src_fs_name, dst_fs_name,
                           sim_fs_snap_id):
@@ -1713,9 +1677,9 @@ class BackStore(object):
         Return a list of dst_fs_id for provided clone source fs ID.
         """
         self.sim_fs_of_id(src_sim_fs_id)
-        return list(
-            d['dst_fs_id'] for d in self._data_find(
-                'fs_clones', 'src_fs_id="%s"' % src_sim_fs_id))
+        return list(d['dst_fs_id']
+                    for d in self._data_find('fs_clones', 'src_fs_id="%s"' %
+                                             src_sim_fs_id))
 
     def sim_fs_src_clone_break(self, src_sim_fs_id):
         self._data_delete('fs_clones', 'src_fs_id="%s"' % src_sim_fs_id)
@@ -1732,8 +1696,8 @@ class BackStore(object):
         return sim_exp
 
     def sim_exps(self):
-        return list(self._sim_exp_format(e)
-                    for e in self._get_table('exps_view'))
+        return list(
+            self._sim_exp_format(e) for e in self._get_table('exps_view'))
 
     def sim_exp_of_id(self, sim_exp_id):
         return self._sim_exp_format(
@@ -1749,8 +1713,7 @@ class BackStore(object):
 
         try:
             self._data_add(
-                'exps',
-                {
+                'exps', {
                     'fs_id': sim_fs_id,
                     'exp_path': exp_path,
                     'anon_uid': anon_uid,
@@ -1761,33 +1724,26 @@ class BackStore(object):
         except sqlite3.IntegrityError as sql_error:
             # TODO(Gris Ge): Should we create new error instead of
             #                NAME_CONFLICT?
-            raise LsmError(
-                ErrorNumber.NAME_CONFLICT,
-                "Export path is already used by other NFS export")
+            raise LsmError(ErrorNumber.NAME_CONFLICT,
+                           "Export path is already used by other NFS export")
 
         sim_exp_id = self.lastrowid
 
         for root_host in root_hosts:
-            self._data_add(
-                'exp_root_hosts',
-                {
-                    'host': root_host,
-                    'exp_id': sim_exp_id,
-                })
+            self._data_add('exp_root_hosts', {
+                'host': root_host,
+                'exp_id': sim_exp_id,
+            })
         for rw_host in rw_hosts:
-            self._data_add(
-                'exp_rw_hosts',
-                {
-                    'host': rw_host,
-                    'exp_id': sim_exp_id,
-                })
+            self._data_add('exp_rw_hosts', {
+                'host': rw_host,
+                'exp_id': sim_exp_id,
+            })
         for ro_host in ro_hosts:
-            self._data_add(
-                'exp_ro_hosts',
-                {
-                    'host': ro_host,
-                    'exp_id': sim_exp_id,
-                })
+            self._data_add('exp_ro_hosts', {
+                'host': ro_host,
+                'exp_id': sim_exp_id,
+            })
 
         return sim_exp_id
 
@@ -1844,35 +1800,33 @@ class SimArray(object):
     @staticmethod
     def _sim_vol_id_of(vol_id):
         return SimArray._lsm_id_to_sim_id(
-            vol_id, LsmError(
-                ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
+            vol_id, LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
 
     @staticmethod
     def _sim_fs_id_of(fs_id):
         return SimArray._lsm_id_to_sim_id(
-            fs_id, LsmError(
-                ErrorNumber.NOT_FOUND_FS, "File system not found"))
+            fs_id, LsmError(ErrorNumber.NOT_FOUND_FS, "File system not found"))
 
     @staticmethod
     def _sim_fs_snap_id_of(snap_id):
         return SimArray._lsm_id_to_sim_id(
-            snap_id, LsmError(
-                ErrorNumber.NOT_FOUND_FS_SS,
-                "File system snapshot not found"))
+            snap_id,
+            LsmError(ErrorNumber.NOT_FOUND_FS_SS,
+                     "File system snapshot not found"))
 
     @staticmethod
     def _sim_exp_id_of(exp_id):
         return SimArray._lsm_id_to_sim_id(
-            exp_id, LsmError(
-                ErrorNumber.NOT_FOUND_NFS_EXPORT,
-                "File system export not found"))
+            exp_id,
+            LsmError(ErrorNumber.NOT_FOUND_NFS_EXPORT,
+                     "File system export not found"))
 
     @staticmethod
     def _sim_ag_id_of(ag_id):
         return SimArray._lsm_id_to_sim_id(
-            ag_id, LsmError(
-                ErrorNumber.NOT_FOUND_NFS_EXPORT,
-                "File system export not found"))
+            ag_id,
+            LsmError(ErrorNumber.NOT_FOUND_NFS_EXPORT,
+                     "File system export not found"))
 
     @_handle_errors
     def __init__(self, statefile, timeout):
@@ -1885,16 +1839,15 @@ class SimArray(object):
         self.timeout = timeout
 
     def _job_create(self, data_type=None, sim_data_id=None):
-        sim_job_id = self.bs_obj.sim_job_create(
-            data_type, sim_data_id)
+        sim_job_id = self.bs_obj.sim_job_create(data_type, sim_data_id)
         return "JOB_ID_%0*d" % (BackStore._ID_FMT_LEN, sim_job_id)
 
     @_handle_errors
     def job_status(self, job_id, flags=0):
         sim_job_id = SimArray._sim_job_id_of(job_id)
 
-        (progress, data_type, sim_data) = self.bs_obj.sim_job_status(
-            sim_job_id)
+        (progress, data_type,
+         sim_data) = self.bs_obj.sim_job_status(sim_job_id)
         status = JobStatus.INPROGRESS
         if progress == 100:
             status = JobStatus.COMPLETE
@@ -1928,11 +1881,13 @@ class SimArray(object):
 
     @staticmethod
     def _sim_sys_2_lsm(sim_sys):
-        return System(
-            sim_sys['id'], sim_sys['name'], sim_sys['status'],
-            sim_sys['status_info'], _fw_version=sim_sys["version"],
-            _mode=BackStore.SYS_MODE,
-            _read_cache_pct=sim_sys['read_cache_pct'])
+        return System(sim_sys['id'],
+                      sim_sys['name'],
+                      sim_sys['status'],
+                      sim_sys['status_info'],
+                      _fw_version=sim_sys["version"],
+                      _mode=BackStore.SYS_MODE,
+                      _read_cache_pct=sim_sys['read_cache_pct'])
 
     @_handle_errors
     def systems(self):
@@ -1943,13 +1898,11 @@ class SimArray(object):
     @_handle_errors
     def system_read_cache_pct_update(self, system, read_pct, flags=0):
         if system.id != BackStore.SYS_ID:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
 
         self.bs_obj.trans_begin()
-        self.bs_obj._data_update("systems", BackStore.SYS_ID,
-                                 "read_cache_pct", read_pct);
+        self.bs_obj._data_update("systems", BackStore.SYS_ID, "read_cache_pct",
+                                 read_pct)
         self.bs_obj.trans_commit()
 
         return None
@@ -1958,14 +1911,13 @@ class SimArray(object):
     def _sim_vol_2_lsm(sim_vol):
         return Volume(sim_vol['lsm_vol_id'], sim_vol['name'], sim_vol['vpd83'],
                       BackStore.BLK_SIZE,
-                      int(int_div(sim_vol['total_space'], BackStore.BLK_SIZE)),
-                      sim_vol['admin_state'], BackStore.SYS_ID,
-                      sim_vol['lsm_pool_id'])
+                      int(int_div(sim_vol['total_space'],
+                                  BackStore.BLK_SIZE)), sim_vol['admin_state'],
+                      BackStore.SYS_ID, sim_vol['lsm_pool_id'])
 
     @_handle_errors
     def volumes(self):
-        return list(
-            SimArray._sim_vol_2_lsm(v) for v in self.bs_obj.sim_vols())
+        return list(SimArray._sim_vol_2_lsm(v) for v in self.bs_obj.sim_vols())
 
     @staticmethod
     def _sim_pool_2_lsm(sim_pool):
@@ -1978,9 +1930,8 @@ class SimArray(object):
         sys_id = BackStore.SYS_ID
         element_type = sim_pool['element_type']
         unsupported_actions = sim_pool['unsupported_actions']
-        return Pool(
-            pool_id, name, element_type, unsupported_actions, total_space,
-            free_space, status, status_info, sys_id)
+        return Pool(pool_id, name, element_type, unsupported_actions,
+                    total_space, free_space, status, status_info, sys_id)
 
     @_handle_errors
     def pools(self, flags=0):
@@ -1996,14 +1947,17 @@ class SimArray(object):
         if sim_disk['role'] is None:
             disk_status |= Disk.STATUS_FREE
 
-        return Disk(
-            sim_disk['lsm_disk_id'],
-            sim_disk['name'],
-            sim_disk['disk_type'], BackStore.BLK_SIZE,
-            int(int_div(sim_disk['total_space'], BackStore.BLK_SIZE)),
-            disk_status, BackStore.SYS_ID, _vpd83=sim_disk['vpd83'],
-            _location=sim_disk['location'],
-            _rpm=sim_disk['rpm'], _link_type=sim_disk['link_type'])
+        return Disk(sim_disk['lsm_disk_id'],
+                    sim_disk['name'],
+                    sim_disk['disk_type'],
+                    BackStore.BLK_SIZE,
+                    int(int_div(sim_disk['total_space'], BackStore.BLK_SIZE)),
+                    disk_status,
+                    BackStore.SYS_ID,
+                    _vpd83=sim_disk['vpd83'],
+                    _location=sim_disk['location'],
+                    _rpm=sim_disk['rpm'],
+                    _link_type=sim_disk['link_type'])
 
     @_handle_errors
     def disks(self):
@@ -2012,8 +1966,14 @@ class SimArray(object):
             for sim_disk in self.bs_obj.sim_disks())
 
     @_handle_errors
-    def volume_create(self, pool_id, vol_name, size_bytes, thinp, flags=0,
-                      _internal_use=False, _is_hw_raid_vol=0):
+    def volume_create(self,
+                      pool_id,
+                      vol_name,
+                      size_bytes,
+                      thinp,
+                      flags=0,
+                      _internal_use=False,
+                      _is_hw_raid_vol=0):
         """
         The '_internal_use' parameter is only for SimArray internal use.
         This method will return the new sim_vol id instead of job_id when
@@ -2023,14 +1983,15 @@ class SimArray(object):
             self.bs_obj.trans_begin()
 
         new_sim_vol_id = self.bs_obj.sim_vol_create(
-            vol_name, size_bytes, SimArray._sim_pool_id_of(pool_id),
+            vol_name,
+            size_bytes,
+            SimArray._sim_pool_id_of(pool_id),
             is_hw_raid_vol=_is_hw_raid_vol)
 
         if _internal_use:
             return new_sim_vol_id
 
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_VOL, new_sim_vol_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_VOL, new_sim_vol_id)
         self.bs_obj.trans_commit()
 
         return job_id, None
@@ -2049,14 +2010,17 @@ class SimArray(object):
 
         sim_vol_id = SimArray._sim_vol_id_of(vol_id)
         self.bs_obj.sim_vol_resize(sim_vol_id, new_size_bytes)
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_VOL, sim_vol_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_VOL, sim_vol_id)
         self.bs_obj.trans_commit()
 
         return job_id, None
 
     @_handle_errors
-    def volume_replicate(self, dst_pool_id, rep_type, src_vol_id, new_vol_name,
+    def volume_replicate(self,
+                         dst_pool_id,
+                         rep_type,
+                         src_vol_id,
+                         new_vol_name,
                          flags=0):
         self.bs_obj.trans_begin()
 
@@ -2064,14 +2028,15 @@ class SimArray(object):
         # Verify the existence of source volume
         src_sim_vol = self.bs_obj.sim_vol_of_id(src_sim_vol_id)
 
-        dst_sim_vol_id = self.volume_create(
-            dst_pool_id, new_vol_name, src_sim_vol['total_space'],
-            Volume.PROVISION_FULL, _internal_use=True)
+        dst_sim_vol_id = self.volume_create(dst_pool_id,
+                                            new_vol_name,
+                                            src_sim_vol['total_space'],
+                                            Volume.PROVISION_FULL,
+                                            _internal_use=True)
 
         self.bs_obj.sim_vol_replica(src_sim_vol_id, dst_sim_vol_id, rep_type)
 
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_VOL, dst_sim_vol_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_VOL, dst_sim_vol_id)
         self.bs_obj.trans_commit()
 
         return job_id, None
@@ -2079,13 +2044,15 @@ class SimArray(object):
     @_handle_errors
     def volume_replicate_range_block_size(self, sys_id, flags=0):
         if sys_id != BackStore.SYS_ID:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
         return BackStore.BLK_SIZE
 
     @_handle_errors
-    def volume_replicate_range(self, rep_type, src_vol_id, dst_vol_id, ranges,
+    def volume_replicate_range(self,
+                               rep_type,
+                               src_vol_id,
+                               dst_vol_id,
+                               ranges,
                                flags=0):
         self.bs_obj.trans_begin()
 
@@ -2093,9 +2060,9 @@ class SimArray(object):
         #                boundary
         # TODO(Gris Ge): Should check block overlap.
 
-        self.bs_obj.sim_vol_replica(
-            SimArray._sim_pool_id_of(src_vol_id),
-            SimArray._sim_pool_id_of(dst_vol_id), rep_type, ranges)
+        self.bs_obj.sim_vol_replica(SimArray._sim_pool_id_of(src_vol_id),
+                                    SimArray._sim_pool_id_of(dst_vol_id),
+                                    rep_type, ranges)
 
         job_id = self._job_create()
 
@@ -2105,16 +2072,16 @@ class SimArray(object):
     @_handle_errors
     def volume_enable(self, vol_id, flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.sim_vol_state_change(
-            SimArray._sim_vol_id_of(vol_id), Volume.ADMIN_STATE_ENABLED)
+        self.bs_obj.sim_vol_state_change(SimArray._sim_vol_id_of(vol_id),
+                                         Volume.ADMIN_STATE_ENABLED)
         self.bs_obj.trans_commit()
         return None
 
     @_handle_errors
     def volume_disable(self, vol_id, flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.sim_vol_state_change(
-            SimArray._sim_vol_id_of(vol_id), Volume.ADMIN_STATE_DISABLED)
+        self.bs_obj.sim_vol_state_change(SimArray._sim_vol_id_of(vol_id),
+                                         Volume.ADMIN_STATE_DISABLED)
         self.bs_obj.trans_commit()
         return None
 
@@ -2149,8 +2116,7 @@ class SimArray(object):
     def volume_child_dependency_rm(self, vol_id, flags=0):
         self.bs_obj.trans_begin()
 
-        self.bs_obj.sim_vol_src_replica_break(
-            SimArray._sim_vol_id_of(vol_id))
+        self.bs_obj.sim_vol_src_replica_break(SimArray._sim_vol_id_of(vol_id))
 
         job_id = self._job_create()
         self.bs_obj.trans_commit()
@@ -2167,7 +2133,11 @@ class SimArray(object):
         return list(SimArray._sim_fs_2_lsm(f) for f in self.bs_obj.sim_fss())
 
     @_handle_errors
-    def fs_create(self, pool_id, fs_name, size_bytes, flags=0,
+    def fs_create(self,
+                  pool_id,
+                  fs_name,
+                  size_bytes,
+                  flags=0,
                   _internal_use=False):
 
         if not _internal_use:
@@ -2179,8 +2149,7 @@ class SimArray(object):
         if _internal_use:
             return new_sim_fs_id
 
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_FS, new_sim_fs_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_FS, new_sim_fs_id)
         self.bs_obj.trans_commit()
 
         return job_id, None
@@ -2214,14 +2183,14 @@ class SimArray(object):
         src_sim_fs = self.bs_obj.sim_fs_of_id(src_sim_fs_id)
         pool_id = src_sim_fs['lsm_pool_id']
 
-        dst_sim_fs_id = self.fs_create(
-            pool_id, dst_fs_name, src_sim_fs['total_space'],
-            _internal_use=True)
+        dst_sim_fs_id = self.fs_create(pool_id,
+                                       dst_fs_name,
+                                       src_sim_fs['total_space'],
+                                       _internal_use=True)
 
         self.bs_obj.sim_fs_clone(src_sim_fs_id, dst_sim_fs_id, sim_fs_snap_id)
 
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_FS, dst_sim_fs_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_FS, dst_sim_fs_id)
         self.bs_obj.trans_commit()
 
         return job_id, None
@@ -2233,9 +2202,8 @@ class SimArray(object):
         if snap_id:
             sim_fs_snap_id = SimArray._sim_fs_snap_id_of(snap_id)
 
-        self.bs_obj.sim_fs_file_clone(
-            SimArray._sim_fs_id_of(fs_id), src_fs_name, dst_fs_name,
-            sim_fs_snap_id)
+        self.bs_obj.sim_fs_file_clone(SimArray._sim_fs_id_of(fs_id),
+                                      src_fs_name, dst_fs_name, sim_fs_snap_id)
 
         job_id = self._job_create()
         self.bs_obj.trans_commit()
@@ -2243,32 +2211,30 @@ class SimArray(object):
 
     @staticmethod
     def _sim_fs_snap_2_lsm(sim_fs_snap):
-        return FsSnapshot(sim_fs_snap['lsm_fs_snap_id'],
-                          sim_fs_snap['name'], sim_fs_snap['timestamp'])
+        return FsSnapshot(sim_fs_snap['lsm_fs_snap_id'], sim_fs_snap['name'],
+                          sim_fs_snap['timestamp'])
 
     @_handle_errors
     def fs_snapshots(self, fs_id, flags=0):
         return list(
             SimArray._sim_fs_snap_2_lsm(s)
-            for s in self.bs_obj.sim_fs_snaps(
-                SimArray._sim_fs_id_of(fs_id)))
+            for s in self.bs_obj.sim_fs_snaps(SimArray._sim_fs_id_of(fs_id)))
 
     @_handle_errors
     def fs_snapshot_create(self, fs_id, snap_name, flags=0):
         self.bs_obj.trans_begin()
         sim_fs_snap_id = self.bs_obj.sim_fs_snap_create(
             SimArray._sim_fs_id_of(fs_id), snap_name)
-        job_id = self._job_create(
-            BackStore.JOB_DATA_TYPE_FS_SNAP, sim_fs_snap_id)
+        job_id = self._job_create(BackStore.JOB_DATA_TYPE_FS_SNAP,
+                                  sim_fs_snap_id)
         self.bs_obj.trans_commit()
         return job_id, None
 
     @_handle_errors
     def fs_snapshot_delete(self, fs_id, snap_id, flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.sim_fs_snap_delete(
-            SimArray._sim_fs_snap_id_of(snap_id),
-            SimArray._sim_fs_id_of(fs_id))
+        self.bs_obj.sim_fs_snap_delete(SimArray._sim_fs_snap_id_of(snap_id),
+                                       SimArray._sim_fs_id_of(fs_id))
         job_id = self._job_create()
         self.bs_obj.trans_commit()
         return job_id
@@ -2281,9 +2247,9 @@ class SimArray(object):
         if snap_id:
             sim_fs_snap_id = SimArray._sim_fs_snap_id_of(snap_id)
 
-        self.bs_obj.sim_fs_snap_restore(
-            SimArray._sim_fs_id_of(fs_id),
-            sim_fs_snap_id, files, restore_files, flag_all_files)
+        self.bs_obj.sim_fs_snap_restore(SimArray._sim_fs_id_of(fs_id),
+                                        sim_fs_snap_id, files, restore_files,
+                                        flag_all_files)
 
         job_id = self._job_create()
         self.bs_obj.trans_commit()
@@ -2335,12 +2301,22 @@ class SimArray(object):
         return [SimArray._sim_exp_2_lsm(e) for e in self.bs_obj.sim_exps()]
 
     @_handle_errors
-    def fs_export(self, fs_id, exp_path, root_hosts, rw_hosts, ro_hosts,
-                  anon_uid, anon_gid, auth_type, options, flags=0):
+    def fs_export(self,
+                  fs_id,
+                  exp_path,
+                  root_hosts,
+                  rw_hosts,
+                  ro_hosts,
+                  anon_uid,
+                  anon_gid,
+                  auth_type,
+                  options,
+                  flags=0):
         self.bs_obj.trans_begin()
-        sim_exp_id = self.bs_obj.sim_exp_create(
-            SimArray._sim_fs_id_of(fs_id), exp_path, root_hosts, rw_hosts,
-            ro_hosts, anon_uid, anon_gid, auth_type, options)
+        sim_exp_id = self.bs_obj.sim_exp_create(SimArray._sim_fs_id_of(fs_id),
+                                                exp_path, root_hosts, rw_hosts,
+                                                ro_hosts, anon_uid, anon_gid,
+                                                auth_type, options)
         sim_exp = self.bs_obj.sim_exp_of_id(sim_exp_id)
         self.bs_obj.trans_commit()
         return SimArray._sim_exp_2_lsm(sim_exp)
@@ -2365,9 +2341,7 @@ class SimArray(object):
     @_handle_errors
     def access_group_create(self, name, init_id, init_type, sys_id, flags=0):
         if sys_id != BackStore.SYS_ID:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
         self.bs_obj.trans_begin()
         new_sim_ag_id = self.bs_obj.sim_ag_create(name, init_type, init_id)
         new_sim_ag = self.bs_obj.sim_ag_of_id(new_sim_ag_id)
@@ -2391,7 +2365,10 @@ class SimArray(object):
         return SimArray._sim_ag_2_lsm(new_sim_ag)
 
     @_handle_errors
-    def access_group_initiator_delete(self, ag_id, init_id, init_type,
+    def access_group_initiator_delete(self,
+                                      ag_id,
+                                      init_id,
+                                      init_type,
                                       flags=0):
         sim_ag_id = SimArray._sim_ag_id_of(ag_id)
         self.bs_obj.trans_begin()
@@ -2403,18 +2380,16 @@ class SimArray(object):
     @_handle_errors
     def volume_mask(self, ag_id, vol_id, flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.sim_vol_mask(
-            SimArray._sim_vol_id_of(vol_id),
-            SimArray._sim_ag_id_of(ag_id))
+        self.bs_obj.sim_vol_mask(SimArray._sim_vol_id_of(vol_id),
+                                 SimArray._sim_ag_id_of(ag_id))
         self.bs_obj.trans_commit()
         return None
 
     @_handle_errors
     def volume_unmask(self, ag_id, vol_id, flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.sim_vol_unmask(
-            SimArray._sim_vol_id_of(vol_id),
-            SimArray._sim_ag_id_of(ag_id))
+        self.bs_obj.sim_vol_unmask(SimArray._sim_vol_id_of(vol_id),
+                                   SimArray._sim_ag_id_of(ag_id))
         self.bs_obj.trans_commit()
         return None
 
@@ -2437,21 +2412,26 @@ class SimArray(object):
         return [SimArray._sim_ag_2_lsm(a) for a in sim_ags]
 
     @_handle_errors
-    def iscsi_chap_auth(self, init_id, in_user, in_pass, out_user, out_pass,
+    def iscsi_chap_auth(self,
+                        init_id,
+                        in_user,
+                        in_pass,
+                        out_user,
+                        out_pass,
                         flags=0):
         self.bs_obj.trans_begin()
-        self.bs_obj.iscsi_chap_auth_set(
-            init_id, in_user, in_pass, out_user, out_pass)
+        self.bs_obj.iscsi_chap_auth_set(init_id, in_user, in_pass, out_user,
+                                        out_pass)
         self.bs_obj.trans_commit()
         return None
 
     @staticmethod
     def _sim_tgt_2_lsm(sim_tgt):
-        return TargetPort(
-            sim_tgt['lsm_tgt_id'], sim_tgt['port_type'],
-            sim_tgt['service_address'], sim_tgt['network_address'],
-            sim_tgt['physical_address'], sim_tgt['physical_name'],
-            BackStore.SYS_ID)
+        return TargetPort(sim_tgt['lsm_tgt_id'], sim_tgt['port_type'],
+                          sim_tgt['service_address'],
+                          sim_tgt['network_address'],
+                          sim_tgt['physical_address'],
+                          sim_tgt['physical_name'], BackStore.SYS_ID)
 
     @_handle_errors
     def target_ports(self):
@@ -2478,8 +2458,8 @@ class SimArray(object):
         if raid_type == Volume.RAID_TYPE_UNKNOWN or \
            raid_type == Volume.RAID_TYPE_OTHER:
             return [
-                raid_type, strip_size, disk_count, min_io_size,
-                opt_io_size]
+                raid_type, strip_size, disk_count, min_io_size, opt_io_size
+            ]
 
         if raid_type == Volume.RAID_TYPE_MIXED:
             raise LsmError(
@@ -2515,34 +2495,29 @@ class SimArray(object):
     @_handle_errors
     def volume_raid_create_cap_get(self, system):
         if system.id != BackStore.SYS_ID:
-            raise LsmError(
-                ErrorNumber.NOT_FOUND_SYSTEM,
-                "System not found")
-        return (
-            BackStore.SUPPORTED_VCR_RAID_TYPES,
-            BackStore.SUPPORTED_VCR_STRIP_SIZES)
+            raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
+        return (BackStore.SUPPORTED_VCR_RAID_TYPES,
+                BackStore.SUPPORTED_VCR_STRIP_SIZES)
 
     @_handle_errors
     def volume_raid_create(self, name, raid_type, disks, strip_size):
         if raid_type not in BackStore.SUPPORTED_VCR_RAID_TYPES:
-            raise LsmError(
-                ErrorNumber.NO_SUPPORT,
-                "Provided 'raid_type' is not supported")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Provided 'raid_type' is not supported")
 
         if strip_size == Volume.VCR_STRIP_SIZE_DEFAULT:
             strip_size = BackStore.DEFAULT_STRIP_SIZE
         elif strip_size not in BackStore.SUPPORTED_VCR_STRIP_SIZES:
-            raise LsmError(
-                ErrorNumber.NO_SUPPORT,
-                "Provided 'strip_size' is not supported")
+            raise LsmError(ErrorNumber.NO_SUPPORT,
+                           "Provided 'strip_size' is not supported")
 
         self.bs_obj.trans_begin()
         pool_name = "Pool for volume %s" % name
         sim_disk_ids = [
             SimArray._lsm_id_to_sim_id(
-                d.id,
-                LsmError(ErrorNumber.NOT_FOUND_DISK, "Disk not found"))
-            for d in disks]
+                d.id, LsmError(ErrorNumber.NOT_FOUND_DISK, "Disk not found"))
+            for d in disks
+        ]
 
         for disk in disks:
             if not disk.status & Disk.STATUS_FREE:
@@ -2555,8 +2530,8 @@ class SimArray(object):
                 raid_type=raid_type,
                 sim_disk_ids=sim_disk_ids,
                 element_type=Pool.ELEMENT_TYPE_VOLUME,
-                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW |
-                Pool.UNSUPPORTED_VOLUME_SHRINK,
+                unsupported_actions=Pool.UNSUPPORTED_VOLUME_GROW
+                | Pool.UNSUPPORTED_VOLUME_SHRINK,
                 strip_size=strip_size)
         except sqlite3.IntegrityError as sql_error:
             raise LsmError(
@@ -2567,9 +2542,12 @@ class SimArray(object):
         sim_vol_id = self.volume_create(
             # TODO Figure out why sim_pool freespace ends up being smaller when
             # we call _check_pool_free_space in volume_create internals
-            sim_pool['lsm_pool_id'], name,
-            sim_pool['free_space'] - 1024, Volume.PROVISION_FULL,
-            _internal_use=True, _is_hw_raid_vol=1)
+            sim_pool['lsm_pool_id'],
+            name,
+            sim_pool['free_space'] - 1024,
+            Volume.PROVISION_FULL,
+            _internal_use=True,
+            _is_hw_raid_vol=1)
         sim_vol = self.bs_obj.sim_vol_of_id(sim_vol_id)
         self.bs_obj.trans_commit()
         return SimArray._sim_vol_2_lsm(sim_vol)
@@ -2577,9 +2555,8 @@ class SimArray(object):
     @_handle_errors
     def volume_ident_led_on(self, volume, flags=0):
         sim_volume_id = SimArray._lsm_id_to_sim_id(
-                            volume.id, LsmError(
-                                           ErrorNumber.NOT_FOUND_VOLUME,
-                                           "Volume not found"))
+            volume.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
         sim_vol = self.bs_obj.sim_vol_of_id(sim_volume_id)
 
         return None
@@ -2587,9 +2564,8 @@ class SimArray(object):
     @_handle_errors
     def volume_ident_led_off(self, volume, flags=0):
         sim_volume_id = SimArray._lsm_id_to_sim_id(
-                            volume.id, LsmError(
-                                           ErrorNumber.NOT_FOUND_VOLUME,
-                                           "Volume not found"))
+            volume.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
         sim_vol = self.bs_obj.sim_vol_of_id(sim_volume_id)
 
         return None
@@ -2605,9 +2581,10 @@ class SimArray(object):
 
     @_handle_errors
     def volume_cache_info(self, lsm_vol):
-        sim_vol = self.bs_obj.sim_vol_of_id(SimArray._lsm_id_to_sim_id(
-            lsm_vol.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                                 "Volume not found")))
+        sim_vol = self.bs_obj.sim_vol_of_id(
+            SimArray._lsm_id_to_sim_id(
+                lsm_vol.id,
+                LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found")))
         write_cache_status = Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
         read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
 
@@ -2633,16 +2610,18 @@ class SimArray(object):
         elif sim_vol['read_cache_policy'] == Volume.READ_CACHE_POLICY_UNKNOWN:
             read_cache_status = Volume.READ_CACHE_STATUS_UNKNOWN
 
-        return [sim_vol['write_cache_policy'], write_cache_status,
-                sim_vol['read_cache_policy'], read_cache_status,
-                sim_vol['phy_disk_cache']]
+        return [
+            sim_vol['write_cache_policy'], write_cache_status,
+            sim_vol['read_cache_policy'], read_cache_status,
+            sim_vol['phy_disk_cache']
+        ]
 
     @_handle_errors
     def volume_physical_disk_cache_update(self, volume, pdc, flags=0):
         self.bs_obj.trans_begin()
         sim_vol_id = SimArray._lsm_id_to_sim_id(
-            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                                "Volume not found"))
+            volume.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
         self.bs_obj.sim_vol_pdc_set(sim_vol_id, pdc)
         self.bs_obj.trans_commit()
 
@@ -2650,8 +2629,8 @@ class SimArray(object):
     def volume_write_cache_policy_update(self, volume, wcp, flags=0):
         self.bs_obj.trans_begin()
         sim_vol_id = SimArray._lsm_id_to_sim_id(
-            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                                "Volume not found"))
+            volume.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
         self.bs_obj.sim_vol_wcp_set(sim_vol_id, wcp)
         self.bs_obj.trans_commit()
 
@@ -2659,7 +2638,7 @@ class SimArray(object):
     def volume_read_cache_policy_update(self, volume, rcp, flags=0):
         self.bs_obj.trans_begin()
         sim_vol_id = SimArray._lsm_id_to_sim_id(
-            volume.id, LsmError(ErrorNumber.NOT_FOUND_VOLUME,
-                                "Volume not found"))
+            volume.id,
+            LsmError(ErrorNumber.NOT_FOUND_VOLUME, "Volume not found"))
         self.bs_obj.sim_vol_rcp_set(sim_vol_id, rcp)
         self.bs_obj.trans_commit()

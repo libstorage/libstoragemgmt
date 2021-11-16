@@ -19,7 +19,6 @@ from smispy_plugin.smis_common import SmisCommon
 from smispy_plugin.utils import merge_list
 from smispy_plugin import dmtf
 
-
 _LSM_DISK_OP_STATUS_CONV = {
     dmtf.OP_STATUS_UNKNOWN: Disk.STATUS_UNKNOWN,
     dmtf.OP_STATUS_OK: Disk.STATUS_OK,
@@ -40,9 +39,9 @@ def _disk_status_of_cim_disk(cim_disk):
     if 'OperationalStatus' not in cim_disk:
         return Disk.STATUS_UNKNOWN
 
-    return dmtf.op_status_list_conv(
-        _LSM_DISK_OP_STATUS_CONV, cim_disk['OperationalStatus'],
-        Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
+    return dmtf.op_status_list_conv(_LSM_DISK_OP_STATUS_CONV,
+                                    cim_disk['OperationalStatus'],
+                                    Disk.STATUS_UNKNOWN, Disk.STATUS_OTHER)[0]
 
 
 _DMTF_DISK_TYPE_2_LSM = {
@@ -79,9 +78,11 @@ def cim_disk_pros():
     The 'Type' and 'MediaType' is only for MegaRAID.
     The 'EMCInUse' is only for EMC.
     """
-    return ['OperationalStatus', 'Name', 'SystemName',
-            'Caption', 'InterconnectType', 'DiskType', 'DeviceID',
-            'Type', 'MediaType', 'EMCInUse']
+    return [
+        'OperationalStatus', 'Name', 'SystemName', 'Caption',
+        'InterconnectType', 'DiskType', 'DeviceID', 'Type', 'MediaType',
+        'EMCInUse'
+    ]
 
 
 def sys_id_of_cim_disk(cim_disk):
@@ -120,22 +121,21 @@ def _pri_cim_ext_of_cim_disk(smis_common, cim_disk_path, property_list=None):
     else:
         property_list = merge_list(property_list, ['Primordial'])
 
-    cim_exts = smis_common.Associators(
-        cim_disk_path,
-        AssocClass='CIM_MediaPresent',
-        ResultClass='CIM_StorageExtent',
-        PropertyList=property_list)
+    cim_exts = smis_common.Associators(cim_disk_path,
+                                       AssocClass='CIM_MediaPresent',
+                                       ResultClass='CIM_StorageExtent',
+                                       PropertyList=property_list)
     cim_exts = [p for p in cim_exts if p["Primordial"]]
     if len(cim_exts) == 1:
         # As SNIA commanded, only _ONE_ Primordial CIM_StorageExtent for
         # each CIM_DiskDrive
         return cim_exts[0]
     else:
-        raise LsmError(ErrorNumber.PLUGIN_BUG,
-                       "_pri_cim_ext_of_cim_disk(): "
-                       "Got unexpected count of Primordial " +
-                       "CIM_StorageExtent for CIM_DiskDrive: %s, %s " %
-                       (cim_disk_path, cim_exts))
+        raise LsmError(
+            ErrorNumber.PLUGIN_BUG, "_pri_cim_ext_of_cim_disk(): "
+            "Got unexpected count of Primordial " +
+            "CIM_StorageExtent for CIM_DiskDrive: %s, %s " %
+            (cim_disk_path, cim_exts))
 
 
 # LSIESG_DiskDrive['MediaType']
@@ -175,7 +175,8 @@ def cim_disk_to_lsm_disk(smis_common, cim_disk):
     # CIM_DiskDrive does not have disk size information.
     # We have to find out the Primordial CIM_StorageExtent for that.
     cim_ext = _pri_cim_ext_of_cim_disk(
-        smis_common, cim_disk.path,
+        smis_common,
+        cim_disk.path,
         property_list=['BlockSize', 'NumberOfBlocks'])
 
     status = _disk_status_of_cim_disk(cim_disk)
@@ -183,7 +184,8 @@ def cim_disk_to_lsm_disk(smis_common, cim_disk):
                                  SmisCommon.SMIS_SPEC_VER_1_4,
                                  raise_error=False):
         cim_srss = smis_common.AssociatorNames(
-            cim_ext.path, AssocClass='CIM_IsSpare',
+            cim_ext.path,
+            AssocClass='CIM_IsSpare',
             ResultClass='CIM_StorageRedundancySet')
         if len(cim_srss) >= 1:
             status |= Disk.STATUS_SPARE_DISK

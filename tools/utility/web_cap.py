@@ -100,6 +100,7 @@ function drawTable() {
 </html>
 ''')
 
+
 if __name__ == '__main__':
     arrays = []
 

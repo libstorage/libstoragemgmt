@@ -15,9 +15,8 @@
 # Author: Gris Ge <fge@redhat.com>
 
 from smispy_plugin.utils import (merge_list, path_str_to_cim_path,
-                                     cim_path_to_path_str)
+                                 cim_path_to_path_str)
 from smispy_plugin import dmtf
-
 
 from lsm import LsmError, ErrorNumber, Pool
 
@@ -44,11 +43,10 @@ def cim_pools_of_cim_sys_path(smis_common, cim_sys_path, property_list=None):
     else:
         property_list = merge_list(property_list, ['Primordial', 'Usage'])
 
-    cim_pools = smis_common.Associators(
-        cim_sys_path,
-        AssocClass='CIM_HostedStoragePool',
-        ResultClass='CIM_StoragePool',
-        PropertyList=property_list)
+    cim_pools = smis_common.Associators(cim_sys_path,
+                                        AssocClass='CIM_HostedStoragePool',
+                                        ResultClass='CIM_StoragePool',
+                                        PropertyList=property_list)
 
     rc = []
     for cim_pool in cim_pools:
@@ -105,9 +103,10 @@ def cim_pool_pros():
     Return a list of CIM_StoragePool properties required to generate lsm.Pool.
     """
     pool_pros = cim_pool_id_pros()
-    pool_pros.extend(['ElementName', 'TotalManagedSpace',
-                      'RemainingManagedSpace', 'Usage',
-                      'OperationalStatus'])
+    pool_pros.extend([
+        'ElementName', 'TotalManagedSpace', 'RemainingManagedSpace', 'Usage',
+        'OperationalStatus'
+    ])
     return pool_pros
 
 
@@ -130,8 +129,9 @@ def _pool_element_type(smis_common, cim_pool):
         cim_pool.path,
         AssocClass='CIM_ElementCapabilities',
         ResultClass='CIM_StorageConfigurationCapabilities',
-        PropertyList=['SupportedStorageElementFeatures',
-                      'SupportedStorageElementTypes'])
+        PropertyList=[
+            'SupportedStorageElementFeatures', 'SupportedStorageElementTypes'
+        ])
     # Associate StorageConfigurationCapabilities to StoragePool
     # is experimental in SNIA 1.6rev4, Block Book PDF Page 68.
     # Section 5.1.6 StoragePool, StorageVolume and LogicalDisk
@@ -196,9 +196,9 @@ def _pool_status_of_cim_pool(dmtf_op_status_list):
     """
     Convert CIM_StoragePool['OperationalStatus'] to LSM
     """
-    return dmtf.op_status_list_conv(
-        _LSM_POOL_OP_STATUS_CONV, dmtf_op_status_list,
-        Pool.STATUS_UNKNOWN, Pool.STATUS_OTHER)
+    return dmtf.op_status_list_conv(_LSM_POOL_OP_STATUS_CONV,
+                                    dmtf_op_status_list, Pool.STATUS_UNKNOWN,
+                                    Pool.STATUS_OTHER)
 
 
 def cim_pool_to_lsm_pool(smis_common, cim_pool, system_id):
@@ -219,16 +219,15 @@ def cim_pool_to_lsm_pool(smis_common, cim_pool, system_id):
     if 'RemainingManagedSpace' in cim_pool:
         free_space = cim_pool['RemainingManagedSpace']
     if 'OperationalStatus' in cim_pool:
-        (status, status_info) = _pool_status_of_cim_pool(
-            cim_pool['OperationalStatus'])
+        (status,
+         status_info) = _pool_status_of_cim_pool(cim_pool['OperationalStatus'])
 
     element_type, unsupported = _pool_element_type(smis_common, cim_pool)
 
     plugin_data = cim_path_to_path_str(cim_pool.path)
 
-    return Pool(pool_id, name, element_type, unsupported,
-                total_space, free_space,
-                status, status_info, system_id, plugin_data)
+    return Pool(pool_id, name, element_type, unsupported, total_space,
+                free_space, status, status_info, system_id, plugin_data)
 
 
 def lsm_pool_to_cim_pool_path(smis_common, lsm_pool):
@@ -237,14 +236,11 @@ def lsm_pool_to_cim_pool_path(smis_common, lsm_pool):
     lsm.Pool.plugin_data
     """
     if not lsm_pool.plugin_data:
-        raise LsmError(
-            ErrorNumber.PLUGIN_BUG,
-            "Got lsm.Pool instance with empty plugin_data")
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
+                       "Got lsm.Pool instance with empty plugin_data")
     if smis_common.system_list and \
        lsm_pool.system_id not in smis_common.system_list:
-        raise LsmError(
-            ErrorNumber.NOT_FOUND_SYSTEM,
-            "System filtered in URI")
+        raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System filtered in URI")
 
     return path_str_to_cim_path(lsm_pool.plugin_data)
 
@@ -263,6 +259,6 @@ def pool_id_of_cim_vol(smis_common, cim_vol_path):
         raise LsmError(
             ErrorNumber.PLUGIN_BUG,
             "pool_id_of_cim_vol(): Got unexpected count(%d) of cim_pool " %
-            len(cim_pools) +
-            "associated to cim_vol: %s, %s" % (cim_vol_path, cim_pools))
+            len(cim_pools) + "associated to cim_vol: %s, %s" %
+            (cim_vol_path, cim_pools))
     return pool_id_of_cim_pool(cim_pools[0])

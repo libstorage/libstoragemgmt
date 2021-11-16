@@ -22,9 +22,10 @@ import yaml
 
 
 class TestArrays(object):
-    col_name = ['COMPANY', 'NAMESPACE', 'SMI_VERSION', 'PRODUCT', 'PRINCIPAL',
-                'PASSWORD', 'CIM_VERSION', 'IP', 'INTEROP_NS', 'PROTOCOL',
-                'PORT']
+    col_name = [
+        'COMPANY', 'NAMESPACE', 'SMI_VERSION', 'PRODUCT', 'PRINCIPAL',
+        'PASSWORD', 'CIM_VERSION', 'IP', 'INTEROP_NS', 'PROTOCOL', 'PORT'
+    ]
 
     skip_these = ['Brocade', 'Cisco']
 
@@ -121,8 +122,10 @@ class TestArrays(object):
             converted = []
             for r in rc:
                 (uri, password) = self.uri_password_get(r)
-                t = dict(COMPANY=r["COMPANY"], IP=r["IP"],
-                         PASSWORD=password, URI=uri)
+                t = dict(COMPANY=r["COMPANY"],
+                         IP=r["IP"],
+                         PASSWORD=password,
+                         URI=uri)
                 converted.append(t.copy())
                 t = None
 

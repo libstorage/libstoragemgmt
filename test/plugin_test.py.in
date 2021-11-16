@@ -43,7 +43,6 @@ from lsm import Capabilities as Cap
 results = {}
 stats = {}
 
-
 MIN_POOL_SIZE = 4096
 MIN_OBJECT_SIZE = 512
 
@@ -90,6 +89,7 @@ def record_result(method):
             results[method.__name__] = dict(rc=False,
                                             stack_trace=traceback.format_exc(),
                                             msg=str(e))
+
     return recorder
 
 
@@ -109,7 +109,7 @@ def r_fcpn():
     """
     Generate a random 16 character hex number
     """
-    rnd_fcpn = '%016x' % random.randrange(2 ** 64)
+    rnd_fcpn = '%016x' % random.randrange(2**64)
     return ':'.join(rnd_fcpn[i:i + 2] for i in range(0, len(rnd_fcpn), 2))
 
 
@@ -144,29 +144,30 @@ def supported(cap, capability):
 class TestProxy(object):
 
     # Errors that we are forcing to occur
-    not_logging = [lsm.ErrorNumber.NO_SUPPORT,
-                   lsm.ErrorNumber.NAME_CONFLICT,
-                   lsm.ErrorNumber.NO_STATE_CHANGE,
-                   lsm.ErrorNumber.IS_MASKED,
-                   lsm.ErrorNumber.HAS_CHILD_DEPENDENCY,
-                   lsm.ErrorNumber.EXISTS_INITIATOR]
+    not_logging = [
+        lsm.ErrorNumber.NO_SUPPORT, lsm.ErrorNumber.NAME_CONFLICT,
+        lsm.ErrorNumber.NO_STATE_CHANGE, lsm.ErrorNumber.IS_MASKED,
+        lsm.ErrorNumber.HAS_CHILD_DEPENDENCY, lsm.ErrorNumber.EXISTS_INITIATOR
+    ]
 
     # Hash of all calls that can be async
-    async_calls = {'volume_create': (str, lsm.Volume),
-                   'volume_resize': (str, lsm.Volume),
-                   'volume_replicate': (str, lsm.Volume),
-                   'volume_replicate_range': (str,),
-                   'volume_delete': (str,),
-                   'volume_child_dependency_rm': (str,),
-                   'fs_delete': (str,),
-                   'fs_resize': (str, lsm.FileSystem),
-                   'fs_create': (str, lsm.FileSystem),
-                   'fs_clone': (str, lsm.FileSystem),
-                   'fs_file_clone': (str,),
-                   'fs_snapshot_create': (str, lsm.FsSnapshot),
-                   'fs_snapshot_delete': (str,),
-                   'fs_snapshot_restore': (str,),
-                   'fs_child_dependency_rm': (str,)}
+    async_calls = {
+        'volume_create': (str, lsm.Volume),
+        'volume_resize': (str, lsm.Volume),
+        'volume_replicate': (str, lsm.Volume),
+        'volume_replicate_range': (str, ),
+        'volume_delete': (str, ),
+        'volume_child_dependency_rm': (str, ),
+        'fs_delete': (str, ),
+        'fs_resize': (str, lsm.FileSystem),
+        'fs_create': (str, lsm.FileSystem),
+        'fs_clone': (str, lsm.FileSystem),
+        'fs_file_clone': (str, ),
+        'fs_snapshot_create': (str, lsm.FsSnapshot),
+        'fs_snapshot_delete': (str, ),
+        'fs_snapshot_restore': (str, ),
+        'fs_child_dependency_rm': (str, )
+    }
 
     # The constructor.
     # @param    self    The object self
@@ -304,12 +305,15 @@ class TestPlugin(unittest.TestCase):
         self.pool_by_sys_id = {}
 
         for s in self.systems:
-            self.pool_by_sys_id[s.id] = [p for p in self.pools if
-                                         p.system_id == s.id]
+            self.pool_by_sys_id[s.id] = [
+                p for p in self.pools if p.system_id == s.id
+            ]
 
         # TODO Store what exists, so that we don't remove it
 
-    def _get_pool_by_usage(self, system_id, element_type,
+    def _get_pool_by_usage(self,
+                           system_id,
+                           element_type,
                            unsupported_features=0):
         largest_free = 0
         rc = None
@@ -337,8 +341,10 @@ class TestPlugin(unittest.TestCase):
                 cap = self.c.capabilities(s)
                 # Remove any access groups we created, removing any mappings
                 # first.
-                if supported(cap, [Cap.ACCESS_GROUP_DELETE,
-                                   Cap.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
+                if supported(cap, [
+                        Cap.ACCESS_GROUP_DELETE,
+                        Cap.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP
+                ]):
                     for ag in self.c.access_groups():
                         if g_prefix in ag.name and s.id == ag.system_id:
                             try:
@@ -406,8 +412,10 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.FS, Cap.FS_DELETE]):
                     for f in self.c.fs():
                         if g_prefix in f.name and s.id == f.system_id:
-                            if supported(cap, [Cap.FS_CHILD_DEPENDENCY,
-                                               Cap.FS_CHILD_DEPENDENCY_RM]):
+                            if supported(cap, [
+                                    Cap.FS_CHILD_DEPENDENCY,
+                                    Cap.FS_CHILD_DEPENDENCY_RM
+                            ]):
                                 if self.c.fs_child_dependency(f, None):
                                     self.c.fs_child_dependency_rm(f, None)
                             try:
@@ -500,8 +508,7 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [Cap.VOLUMES]):
                 (volumes, flag_created) = self._find_or_create_volumes()
                 self.assertTrue(
-                    len(volumes) > 0,
-                    "We need at least 1 volume to test")
+                    len(volumes) > 0, "We need at least 1 volume to test")
 
                 if flag_created:
                     self._volume_delete(volumes[0])
@@ -531,8 +538,8 @@ class TestPlugin(unittest.TestCase):
             cap = self.c.capabilities(s)
             if supported(cap, [Cap.DISKS]):
                 disks = self.c.disks()
-                self.assertTrue(len(disks) > 0,
-                                "We need at least 1 disk to test")
+                self.assertTrue(
+                    len(disks) > 0, "We need at least 1 disk to test")
                 if supported(cap, [Cap.DISK_VPD83_GET]):
                     try:
                         list(disk.vpd83 for disk in disks)
@@ -548,11 +555,12 @@ class TestPlugin(unittest.TestCase):
             if supported(cap, [Cap.DISK_LOCATION]):
                 for disk in self.c.disks():
                     disk_location = disk.location
-                    self.assertTrue(disk_location is not None and
-                                    len(disk_location) > 0,
-                                    "Disk location retrieval failed")
+                    self.assertTrue(
+                        disk_location is not None and len(disk_location) > 0,
+                        "Disk location retrieval failed")
 
-    def _volume_create(self, system_id,
+    def _volume_create(self,
+                       system_id,
                        element_type=lsm.Pool.ELEMENT_TYPE_VOLUME,
                        unsupported_features=0):
         if system_id in self.pool_by_sys_id:
@@ -576,11 +584,11 @@ class TestPlugin(unittest.TestCase):
     def _fs_create(self, system_id):
         if system_id in self.pool_by_sys_id:
             fs = None
-            pool = self._get_pool_by_usage(system_id,
-                                           lsm.Pool.ELEMENT_TYPE_FS)
+            pool = self._get_pool_by_usage(system_id, lsm.Pool.ELEMENT_TYPE_FS)
 
-            self.assertTrue(pool is not None, "Unable to find a suitable pool "
-                                              "for fs creation")
+            self.assertTrue(
+                pool is not None, "Unable to find a suitable pool "
+                "for fs creation")
 
             if pool is not None:
                 fs_size = self._min_size()
@@ -669,12 +677,11 @@ class TestPlugin(unittest.TestCase):
                 # We need to make sure that the pool supports volume grow.
                 unsupported = lsm.Pool.UNSUPPORTED_VOLUME_GROW
 
-                if supported(cap, [Cap.VOLUME_CREATE,
-                                   Cap.VOLUME_DELETE,
-                                   Cap.VOLUME_RESIZE]):
+                if supported(
+                        cap,
+                    [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE, Cap.VOLUME_RESIZE]):
                     vol = self._volume_create(
-                        s.id,
-                        unsupported_features=unsupported)[0]
+                        s.id, unsupported_features=unsupported)[0]
                     vol_resize = self.c.volume_resize(
                         vol, vol.size_bytes + mb_in_bytes(16))[1]
                     self.assertTrue(vol.size_bytes < vol_resize.size_bytes)
@@ -684,10 +691,11 @@ class TestPlugin(unittest.TestCase):
                     # we need to come up with a better way to handle these
                     # kind of things, ie. expected failures for certain things
                     if '10.1.134.160' not in TestPlugin.URI:
-                        self.assertTrue(vol.id == vol_resize.id,
-                                        "Expecting re-sized volume to refer to "
-                                        "same volume.  Expected %s, got %s" %
-                                        (vol.id, vol_resize.id))
+                        self.assertTrue(
+                            vol.id == vol_resize.id,
+                            "Expecting re-sized volume to refer to "
+                            "same volume.  Expected %s, got %s" %
+                            (vol.id, vol_resize.id))
 
                     if vol.id == vol_resize.id:
                         self._volume_delete(vol_resize)
@@ -700,16 +708,14 @@ class TestPlugin(unittest.TestCase):
             for s in self.systems:
                 cap = self.c.capabilities(s)
 
-                if supported(cap, [Cap.VOLUME_CREATE,
-                                   Cap.VOLUME_DELETE]):
+                if supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
                     vol, pool = self._volume_create(s.id)
 
                     # For the moment lets allow the array to pick the pool
                     # to supply the backing store for the replicate
                     if supported(cap, [capability]):
                         volume_clone = self.c.volume_replicate(
-                            None, replication_type, vol,
-                            rs('v_c_'))[1]
+                            None, replication_type, vol, rs('v_c_'))[1]
 
                         self.assertTrue(volume_clone is not None)
 
@@ -721,14 +727,14 @@ class TestPlugin(unittest.TestCase):
                             # existing name
                             error_num = None
                             try:
-                                    self.c.volume_replicate(
-                                        None, replication_type, vol,
-                                        volume_clone.name)[1]
+                                self.c.volume_replicate(
+                                    None, replication_type, vol,
+                                    volume_clone.name)[1]
                             except LsmError as le:
                                 error_num = le.code
 
-                            self.assertTrue(error_num ==
-                                            ErrorNumber.NAME_CONFLICT)
+                            self.assertTrue(
+                                error_num == ErrorNumber.NAME_CONFLICT)
 
                         self._volume_delete(volume_clone)
 
@@ -763,11 +769,10 @@ class TestPlugin(unittest.TestCase):
             for s in self.systems:
                 cap = self.c.capabilities(s)
 
-                if supported(cap,
-                             [Cap.VOLUME_COPY_RANGE_BLOCK_SIZE,
-                              Cap.VOLUME_CREATE,
-                              Cap.VOLUME_DELETE,
-                              Cap.VOLUME_COPY_RANGE]):
+                if supported(cap, [
+                        Cap.VOLUME_COPY_RANGE_BLOCK_SIZE, Cap.VOLUME_CREATE,
+                        Cap.VOLUME_DELETE, Cap.VOLUME_COPY_RANGE
+                ]):
 
                     size = self.c.volume_replicate_range_block_size(s)
 
@@ -775,27 +780,25 @@ class TestPlugin(unittest.TestCase):
 
                     br = lsm.BlockRange(0, size, size)
 
-                    if supported(
-                            cap, [Cap.VOLUME_COPY_RANGE_CLONE]):
+                    if supported(cap, [Cap.VOLUME_COPY_RANGE_CLONE]):
                         self.c.volume_replicate_range(
                             lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
                     else:
-                        self.assertRaises(
-                            lsm.LsmError,
-                            self.c.volume_replicate_range,
-                            lsm.Volume.REPLICATE_CLONE, vol, vol, [br])
+                        self.assertRaises(lsm.LsmError,
+                                          self.c.volume_replicate_range,
+                                          lsm.Volume.REPLICATE_CLONE, vol, vol,
+                                          [br])
 
                     br = lsm.BlockRange(size * 2, size, size)
 
-                    if supported(
-                            cap, [Cap.VOLUME_COPY_RANGE_COPY]):
+                    if supported(cap, [Cap.VOLUME_COPY_RANGE_COPY]):
                         self.c.volume_replicate_range(
                             lsm.Volume.REPLICATE_COPY, vol, vol, [br])
                     else:
-                        self.assertRaises(
-                            lsm.LsmError,
-                            self.c.volume_replicate_range,
-                            lsm.Volume.REPLICATE_COPY, vol, vol, [br])
+                        self.assertRaises(lsm.LsmError,
+                                          self.c.volume_replicate_range,
+                                          lsm.Volume.REPLICATE_COPY, vol, vol,
+                                          [br])
 
                     self._volume_delete(vol)
 
@@ -830,8 +833,7 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.FS_CREATE,
-                               Cap.FS_CLONE]):
+            if supported(cap, [Cap.FS_CREATE, Cap.FS_CLONE]):
                 fs, pool = self._fs_create(s.id)
 
                 if fs is not None:
@@ -845,8 +847,7 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.FS_CREATE,
-                               Cap.FS_SNAPSHOT_CREATE]):
+            if supported(cap, [Cap.FS_CREATE, Cap.FS_SNAPSHOT_CREATE]):
 
                 fs, pool = self._fs_create(s.id)
 
@@ -878,9 +879,7 @@ class TestPlugin(unittest.TestCase):
                     self.assertTrue(p.system_id is not None)
 
     def _masking_state(self, cap, ag, vol, masked):
-        if supported(cap,
-                     [Cap.
-                      VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
+        if supported(cap, [Cap.VOLUMES_ACCESSIBLE_BY_ACCESS_GROUP]):
             vol_masked = \
                 self.c.volumes_accessible_by_access_group(ag)
 
@@ -891,9 +890,7 @@ class TestPlugin(unittest.TestCase):
             else:
                 self.assertTrue(len(match) == 0, "len = %d" % len(match))
 
-        if supported(cap,
-                     [Cap.
-                      ACCESS_GROUPS_GRANTED_TO_VOLUME]):
+        if supported(cap, [Cap.ACCESS_GROUPS_GRANTED_TO_VOLUME]):
             ag_masked = \
                 self.c.access_groups_granted_to_volume(vol)
 
@@ -909,11 +906,10 @@ class TestPlugin(unittest.TestCase):
             ag_created = None
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.ACCESS_GROUPS,
-                               Cap.VOLUME_MASK,
-                               Cap.VOLUME_UNMASK,
-                               Cap.VOLUME_CREATE,
-                               Cap.VOLUME_DELETE]):
+            if supported(cap, [
+                    Cap.ACCESS_GROUPS, Cap.VOLUME_MASK, Cap.VOLUME_UNMASK,
+                    Cap.VOLUME_CREATE, Cap.VOLUME_DELETE
+            ]):
 
                 if supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_name = rs("ag")
@@ -982,14 +978,11 @@ class TestPlugin(unittest.TestCase):
 
         if init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
             ag_created = self.c.access_group_create(
-                name, r_iqn(),
-                lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
+                name, r_iqn(), lsm.AccessGroup.INIT_TYPE_ISCSI_IQN, s)
 
         elif init_type == lsm.AccessGroup.INIT_TYPE_WWPN:
             ag_created = self.c.access_group_create(
-                name,
-                r_fcpn(),
-                lsm.AccessGroup.INIT_TYPE_WWPN, s)
+                name, r_fcpn(), lsm.AccessGroup.INIT_TYPE_WWPN, s)
 
         self.assertTrue(ag_created is not None)
 
@@ -1009,9 +1002,10 @@ class TestPlugin(unittest.TestCase):
         self.c.access_group_delete(ag)
         ag_list = self.c.access_groups()
         match = [x for x in ag_list if x.id == ag.id]
-        self.assertTrue(len(match) == 0, "Expected access group that was "
-                                         "deleted to not show up in the "
-                                         "access group list!")
+        self.assertTrue(
+            len(match) == 0, "Expected access group that was "
+            "deleted to not show up in the "
+            "access group list!")
 
     def _test_ag_create_dup(self, lsm_ag, lsm_system):
         """
@@ -1023,8 +1017,8 @@ class TestPlugin(unittest.TestCase):
         else:
             new_init_id = r_fcpn()
         try:
-            self.c.access_group_create(
-                lsm_ag.name, new_init_id, lsm_ag.init_type, lsm_system)
+            self.c.access_group_create(lsm_ag.name, new_init_id,
+                                       lsm_ag.init_type, lsm_system)
         except LsmError as lsm_error:
             self.assertTrue(lsm_error.code == ErrorNumber.NAME_CONFLICT)
             flag_got_expected_error = True
@@ -1033,8 +1027,8 @@ class TestPlugin(unittest.TestCase):
 
         flag_got_expected_error = False
         try:
-            self.c.access_group_create(
-                rs('ag'), lsm_ag.init_ids[0], lsm_ag.init_type, lsm_system)
+            self.c.access_group_create(rs('ag'), lsm_ag.init_ids[0],
+                                       lsm_ag.init_type, lsm_system)
         except LsmError as lsm_error:
             self.assertTrue(lsm_error.code == ErrorNumber.EXISTS_INITIATOR)
             flag_got_expected_error = True
@@ -1042,18 +1036,18 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(flag_got_expected_error)
 
     def _test_ag_create_delete(self, cap, s):
-        if supported(cap, [Cap.ACCESS_GROUPS,
-                           Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
-            ag = self._create_access_group(
-                rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+        if supported(cap,
+                     [Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
+            ag = self._create_access_group(rs('ag'), s,
+                                           lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
             if ag is not None and \
                supported(cap, [Cap.ACCESS_GROUP_DELETE]):
                 self._test_ag_create_dup(ag, s)
                 self._delete_access_group(ag)
 
         if supported(cap, [Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_WWPN]):
-            ag = self._create_access_group(
-                rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
+            ag = self._create_access_group(rs('ag'), s,
+                                           lsm.AccessGroup.INIT_TYPE_WWPN)
             if ag is not None and \
                supported(cap, [Cap.ACCESS_GROUP_DELETE]):
                 self._test_ag_create_dup(ag, s)
@@ -1063,9 +1057,10 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.ACCESS_GROUPS,
-                               Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
-                               Cap.VOLUME_ISCSI_CHAP_AUTHENTICATION]):
+            if supported(cap, [
+                    Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                    Cap.VOLUME_ISCSI_CHAP_AUTHENTICATION
+            ]):
                 ag = self._create_access_group(
                     rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
@@ -1093,10 +1088,11 @@ class TestPlugin(unittest.TestCase):
                 if len(ag_list) == 0:
                     self._test_ag_create_delete(cap, s)
                 else:
-                    self.assertTrue(len(ag_list) > 0,
-                                    "Need at least 1 access group for testing "
-                                    "and no support exists for creation of "
-                                    "access groups for this system")
+                    self.assertTrue(
+                        len(ag_list) > 0,
+                        "Need at least 1 access group for testing "
+                        "and no support exists for creation of "
+                        "access groups for this system")
 
     def _ag_init_add(self, ag):
         if ag.init_type == lsm.AccessGroup.INIT_TYPE_ISCSI_IQN:
@@ -1123,8 +1119,9 @@ class TestPlugin(unittest.TestCase):
         self.assertTrue(len(match) == 0)
 
     def test_access_group_initiator_add_delete(self):
-        usable_ag_types = [lsm.AccessGroup.INIT_TYPE_WWPN,
-                           lsm.AccessGroup.INIT_TYPE_ISCSI_IQN]
+        usable_ag_types = [
+            lsm.AccessGroup.INIT_TYPE_WWPN, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
+        ]
 
         for s in self.systems:
             ag_to_delete = None
@@ -1136,29 +1133,30 @@ class TestPlugin(unittest.TestCase):
                 if supported(cap, [Cap.ACCESS_GROUP_CREATE_WWPN])\
                         or supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
 
-                    if supported(
-                        cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
-                              Cap.ACCESS_GROUP_DELETE]):
+                    if supported(cap, [
+                            Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                            Cap.ACCESS_GROUP_DELETE
+                    ]):
                         ag_to_delete = self._create_access_group(
-                            rs('ag'), s,
-                            lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
+                            rs('ag'), s, lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
                         self.c.access_groups('system_id', s.id)
 
-                        if supported(cap,
-                                     [Cap.
-                                      ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
+                        if supported(
+                                cap,
+                            [Cap.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
 
                             init_id = self._ag_init_add(ag_to_delete)
 
-                            if supported(
-                                    cap, [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
+                            if supported(cap,
+                                         [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
                                 self._ag_init_delete(
                                     ag_to_delete, init_id,
                                     lsm.AccessGroup.INIT_TYPE_ISCSI_IQN)
 
-                    if supported(
-                        cap, [Cap.ACCESS_GROUP_CREATE_WWPN,
-                              Cap.ACCESS_GROUP_DELETE]):
+                    if supported(cap, [
+                            Cap.ACCESS_GROUP_CREATE_WWPN,
+                            Cap.ACCESS_GROUP_DELETE
+                    ]):
                         ag_to_delete = self._create_access_group(
                             rs('ag'), s, lsm.AccessGroup.INIT_TYPE_WWPN)
                         self.c.access_groups('system_id', s.id)
@@ -1175,18 +1173,18 @@ class TestPlugin(unittest.TestCase):
                                 ag = a_tmp
                                 break
 
-                        if supported(cap, [Cap.
-                                           ACCESS_GROUP_INITIATOR_ADD_WWPN]):
+                        if supported(cap,
+                                     [Cap.ACCESS_GROUP_INITIATOR_ADD_WWPN]):
                             init_id = self._ag_init_add(ag)
-                            if supported(
-                                    cap, [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
+                            if supported(cap,
+                                         [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
                                 self._ag_init_delete(
                                     ag, init_id,
                                     lsm.AccessGroup.INIT_TYPE_WWPN)
 
                         if supported(
                                 cap,
-                                [Cap.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
+                            [Cap.ACCESS_GROUP_INITIATOR_ADD_ISCSI_IQN]):
                             init_id = self._ag_init_add(ag)
                             if supported(cap,
                                          [Cap.ACCESS_GROUP_INITIATOR_DELETE]):
@@ -1204,9 +1202,8 @@ class TestPlugin(unittest.TestCase):
 
                     # Try to create another with same name
                     try:
-                        self.c.volume_create(
-                            pool, vol.name, vol.size_bytes,
-                            lsm.Volume.PROVISION_DEFAULT)[1]
+                        self.c.volume_create(pool, vol.name, vol.size_bytes,
+                                             lsm.Volume.PROVISION_DEFAULT)[1]
                     except LsmError as le:
                         self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
 
@@ -1219,30 +1216,25 @@ class TestPlugin(unittest.TestCase):
             ag_name = rs('ag_dupe')
 
             cap = self.c.capabilities(s)
-            if supported(cap, [Cap.ACCESS_GROUPS,
-                               Cap.ACCESS_GROUP_DELETE]):
+            if supported(cap, [Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_DELETE]):
                 self.c.access_groups('system_id', s.id)
 
-                if supported(
-                        cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
+                if supported(cap, [Cap.ACCESS_GROUP_CREATE_ISCSI_IQN]):
                     ag_type = lsm.AccessGroup.INIT_TYPE_ISCSI_IQN
 
-                elif supported(cap,
-                               [Cap.ACCESS_GROUP_CREATE_WWPN]):
+                elif supported(cap, [Cap.ACCESS_GROUP_CREATE_WWPN]):
                     ag_type = lsm.AccessGroup.INIT_TYPE_WWPN
 
                 else:
                     return
 
-                ag_created = self._create_access_group(
-                    ag_name, s, ag_type)
+                ag_created = self._create_access_group(ag_name, s, ag_type)
 
                 if ag_created is not None:
                     # Try to create a duplicate
                     got_exception = False
                     try:
-                        self._create_access_group(
-                            ag_name, s, ag_type)
+                        self._create_access_group(ag_name, s, ag_type)
                     except LsmError as le:
                         got_exception = True
                         self.assertTrue(le.code == ErrorNumber.NAME_CONFLICT)
@@ -1254,14 +1246,12 @@ class TestPlugin(unittest.TestCase):
     def test_ag_vol_delete_with_vol_masked(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if supported(cap, [Cap.ACCESS_GROUPS,
-                               Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
-                               Cap.ACCESS_GROUP_DELETE,
-                               Cap.VOLUME_UNMASK,
-                               Cap.VOLUME_CREATE,
-                               Cap.VOLUME_DELETE,
-                               Cap.VOLUME_MASK,
-                               Cap.VOLUME_UNMASK]):
+            if supported(cap, [
+                    Cap.ACCESS_GROUPS, Cap.ACCESS_GROUP_CREATE_ISCSI_IQN,
+                    Cap.ACCESS_GROUP_DELETE, Cap.VOLUME_UNMASK,
+                    Cap.VOLUME_CREATE, Cap.VOLUME_DELETE, Cap.VOLUME_MASK,
+                    Cap.VOLUME_UNMASK
+            ]):
 
                 ag_name = rs("ag")
                 ag_iqn = r_iqn()
@@ -1274,9 +1264,8 @@ class TestPlugin(unittest.TestCase):
                 if ag and pool:
                     vol_size = self._min_size()
 
-                    vol = self.c.volume_create(
-                        pool, rs('v'), vol_size,
-                        lsm.Volume.PROVISION_DEFAULT)[1]
+                    vol = self.c.volume_create(pool, rs('v'), vol_size,
+                                               lsm.Volume.PROVISION_DEFAULT)[1]
 
                     if vol:
                         got_exception = False
@@ -1289,8 +1278,8 @@ class TestPlugin(unittest.TestCase):
                         except LsmError as le:
                             if le.code == lsm.ErrorNumber.IS_MASKED:
                                 got_exception = True
-                            self.assertTrue(le.code ==
-                                            lsm.ErrorNumber.IS_MASKED)
+                            self.assertTrue(
+                                le.code == lsm.ErrorNumber.IS_MASKED)
 
                         self.assertTrue(got_exception)
 
@@ -1301,8 +1290,8 @@ class TestPlugin(unittest.TestCase):
                         except LsmError as le:
                             if le.code == lsm.ErrorNumber.IS_MASKED:
                                 got_exception = True
-                            self.assertTrue(le.code ==
-                                            lsm.ErrorNumber.IS_MASKED)
+                            self.assertTrue(
+                                le.code == lsm.ErrorNumber.IS_MASKED)
 
                         self.assertTrue(got_exception)
 
@@ -1312,22 +1301,20 @@ class TestPlugin(unittest.TestCase):
 
                     self.c.access_group_delete(ag)
 
-
     def test_volume_delete_with_replication(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if supported(cap, [Cap.VOLUME_REPLICATE_CLONE,
-                               Cap.VOLUME_CHILD_DEPENDENCY,
-                               Cap.VOLUME_CREATE,
-                               Cap.VOLUME_DELETE]):
+            if supported(cap, [
+                    Cap.VOLUME_REPLICATE_CLONE, Cap.VOLUME_CHILD_DEPENDENCY,
+                    Cap.VOLUME_CREATE, Cap.VOLUME_DELETE
+            ]):
                 pool = self._get_pool_by_usage(s.id,
                                                lsm.Pool.ELEMENT_TYPE_VOLUME)
                 if pool:
                     vol_size = self._min_size()
 
-                    vol = self.c.volume_create(
-                        pool, rs('v'), vol_size,
-                        lsm.Volume.PROVISION_DEFAULT)[1]
+                    vol = self.c.volume_create(pool, rs('v'), vol_size,
+                                               lsm.Volume.PROVISION_DEFAULT)[1]
 
                     clone_vol = self.c.volume_replicate(
                         pool, lsm.Volume.REPLICATE_CLONE, vol,
@@ -1340,8 +1327,8 @@ class TestPlugin(unittest.TestCase):
                         except LsmError as le:
                             if le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY:
                                 got_exception = True
-                            self.assertTrue(
-                                le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY)
+                            self.assertTrue(le.code == lsm.ErrorNumber.
+                                            HAS_CHILD_DEPENDENCY)
 
                         self.assertTrue(got_exception)
 
@@ -1354,13 +1341,14 @@ class TestPlugin(unittest.TestCase):
                     "volume_create() or volume_replicate() with CLONE "
                     "or volume_delete()")
 
-
     def test_fs_delete_with_clone(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.FS_CREATE, Cap.FS_CLONE, Cap.FS_DELETE,
-                               Cap.FS_CHILD_DEPENDENCY]):
+            if supported(cap, [
+                    Cap.FS_CREATE, Cap.FS_CLONE, Cap.FS_DELETE,
+                    Cap.FS_CHILD_DEPENDENCY
+            ]):
                 fs, pool = self._fs_create(s.id)
                 self.assertTrue(fs is not None)
                 fs_child = self.c.fs_clone(fs, rs('fs_c_'))[1]
@@ -1371,9 +1359,8 @@ class TestPlugin(unittest.TestCase):
                     except LsmError as le:
                         if le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY:
                             got_exception = True
-                        self.assertTrue(le.code ==
-                                        lsm.ErrorNumber.HAS_CHILD_DEPENDENCY)
-
+                        self.assertTrue(
+                            le.code == lsm.ErrorNumber.HAS_CHILD_DEPENDENCY)
 
                     self.assertTrue(got_exception)
 
@@ -1385,29 +1372,25 @@ class TestPlugin(unittest.TestCase):
                     "Skip test: current system does not support "
                     "fs_create() or fs_clone() or fs_delete()")
 
-
     def test_volume_vpd83_verify(self):
 
-        failing = [None,
-                   "012345678901234567890123456789AB",
-                   "012345678901234567890123456789ax",
-                   "012345678901234567890123456789ag",
-                   "1234567890123456789012345abcdef",
-                   "01234567890123456789012345abcdefa",
-                   "55cd2e404beec32e0", "55cd2e404beec32ex",
-                   "35cd2e404beec32A"]
+        failing = [
+            None, "012345678901234567890123456789AB",
+            "012345678901234567890123456789ax",
+            "012345678901234567890123456789ag",
+            "1234567890123456789012345abcdef",
+            "01234567890123456789012345abcdefa", "55cd2e404beec32e0",
+            "55cd2e404beec32ex", "35cd2e404beec32A"
+        ]
 
         for f in failing:
             self.assertFalse(lsm.Volume.vpd83_verify(f))
 
         self.assertTrue(
             lsm.Volume.vpd83_verify("61234567890123456789012345abcdef"))
-        self.assertTrue(
-            lsm.Volume.vpd83_verify("55cd2e404beec32e"))
-        self.assertTrue(
-            lsm.Volume.vpd83_verify("35cd2e404beec32e"))
-        self.assertTrue(
-            lsm.Volume.vpd83_verify("25cd2e404beec32e"))
+        self.assertTrue(lsm.Volume.vpd83_verify("55cd2e404beec32e"))
+        self.assertTrue(lsm.Volume.vpd83_verify("35cd2e404beec32e"))
+        self.assertTrue(lsm.Volume.vpd83_verify("25cd2e404beec32e"))
 
     def test_available_plugins(self):
         plugins = self.c.available_plugins(':')
@@ -1419,8 +1402,10 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.VOLUME_CREATE, Cap.VOLUME_DELETE,
-                               Cap.VOLUME_ENABLE, Cap.VOLUME_DISABLE]):
+            if supported(cap, [
+                    Cap.VOLUME_CREATE, Cap.VOLUME_DELETE, Cap.VOLUME_ENABLE,
+                    Cap.VOLUME_DISABLE
+            ]):
                 vol, pool = self._volume_create(s.id)
 
                 self.c.volume_disable(vol)
@@ -1442,9 +1427,9 @@ class TestPlugin(unittest.TestCase):
             lsm.Client(TestPlugin.URI, TestPlugin.PASSWORD)
         except LsmError as expected_error:
             got_exception = True
-            self.assertTrue(expected_error.code ==
-                            ErrorNumber.DAEMON_NOT_RUNNING,
-                            'Actual error %d' % expected_error.code)
+            self.assertTrue(
+                expected_error.code == ErrorNumber.DAEMON_NOT_RUNNING,
+                'Actual error %d' % expected_error.code)
 
         self.assertTrue(got_exception)
 
@@ -1462,9 +1447,9 @@ class TestPlugin(unittest.TestCase):
             lsm.Client(uri, TestPlugin.PASSWORD)
         except LsmError as expected_error:
             got_exception = True
-            self.assertTrue(expected_error.code ==
-                            ErrorNumber.PLUGIN_NOT_EXIST,
-                            'Actual error %d' % expected_error.code)
+            self.assertTrue(
+                expected_error.code == ErrorNumber.PLUGIN_NOT_EXIST,
+                'Actual error %d' % expected_error.code)
 
         self.assertTrue(got_exception)
 
@@ -1481,24 +1466,18 @@ class TestPlugin(unittest.TestCase):
 
                 if supported(cap, [Cap.VOLUME_REPLICATE_CLONE]):
                     vol_child = self.c.volume_replicate(
-                        None,
-                        lsm.Volume.REPLICATE_CLONE,
-                        vol,
-                        rs('v_tc_'))[1]
+                        None, lsm.Volume.REPLICATE_CLONE, vol, rs('v_tc_'))[1]
                 else:
                     vol_child = self.c.volume_replicate(
-                        None,
-                        lsm.Volume.REPLICATE_COPY,
-                        vol,
-                        rs('v_fc_'))[1]
+                        None, lsm.Volume.REPLICATE_COPY, vol, rs('v_fc_'))[1]
 
                 self.assertTrue(vol_child is not None)
 
                 if self.c.volume_child_dependency(vol):
                     self.c.volume_child_dependency_rm(vol)
                 else:
-                    self.assertTrue(self.c.volume_child_dependency_rm(vol)
-                                    is None)
+                    self.assertTrue(
+                        self.c.volume_child_dependency_rm(vol) is None)
 
                 self._volume_delete(vol)
 
@@ -1509,10 +1488,10 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.FS_CREATE, Cap.FS_DELETE,
-                               Cap.FS_CHILD_DEPENDENCY,
-                               Cap.FS_CHILD_DEPENDENCY_RM,
-                               Cap.FS_CLONE]):
+            if supported(cap, [
+                    Cap.FS_CREATE, Cap.FS_DELETE, Cap.FS_CHILD_DEPENDENCY,
+                    Cap.FS_CHILD_DEPENDENCY_RM, Cap.FS_CLONE
+            ]):
                 fs, pol = self._fs_create(s.id)
                 fs_child = self.c.fs_clone(fs, rs('fs_c_'))[1]
                 self.assertTrue(fs_child is not None)
@@ -1520,8 +1499,8 @@ class TestPlugin(unittest.TestCase):
                 if self.c.fs_child_dependency(fs, None):
                     self.c.fs_child_dependency_rm(fs, None)
                 else:
-                    self.assertTrue(self.c.fs_child_dependency_rm(fs, None)
-                                    is None)
+                    self.assertTrue(
+                        self.c.fs_child_dependency_rm(fs, None) is None)
 
                 self._fs_delete(fs)
                 if fs_child:
@@ -1547,8 +1526,10 @@ class TestPlugin(unittest.TestCase):
         for s in self.systems:
             cap = self.c.capabilities(s)
 
-            if supported(cap, [Cap.FS_CREATE, Cap.EXPORTS, Cap.EXPORT_FS,
-                               Cap.EXPORT_REMOVE]):
+            if supported(
+                    cap,
+                [Cap.FS_CREATE, Cap.EXPORTS, Cap.EXPORT_FS, Cap.EXPORT_REMOVE
+                 ]):
                 fs, pool = self._fs_create(s.id)
 
                 if supported(cap, [Cap.EXPORT_CUSTOM_PATH]):
@@ -1626,12 +1607,13 @@ class TestPlugin(unittest.TestCase):
                             self.assertTrue(
                                 disk.status & lsm.Disk.STATUS_FREE,
                                 "Disk %s is not restored to free state "
-                                "after volume_delete() on a raid volume"
-                                % disk.id)
+                                "after volume_delete() on a raid volume" %
+                                disk.id)
 
-                    self.assertTrue(len(updated_disks) == 2,
-                                    "Disk missing after volume_delete() on "
-                                    "a raid volume")
+                    self.assertTrue(
+                        len(updated_disks) == 2,
+                        "Disk missing after volume_delete() on "
+                        "a raid volume")
 
             else:
                 self._skip_current_test(
@@ -1657,56 +1639,49 @@ class TestPlugin(unittest.TestCase):
         if raid_type == lsm.Volume.RAID_TYPE_RAID1:
             if len(free_disks) >= 2:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:2],
+                    vol_name, raid_type, free_disks[0:2],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID5:
             if len(free_disks) >= 3:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:3],
+                    vol_name, raid_type, free_disks[0:3],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID6:
             if len(free_disks) >= 4:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:4],
+                    vol_name, raid_type, free_disks[0:4],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID10:
             if len(free_disks) >= 4:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:4],
+                    vol_name, raid_type, free_disks[0:4],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID50:
             if len(free_disks) >= 6:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:6],
+                    vol_name, raid_type, free_disks[0:6],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID60:
             if len(free_disks) >= 8:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:8],
+                    vol_name, raid_type, free_disks[0:8],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
         elif raid_type == lsm.Volume.RAID_TYPE_RAID0:
             if len(free_disks) >= 1:
                 new_vol = self.c.volume_raid_create(
-                    vol_name, raid_type,
-                    free_disks[0:1],
+                    vol_name, raid_type, free_disks[0:1],
                     lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
             else:
                 return (False, None)
@@ -1716,8 +1691,10 @@ class TestPlugin(unittest.TestCase):
     def test_raid_create_raid_info(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if supported(cap, [Cap.VOLUME_RAID_CREATE, Cap.VOLUME_DELETE,
-                               Cap.VOLUME_RAID_INFO, Cap.VOLUMES]):
+            if supported(cap, [
+                    Cap.VOLUME_RAID_CREATE, Cap.VOLUME_DELETE,
+                    Cap.VOLUME_RAID_INFO, Cap.VOLUMES
+            ]):
                 supported_raid_types, supported_strip_sizes = \
                     self.c.volume_raid_create_cap_get(s)
 
@@ -1735,12 +1712,16 @@ class TestPlugin(unittest.TestCase):
                 # Loop through each raid type, if we have enough disks create it
                 # and get the raid info from it.
                 for raid_type in supported_raid_types:
-                    free_disks = self.find_disks((lsm.Disk.STATUS_FREE | lsm.Disk.STATUS_OK))
-                    expected, new_vol = self._create_raid_vol(raid_type, free_disks)
+                    free_disks = self.find_disks(
+                        (lsm.Disk.STATUS_FREE | lsm.Disk.STATUS_OK))
+                    expected, new_vol = self._create_raid_vol(
+                        raid_type, free_disks)
                     if not expected:
                         continue
 
-                    self.assertTrue(new_vol is not None, "Failed: %d %s" % (raid_type, str(free_disks)))
+                    self.assertTrue(
+                        new_vol is not None,
+                        "Failed: %d %s" % (raid_type, str(free_disks)))
                     if new_vol is not None:
                         raid_info = self.c.volume_raid_info(new_vol)
                         self.assertTrue(raid_info[0] == raid_type)
@@ -1760,7 +1741,8 @@ class TestPlugin(unittest.TestCase):
                             existing_raid_info[i][0], free_disks, v.name)
 
                     if expected:
-                        self.assertTrue(recreated_vol,
+                        self.assertTrue(
+                            recreated_vol,
                             "Unable to re-create volume %s" % v.name)
             else:
                 self._skip_current_test(
@@ -1844,8 +1826,8 @@ class TestPlugin(unittest.TestCase):
     def test_invalid_uri(self):
 
         # Make sure we are getting an exception
-        self.assertRaises(lsm.LsmError, lsm.Client,
-                          "targetd//root@na-sim", "some_password")
+        self.assertRaises(lsm.LsmError, lsm.Client, "targetd//root@na-sim",
+                          "some_password")
 
         # Make sure exception has the correct error code
         try:
@@ -1890,22 +1872,22 @@ class TestPlugin(unittest.TestCase):
         flag_tested = False
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if not supported(cap,
-                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
-                              Cap.VOLUME_DELETE,
-                              Cap.VOLUME_PHYSICAL_DISK_CACHE_UPDATE]):
+            if not supported(cap, [
+                    Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
+                    Cap.VOLUME_DELETE, Cap.VOLUME_PHYSICAL_DISK_CACHE_UPDATE
+            ]):
                 continue
             lsm_vol = self._volume_create(s.id)[0]
             self.c.volume_physical_disk_cache_update(
                 lsm_vol, lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED)
             cache_info = self.c.volume_cache_info(lsm_vol)
-            self.assertTrue(cache_info[4] ==
-                            lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED)
+            self.assertTrue(
+                cache_info[4] == lsm.Volume.PHYSICAL_DISK_CACHE_ENABLED)
             self.c.volume_physical_disk_cache_update(
                 lsm_vol, lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED)
             cache_info = self.c.volume_cache_info(lsm_vol)
-            self.assertTrue(cache_info[4] ==
-                            lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED)
+            self.assertTrue(
+                cache_info[4] == lsm.Volume.PHYSICAL_DISK_CACHE_DISABLED)
 
             self._volume_delete(lsm_vol)
             flag_tested = True
@@ -1918,9 +1900,9 @@ class TestPlugin(unittest.TestCase):
         flag_tested = False
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if not supported(cap,
-                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
-                              Cap.VOLUME_DELETE]):
+            if not supported(
+                    cap,
+                [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE, Cap.VOLUME_DELETE]):
                 continue
             lsm_vol = self._volume_create(s.id)[0]
 
@@ -1929,16 +1911,16 @@ class TestPlugin(unittest.TestCase):
                 self.c.volume_write_cache_policy_update(
                     lsm_vol, lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK)
                 cache_info = self.c.volume_cache_info(lsm_vol)
-                self.assertTrue(cache_info[0] ==
-                                lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK)
+                self.assertTrue(
+                    cache_info[0] == lsm.Volume.WRITE_CACHE_POLICY_WRITE_BACK)
                 flag_tested = True
 
             if supported(cap, [Cap.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO]):
                 self.c.volume_write_cache_policy_update(
                     lsm_vol, lsm.Volume.WRITE_CACHE_POLICY_AUTO)
                 cache_info = self.c.volume_cache_info(lsm_vol)
-                self.assertTrue(cache_info[0] ==
-                                lsm.Volume.WRITE_CACHE_POLICY_AUTO)
+                self.assertTrue(
+                    cache_info[0] == lsm.Volume.WRITE_CACHE_POLICY_AUTO)
                 flag_tested = True
 
             if supported(cap,
@@ -1961,22 +1943,22 @@ class TestPlugin(unittest.TestCase):
         flag_tested = False
         for s in self.systems:
             cap = self.c.capabilities(s)
-            if not supported(cap,
-                             [Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
-                              Cap.VOLUME_DELETE,
-                              Cap.VOLUME_READ_CACHE_POLICY_UPDATE]):
+            if not supported(cap, [
+                    Cap.VOLUME_CACHE_INFO, Cap.VOLUME_CREATE,
+                    Cap.VOLUME_DELETE, Cap.VOLUME_READ_CACHE_POLICY_UPDATE
+            ]):
                 continue
             lsm_vol = self._volume_create(s.id)[0]
             self.c.volume_read_cache_policy_update(
                 lsm_vol, lsm.Volume.READ_CACHE_POLICY_ENABLED)
             cache_info = self.c.volume_cache_info(lsm_vol)
-            self.assertTrue(cache_info[2] ==
-                            lsm.Volume.READ_CACHE_POLICY_ENABLED)
+            self.assertTrue(
+                cache_info[2] == lsm.Volume.READ_CACHE_POLICY_ENABLED)
             self.c.volume_read_cache_policy_update(
                 lsm_vol, lsm.Volume.READ_CACHE_POLICY_DISABLED)
             cache_info = self.c.volume_cache_info(lsm_vol)
-            self.assertTrue(cache_info[2] ==
-                            lsm.Volume.READ_CACHE_POLICY_DISABLED)
+            self.assertTrue(
+                cache_info[2] == lsm.Volume.READ_CACHE_POLICY_DISABLED)
 
             self._volume_delete(lsm_vol)
             flag_tested = True
@@ -2019,6 +2001,7 @@ Options libStorageMgmt:
 
     if sys.version_info[0] == 2:
         unittest.TestProgram.USAGE += additional
+
 
 if __name__ == "__main__":
     atexit.register(dump_results)

@@ -13,7 +13,6 @@
 # License along with this library; If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Gris Ge <fge@redhat.com>
-
 """
 This module intend to provide independent methods for lsm.AccessGroup and
 volume masking/unmasking.
@@ -63,8 +62,9 @@ def cim_spc_pros():
     lsm.AccessGroup
     'EMCAdapterRole' is for EMC VNX only.
     """
-    return ['DeviceID', 'ElementName', 'StorageID', 'EMCAdapterRole',
-            'SystemName']
+    return [
+        'DeviceID', 'ElementName', 'StorageID', 'EMCAdapterRole', 'SystemName'
+    ]
 
 
 def cim_init_mg_pros():
@@ -121,11 +121,11 @@ def cim_init_of_cim_spc_path(smis_common, cim_spc_path):
             ResultClass='CIM_AuthorizedPrivilege')
 
         for cim_ap_path in cim_aps_path:
-            cim_inits.extend(smis_common.Associators(
-                cim_ap_path,
-                AssocClass='CIM_AuthorizedSubject',
-                ResultClass='CIM_StorageHardwareID',
-                PropertyList=_CIM_INIT_PROS))
+            cim_inits.extend(
+                smis_common.Associators(cim_ap_path,
+                                        AssocClass='CIM_AuthorizedSubject',
+                                        ResultClass='CIM_StorageHardwareID',
+                                        PropertyList=_CIM_INIT_PROS))
     return cim_inits
 
 
@@ -138,8 +138,8 @@ def cim_spc_to_lsm_ag(smis_common, cim_spc, system_id):
     cim_inits = cim_init_of_cim_spc_path(smis_common, cim_spc.path)
     (init_ids, init_type) = _init_id_and_type_of(cim_inits)
     plugin_data = cim_path_to_path_str(cim_spc.path)
-    return AccessGroup(
-        ag_id, ag_name, init_ids, init_type, system_id, plugin_data)
+    return AccessGroup(ag_id, ag_name, init_ids, init_type, system_id,
+                       plugin_data)
 
 
 def cim_init_of_cim_init_mg_path(smis_common, cim_init_mg_path):
@@ -152,11 +152,10 @@ def cim_init_of_cim_init_mg_path(smis_common, cim_init_mg_path):
         CIM_StorageHardwareID
     Only contain ['StorageID', 'IDType'] property.
     """
-    return smis_common.Associators(
-        cim_init_mg_path,
-        AssocClass='CIM_MemberOfCollection',
-        ResultClass='CIM_StorageHardwareID',
-        PropertyList=_CIM_INIT_PROS)
+    return smis_common.Associators(cim_init_mg_path,
+                                   AssocClass='CIM_MemberOfCollection',
+                                   ResultClass='CIM_StorageHardwareID',
+                                   PropertyList=_CIM_INIT_PROS)
 
 
 def cim_init_mg_to_lsm_ag(smis_common, cim_init_mg, system_id):
@@ -168,8 +167,8 @@ def cim_init_mg_to_lsm_ag(smis_common, cim_init_mg, system_id):
     cim_inits = cim_init_of_cim_init_mg_path(smis_common, cim_init_mg.path)
     (init_ids, init_type) = _init_id_and_type_of(cim_inits)
     plugin_data = cim_path_to_path_str(cim_init_mg.path)
-    return AccessGroup(
-        ag_id, ag_name, init_ids, init_type, system_id, plugin_data)
+    return AccessGroup(ag_id, ag_name, init_ids, init_type, system_id,
+                       plugin_data)
 
 
 def lsm_ag_to_cim_spc_path(smis_common, lsm_ag):
@@ -180,14 +179,11 @@ def lsm_ag_to_cim_spc_path(smis_common, lsm_ag):
     caller should make sure that.
     """
     if not lsm_ag.plugin_data:
-        raise LsmError(
-            ErrorNumber.PLUGIN_BUG,
-            "Got lsm.AccessGroup instance with empty plugin_data")
+        raise LsmError(ErrorNumber.PLUGIN_BUG,
+                       "Got lsm.AccessGroup instance with empty plugin_data")
     if smis_common.system_list and \
        lsm_ag.system_id not in smis_common.system_list:
-        raise LsmError(
-            ErrorNumber.NOT_FOUND_SYSTEM,
-            "System filtered in URI")
+        raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System filtered in URI")
 
     return path_str_to_cim_path(lsm_ag.plugin_data)
 
@@ -230,9 +226,8 @@ def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
     """
     Check whether CIM_StorageHardwareID exists, if not, create new one.
     """
-    cim_inits = smis_common.EnumerateInstances(
-        'CIM_StorageHardwareID',
-        PropertyList=_CIM_INIT_PROS)
+    cim_inits = smis_common.EnumerateInstances('CIM_StorageHardwareID',
+                                               PropertyList=_CIM_INIT_PROS)
 
     if len(cim_inits):
         for cim_init in cim_inits:
@@ -255,12 +250,15 @@ def cim_init_path_check_or_create(smis_common, system_id, init_id, init_type):
         'StorageID': init_id,
         'IDType': dmtf_id_type,
     }
-    return smis_common.invoke_method_wait(
-        'CreateStorageHardwareID', cim_hwms.path, in_params,
-        out_key='HardwareID', expect_class='CIM_StorageHardwareID')
+    return smis_common.invoke_method_wait('CreateStorageHardwareID',
+                                          cim_hwms.path,
+                                          in_params,
+                                          out_key='HardwareID',
+                                          expect_class='CIM_StorageHardwareID')
 
 
-def cim_vols_masked_to_cim_spc_path(smis_common, cim_spc_path,
+def cim_vols_masked_to_cim_spc_path(smis_common,
+                                    cim_spc_path,
                                     property_list=None):
     """
     Use this association to find out masked volume for certain cim_spc:
@@ -274,8 +272,7 @@ def cim_vols_masked_to_cim_spc_path(smis_common, cim_spc_path,
     if property_list is None:
         property_list = []
 
-    return smis_common.Associators(
-        cim_spc_path,
-        AssocClass='CIM_ProtocolControllerForUnit',
-        ResultClass='CIM_StorageVolume',
-        PropertyList=property_list)
+    return smis_common.Associators(cim_spc_path,
+                                   AssocClass='CIM_ProtocolControllerForUnit',
+                                   ResultClass='CIM_StorageVolume',
+                                   PropertyList=property_list)

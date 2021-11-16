@@ -35,8 +35,7 @@ try:
     from urllib.error import (URLError, HTTPError)
     from urllib.parse import urlparse
 except ImportError:
-    from urllib2 import (URLError,
-                         HTTPError)
+    from urllib2 import (URLError, HTTPError)
     from urlparse import urlparse
 import functools
 import traceback
@@ -80,8 +79,7 @@ def common_urllib2_error_handler(exp):
                 raise LsmError(ErrorNumber.NETWORK_CONNREFUSED,
                                'Connection refused')
             if 'Errno 113' in desc:
-                raise LsmError(ErrorNumber.NETWORK_HOSTDOWN,
-                               'Host is down')
+                raise LsmError(ErrorNumber.NETWORK_HOSTDOWN, 'Host is down')
         error("Unexpected network error:\n" + traceback.format_exc())
         raise LsmError(ErrorNumber.NETWORK_ERROR, desc)
 
@@ -137,8 +135,7 @@ class Proxy(object):
         if hasattr(self.proxied_obj, name):
             return functools.partial(self._present, name)
         else:
-            raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Unsupported operation")
+            raise LsmError(ErrorNumber.NO_SUPPORT, "Unsupported operation")
 
     # Method which is called to invoke the actual method of interest.
     # @param    self                The object self
@@ -152,6 +149,7 @@ class Proxy(object):
         """
         return getattr(self.proxied_obj, _proxy_method_name)(*args, **kwargs)
 
+
 # variable in client and specified on the command line for the daemon
 UDS_PATH = '/var/run/lsm/ipc'
 
@@ -161,30 +159,30 @@ LOG_VERBOSE = True
 # Constant for byte size
 SIZE_CONS = {
     'B': 1,
-    'KiB': 2 ** 10,
-    'KB': 10 ** 3,
-    'K': 2 ** 10,
-    'k': 2 ** 10,
-    'MiB': 2 ** 20,
-    'MB': 10 ** 6,
-    'M': 2 ** 20,
-    'm': 2 ** 20,
-    'GiB': 2 ** 30,
-    'GB': 10 ** 9,
-    'G': 2 ** 30,
-    'g': 2 ** 30,
-    'TiB': 2 ** 40,
-    'TB': 10 ** 12,
-    'T': 2 ** 40,
-    't': 2 ** 40,
-    'PiB': 2 ** 50,
-    'PB': 10 ** 15,
-    'P': 2 ** 50,
-    'p': 2 ** 50,
-    'EiB': 2 ** 60,
-    'EB': 10 ** 18,
-    'E': 2 ** 60,
-    'e': 2 ** 60,
+    'KiB': 2**10,
+    'KB': 10**3,
+    'K': 2**10,
+    'k': 2**10,
+    'MiB': 2**20,
+    'MB': 10**6,
+    'M': 2**20,
+    'm': 2**20,
+    'GiB': 2**30,
+    'GB': 10**9,
+    'G': 2**30,
+    'g': 2**30,
+    'TiB': 2**40,
+    'TB': 10**12,
+    'T': 2**40,
+    't': 2**40,
+    'PiB': 2**50,
+    'PB': 10**15,
+    'P': 2**50,
+    'p': 2**50,
+    'EiB': 2**60,
+    'EB': 10**18,
+    'E': 2**60,
+    'e': 2**60,
 }
 SIZE_CONS_CHK_LST = ['EiB', 'PiB', 'TiB', 'GiB', 'MiB', 'KiB']
 
@@ -245,7 +243,8 @@ def size_human_2_size_bytes(size_human):
         '2k'            # 2*(2**10), treated as '2KiB'
         '2KB'           # 2*(10**3)
     """
-    regex_size_human = re.compile(r"""
+    regex_size_human = re.compile(
+        r"""
         ^
         ([0-9\.]+)          # 1: number
         [ \t]*              # might have space between number and unit
@@ -304,8 +303,9 @@ def uri_parse(uri, requires=None, required_params=None):
         if requires:
             for r in requires:
                 if r not in rc:
-                    raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                                   'uri missing \"%s\" or is in invalid form' % r)
+                    raise LsmError(
+                        ErrorNumber.INVALID_ARGUMENT,
+                        'uri missing \"%s\" or is in invalid form' % r)
 
         if required_params:
             for r in required_params:
@@ -364,6 +364,7 @@ def int_div(a, b):
 # @return string of arguments joined together.
 def params_to_string(*args):
     return ''.join([str(e) for e in args])
+
 
 # Unfortunately the process name remains as 'python' so we are using argv[0] in
 # the output to allow us to determine which python exe is indeed logging to
@@ -430,8 +431,13 @@ def addl_error_data(domain, level, exception, debug=None, debug_data=None):
     """
     Used for gathering additional information about an error.
     """
-    return {'domain': domain, 'level': level, 'exception': exception,
-            'debug': debug, 'debug_data': debug_data}
+    return {
+        'domain': domain,
+        'level': level,
+        'exception': exception,
+        'debug': debug,
+        'debug_data': debug_data
+    }
 
 
 def get_class(class_name):
@@ -470,15 +476,15 @@ class ErrorNumber(object):
 
     NO_STATE_CHANGE = 125
 
-    NETWORK_CONNREFUSED = 140   # Host on network, but connection refused
-    NETWORK_HOSTDOWN = 141      # Host unreachable on network
-    NETWORK_ERROR = 142         # Generic network error
+    NETWORK_CONNREFUSED = 140  # Host on network, but connection refused
+    NETWORK_HOSTDOWN = 141  # Host unreachable on network
+    NETWORK_ERROR = 142  # Generic network error
 
     NO_MEMORY = 152
     NO_SUPPORT = 153
 
     # Deletion related errors
-    IS_MASKED = 160             # Volume is masked to access group.
+    IS_MASKED = 160  # Volume is masked to access group.
     HAS_CHILD_DEPENDENCY = 161  # Volume/File system has child dependency.
 
     NOT_FOUND_ACCESS_GROUP = 200
@@ -496,7 +502,7 @@ class ErrorNumber(object):
     NO_SUPPORT_ONLINE_CHANGE = 250
     NO_SUPPORT_OFFLINE_CHANGE = 251
 
-    PLUGIN_AUTH_FAILED = 300    # Client supplied credential are incorrect
+    PLUGIN_AUTH_FAILED = 300  # Client supplied credential are incorrect
 
     # Inter-process communication between client & out of process plug-in
     # encountered connection errors
@@ -521,9 +527,9 @@ class ErrorNumber(object):
     # volume_mask() will fail if access group has no member/initiator.
     EMPTY_ACCESS_GROUP = 511
 
-    POOL_NOT_READY = 512    # Pool is not ready for create/resize/etc
+    POOL_NOT_READY = 512  # Pool is not ready for create/resize/etc
 
-    DISK_NOT_FREE = 513     # Disk is not in DISK.STATUS_FREE status.
+    DISK_NOT_FREE = 513  # Disk is not in DISK.STATUS_FREE status.
 
     _LOCALS = locals()
 
@@ -561,14 +567,14 @@ def type_compare(method_name, exp_type, act_val):
         # A number of times a method will return None or some valid type,
         # only check on the type if the value is not None
         if exp_type != type(act_val) and act_val is not None:
-            if (isinstance(exp_type, six.string_types) and
-                    isinstance(act_val, six.string_types)):
+            if (isinstance(exp_type, six.string_types)
+                    and isinstance(act_val, six.string_types)):
                 return
             if not inspect.isclass(exp_type) or \
                     not issubclass(type(act_val), exp_type):
-                raise TypeError('%s call expected: %s got: %s ' %
-                                (method_name, str(exp_type),
-                                 str(type(act_val))))
+                raise TypeError(
+                    '%s call expected: %s got: %s ' %
+                    (method_name, str(exp_type), str(type(act_val))))
 
 
 def return_requires(*types):
@@ -590,9 +596,9 @@ def return_requires(*types):
             # in this case we require that all the args are present.
             if len(types) > 1:
                 if len(r) != len(types):
-                        raise TypeError("%s call expected %d "
-                                        "return values, actual = %d" %
-                                        (func.__name__, len(types), len(r)))
+                    raise TypeError("%s call expected %d "
+                                    "return values, actual = %d" %
+                                    (func.__name__, len(types), len(r)))
 
                 type_compare(func.__name__, types, r)
             elif len(types) == 1:
@@ -600,7 +606,9 @@ def return_requires(*types):
                 type_compare(func.__name__, types[0], r)
 
             return r
+
         return inner
+
     return outer
 
 
@@ -618,15 +626,15 @@ class TestCommon(unittest.TestCase):
         try:
             raise LsmError(10, 'Message', 'Data')
         except LsmError as e:
-            self.assertTrue(e.code == 10 and e.msg == 'Message' and
-                            e.data == 'Data')
+            self.assertTrue(e.code == 10 and e.msg == 'Message'
+                            and e.data == 'Data')
 
         ed = addl_error_data('domain', 'level', 'exception', 'debug',
                              'debug_data')
-        self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level' and
-                        ed['debug'] == 'debug' and
-                        ed['exception'] == 'exception' and
-                        ed['debug_data'] == 'debug_data')
+        self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level'
+                        and ed['debug'] == 'debug'
+                        and ed['exception'] == 'exception'
+                        and ed['debug_data'] == 'debug_data')
 
     def tearDown(self):
         pass
