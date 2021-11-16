@@ -41,11 +41,15 @@ source "${src_dir}"/test/test_include.sh
 # Constant check: check whether python constants matched with C constants.
 perl "${src_dir}"/tools/utility/check_const.pl || exit 1
 
-# Fetch and test the golang module to ensure we didn't break it
-echo "Testing golang module"
+echo "build_dir = ${build_dir}"
+echo "src_dir = ${src_dir}"
+echo "Starting in dir =  $(pwd)"
 
+
+# Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
-if [ "CHK${arch}" != "CHKppc64" ] ; then
+if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
+    echo "Testing golang module"
 
     lsm_test_base_install \
         "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_ALL_PLUGINS}"
@@ -53,43 +57,43 @@ if [ "CHK${arch}" != "CHKppc64" ] ; then
     lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
     STARTING_POINT=$(pwd)
+    _good cd "${src_dir}"/
 
     #fetch the module
     if [ ! -d libstoragemgmt-golang ]; then
         _good git clone https://github.com/libstorage/libstoragemgmt-golang
     fi
     _good  cd libstoragemgmt-golang
-    _good test/docker_travis_test.sh "$src_dir"
+    _good test/docker_travis_test.sh "$src_dir"  # We would need to pass src_dir and build_dir for distcheck to work
     _good cd "$STARTING_POINT"
 
     lsm_test_cleanup
 else
-    echo "PowerPC big endian golang is no longer supported!"
+    echo "Skipping golang module test..."
 fi
 
 # Fetch and test the rust code to ensure we didn't break it
-echo "Testing rust code base"
-
-if [ "CHK${arch}" != "CHKppc64" ] ; then
-
+if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
+    echo "Testing rust-lang code base"
     lsm_test_base_install \
         "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_ALL_PLUGINS}"
 
     lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
     STARTING_POINT=$(pwd)
+    _good cd "${src_dir}"/
 
     #fetch the module
     if [ ! -d libstoragemgmt-rust ]; then
         _good git clone https://github.com/libstorage/libstoragemgmt-rust
     fi
     _good  cd libstoragemgmt-rust
-    _good tests/ci_test.sh "$src_dir"
+    _good tests/ci_test.sh "$src_dir" # We would need to pass src_dir and build_dir for distcheck to work
     _good cd "$STARTING_POINT"
 
     lsm_test_cleanup
 else
-    echo "PowerPC big endian no rust-lang support"
+    echo "Skipping rust-lang test"
 fi
 
 echo "Round 1: Testing sim plugin"
@@ -125,3 +129,9 @@ if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
 fi
 lsm_test_cleanup
 
+# Sometimes we want to see the build output in the good case too
+# so fake non-zero exit to cause a failure
+if [[ -n "${FORCE_FAIL}" ]]; then
+    echo "FORCE_FAIL= ${FORCE_FAIL}"
+    exit 1
+fi
