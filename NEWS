@@ -1,5 +1,12 @@
 News for libStorageMgmt
 
+1.9.3: Nov 16 2021
+    * Fix endianess issues for big endian
+    * Fix megaraid plugin for volume_raid_info for RAID10, add test
+      - https://bugzilla.redhat.com/show_bug.cgi?id=2018657
+    * Megaraid, changes to support latest storcli utility
+    * Misc. CI test improvements, code clean-up
+
 1.9.2: May 14 2021
     * Remove OpenSSL usage as OpenSSL 3.0 is deprecating MD5
 
