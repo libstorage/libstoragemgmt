@@ -129,3 +129,9 @@ if [ "CHK$with_mem_leak_test" == "CHKyes" ];then
 fi
 lsm_test_cleanup
 
+# Sometimes we want to see the build output in the good case too
+# so fake non-zero exit to cause a failure
+if [[ -n "${FORCE_FAIL}" ]]; then
+    echo "FORCE_FAIL= ${FORCE_FAIL}"
+    exit 1
+fi
