@@ -1262,6 +1262,7 @@ class CmdLine(object):
         _add_common_options(parser, is_child=False)
 
         subparsers = parser.add_subparsers(metavar="command")
+        subparsers.required = True
 
         # Walk the command list and add all of them to the parser
         for cmd in cmds:
