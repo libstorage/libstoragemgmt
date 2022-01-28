@@ -118,7 +118,7 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
     process = Popen(actual_command, stdout=PIPE, stderr=PIPE, env=env)
     out = process.communicate()
 
-    if (expected_rc is None and process.returncode != expected_rc) or \
+    if (expected_rcs is None and process.returncode != expected_rc) or \
        (expected_rcs is not None and process.returncode not in expected_rcs):
         if expected_rcs is None:
             raise RuntimeError(
