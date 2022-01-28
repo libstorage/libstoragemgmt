@@ -1026,7 +1026,15 @@ def test_local_disk_led():
               "when none of these disks exists: %s" % ", ".join(disk_paths))
 
 
+def test_incomplete_cmdline():
+    # argparse has changed behavior, lets make sure we don't get hit by this
+    # again.
+    call([cmd, '-u', "sim://"], 2)
+    call([cmd, "-w", "10000"], 2)
+
+
 def run_all_tests(cap, system_id):
+    test_incomplete_cmdline()
     test_exit_code()
     test_display(cap)
     test_plugin_list()
