@@ -88,6 +88,19 @@ def rs(l):
         random.choice(string.ascii_uppercase) for _ in range(l)))
 
 
+def process_pid(name):
+    for p in [pid for pid in os.listdir("/proc") if pid.isdigit()]:
+        try:
+            with open(os.path.join("/proc/", p, "cmdline"), "r") as cmd:
+                cmd_line = cmd.readline()
+        except OSError:
+            continue
+
+        if name in cmd_line:
+            return int(p)
+    return None
+
+
 def call(command, expected_rc=0, expected_rcs=None, env=None):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
@@ -683,8 +696,11 @@ def test_plugin_info():
 
 
 def test_plugin_list():
-    call([cmd, 'list', '--type', 'PLUGINS'])
-    call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])
+    if process_pid("lsmd") is not None:
+        call([cmd, 'list', '--type', 'PLUGINS'])
+        call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])
+    else:
+        print("Skipping 'test_plugin_list' as daemon is not running")
 
 
 def test_error_paths():
