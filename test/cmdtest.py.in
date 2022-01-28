@@ -1070,7 +1070,7 @@ if __name__ == "__main__":
     #       Create objects of every supported type
     #           Query all supported query operations
     #           (should have more to query),
-    #           run though different options making sure nothing explodes!
+    #           run through different options making sure nothing explodes!
     #
     #       Try calling un-supported operations and expect them to fail
     systems = get_systems()
