@@ -88,6 +88,19 @@ def rs(l):
         random.choice(string.ascii_uppercase) for _ in range(l)))
 
 
+def process_pid(name):
+    for p in [pid for pid in os.listdir("/proc") if pid.isdigit()]:
+        try:
+            with open(os.path.join("/proc/", p, "cmdline"), "r") as cmd:
+                cmd_line = cmd.readline()
+        except OSError:
+            continue
+
+        if name in cmd_line:
+            return int(p)
+    return None
+
+
 def call(command, expected_rc=0, expected_rcs=None, env=None):
     """
     Call an executable and return a tuple of exitcode, stdout, stderr
@@ -109,8 +122,8 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
     if expected_rcs is None:
         print(actual_command, 'EXPECTED Exit [%d]' % expected_rc)
     else:
-        expected_rcs_str = " ".join(str(x) for x in expected_rcs)
-        print(actual_command, 'EXPECTED Exit codes [%s]' % expected_rcs)
+        expected_rcs_str = "[%s]" % ", ".join(str(x) for x in expected_rcs)
+        print(actual_command, 'EXPECTED Exit codes %s' % expected_rcs)
 
     if not env:
         env = os.environ
@@ -118,7 +131,7 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
     process = Popen(actual_command, stdout=PIPE, stderr=PIPE, env=env)
     out = process.communicate()
 
-    if (expected_rc is None and process.returncode != expected_rc) or \
+    if (expected_rcs is None and process.returncode != expected_rc) or \
        (expected_rcs is not None and process.returncode not in expected_rcs):
         if expected_rcs is None:
             raise RuntimeError(
@@ -129,12 +142,22 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
             "exit code not in one of '%s', "
             "actual= %s, stdout= %s, stderr= %s" %
             (expected_rcs_str, process.returncode, out[0], out[1]))
-    return process.returncode, out[0], out[1]
+
+    # Regardless of how the command finished, we should never see a stack
+    # trace!
+    std_out = out[0].decode('utf8')
+    std_err = out[1].decode('utf8')
+
+    if 'Traceback' in std_out or 'Traceback' in std_err:
+        raise RuntimeError("Command line raised an uncaught exception!\n%s" %
+                           (std_out + std_err))
+
+    return process.returncode, std_out, std_err
 
 
 def parse(out):
     rc = []
-    for line in out.decode('utf8').split('\n'):
+    for line in out.split('\n'):
         elem = line.split(sep)
         cleaned_elem = []
         for e in elem:
@@ -148,7 +171,7 @@ def parse(out):
 
 def parse_key_value(out):
     rc = []
-    for line in out.decode('utf8').split('\n'):
+    for line in out.split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
             item = dict()
@@ -165,7 +188,7 @@ def parse_key_value(out):
 def parse_display(op):
     rc = []
     out = call([cmd, '-t' + sep, 'list', '--type', op])[1]
-    for line in out.decode('utf8').split('\n'):
+    for line in out.split('\n'):
         elem = line.split(sep)
         if len(elem) > 1:
             rc.append(list(d.strip() for d in elem))
@@ -360,7 +383,7 @@ def volume_child_dependency(vol_id):
 
 
 def volume_child_dependency_rm(vol_id):
-    call([cmd, 'volume-dependants-rm', '--vol', vol_id])
+    call([cmd, 'volume-dependants-rm', '--vol', vol_id], expected_rcs=[0, 4])
 
 
 def get_systems():
@@ -673,8 +696,11 @@ def test_plugin_info():
 
 
 def test_plugin_list():
-    call([cmd, 'list', '--type', 'PLUGINS'])
-    call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])
+    if process_pid("lsmd") is not None:
+        call([cmd, 'list', '--type', 'PLUGINS'])
+        call([cmd, '-t' + sep, 'list', '--type', 'PLUGINS'])
+    else:
+        print("Skipping 'test_plugin_list' as daemon is not running")
 
 
 def test_error_paths():
@@ -954,7 +980,7 @@ def verify_no_daemon_needed(cmd, expected_rcs):
     ec, out, err = call(cmd, env=env, expected_rcs=expected_rcs)
 
     if ec == 4:
-        if 'DAEMON_NOT_RUNNING' in err.decode('utf8'):
+        if 'DAEMON_NOT_RUNNING' in err:
             print("Daemon does not need to run for local disk commands!")
             exit(10)
 
@@ -1000,7 +1026,15 @@ def test_local_disk_led():
               "when none of these disks exists: %s" % ", ".join(disk_paths))
 
 
+def test_incomplete_cmdline():
+    # argparse has changed behavior, lets make sure we don't get hit by this
+    # again.
+    call([cmd, '-u', "sim://"], 2)
+    call([cmd, "-w", "10000"], 2)
+
+
 def run_all_tests(cap, system_id):
+    test_incomplete_cmdline()
     test_exit_code()
     test_display(cap)
     test_plugin_list()
@@ -1070,7 +1104,7 @@ if __name__ == "__main__":
     #       Create objects of every supported type
     #           Query all supported query operations
     #           (should have more to query),
-    #           run though different options making sure nothing explodes!
+    #           run through different options making sure nothing explodes!
     #
     #       Try calling un-supported operations and expect them to fail
     systems = get_systems()

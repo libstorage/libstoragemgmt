@@ -1255,13 +1255,14 @@ class CmdLine(object):
             description='The libStorageMgmt command line interface.'
             ' Run %(prog)s <command> -h for more on each command.',
             epilog=CmdLine.alias_help_text() +
-            '\n\nCopyright 2012-2018 Red Hat, Inc.\n'
+            '\n\nCopyright 2012-2022 Red Hat, Inc.\n'
             'Please report bugs to '
             '<libstoragemgmt-devel@lists.fedorahosted.org>\n',
             formatter_class=RawTextHelpFormatter)
         _add_common_options(parser, is_child=False)
 
         subparsers = parser.add_subparsers(metavar="command")
+        subparsers.required = True
 
         # Walk the command list and add all of them to the parser
         for cmd in cmds:
