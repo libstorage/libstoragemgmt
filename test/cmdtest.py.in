@@ -383,7 +383,7 @@ def volume_child_dependency(vol_id):
 
 
 def volume_child_dependency_rm(vol_id):
-    call([cmd, 'volume-dependants-rm', '--vol', vol_id])
+    call([cmd, 'volume-dependants-rm', '--vol', vol_id], expected_rcs=[0, 4])
 
 
 def get_systems():
