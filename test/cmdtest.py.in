@@ -109,8 +109,8 @@ def call(command, expected_rc=0, expected_rcs=None, env=None):
     if expected_rcs is None:
         print(actual_command, 'EXPECTED Exit [%d]' % expected_rc)
     else:
-        expected_rcs_str = " ".join(str(x) for x in expected_rcs)
-        print(actual_command, 'EXPECTED Exit codes [%s]' % expected_rcs)
+        expected_rcs_str = "[%s]" % ", ".join(str(x) for x in expected_rcs)
+        print(actual_command, 'EXPECTED Exit codes %s' % expected_rcs)
 
     if not env:
         env = os.environ
