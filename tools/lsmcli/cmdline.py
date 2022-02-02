@@ -504,6 +504,10 @@ class PluginFork:
             else:
                 print("PLUGIN>> %s" % (line.decode("utf-8").rstrip("\n")))
 
+        if instance.plugin_process.poll() is not None:
+            # Output plugin exit code.
+            print("PLUGIN EC>> %d" % instance.plugin_process.wait())
+
     def close(self):
         if self.client:
             self.client.close()
