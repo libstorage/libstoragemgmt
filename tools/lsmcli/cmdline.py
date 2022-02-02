@@ -26,6 +26,7 @@ import tempfile
 import time
 import tty
 import termios
+import threading
 from argparse import ArgumentParser, ArgumentTypeError
 from argparse import RawTextHelpFormatter
 import six
@@ -449,14 +450,56 @@ def _check_network_host(addr):
     raise ArgumentTypeError("%s is invalid IP or hostname" % addr)
 
 
-
 class PluginFork:
     """Container for plugin fork data"""
-    def __init__(self):
+    def __init__(self, plugin_exe):
         self.uds_dir = tempfile.mkdtemp(prefix="LSM_DEV_")
         self.uds_socket_file = os.path.join(self.uds_dir, "uds_path")
         self.plugin = None
         self.client = None
+        self.plugin_process = None
+        self.thread = None
+
+        # Setup server side which in this case is the client with the plugin
+        # connecting back to it
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(self.uds_socket_file)
+        server.listen()
+
+        # Client/plugin socket to get FD and pass to plugin
+        self.plugin = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.plugin.connect(self.uds_socket_file)
+
+        # Start the plugin passing the open FD
+        plugin_fd = self.plugin.fileno()
+
+        try:
+            self.plugin_process = subprocess.Popen([plugin_exe, "%d" % plugin_fd], pass_fds=[plugin_fd], env=os.environ,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        except Exception as e:
+            print("File: %s issue: %s" % (plugin_exe, str(e)))
+            self.close()
+            sys.exit(8)
+
+        # Accept the connection from the plugin
+        self.client, addr = server.accept()
+        # No longer need this...
+        server.close()
+
+        self.thread = threading.Thread(target=PluginFork.read_stdout, args=(self,), name="plugin stdout reader")
+        self.thread.start()
+
+        server = None
+
+    @staticmethod
+    def read_stdout(instance):
+        output = instance.plugin_process.stdout
+        while True:
+            line = output.readline()
+            if not line:
+                break
+            else:
+                print("PLUGIN>> %s" % (line.decode("utf-8").rstrip("\n")))
 
     def close(self):
         if self.client:
@@ -467,44 +510,18 @@ class PluginFork:
             os.remove(self.uds_socket_file)
             os.rmdir(self.uds_dir)
 
+        if self.thread:
+            rc = self.thread.join()
+
 
 def _fork_exec_plugin(instance, plugin_exe):
     # Create a unix domain socket, fork and exec the plugin passing the FD for the socket
     # and setting env. LSMCLI_DEBUG_FD for the client library.
-    fdata = PluginFork()
-
-    # Setup server side which in this case is the client with the plugin
-    # connecting back to it
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server.bind(fdata.uds_socket_file)
-    server.listen()
-
-    # Client/plugin socket to get FD and pass to plugin
-    fdata.plugin = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    fdata.plugin.connect(fdata.uds_socket_file)
-
-    # Start the plugin passing the open FD
-    plugin_fd = fdata.plugin.fileno()
-    try:
-        subprocess.Popen([plugin_exe, "%d" % plugin_fd], pass_fds=[plugin_fd])
-        # TODO: Grab stdout and stderr and dump for debug
-    except FileNotFoundError:
-        print("File: %s not found!" % plugin_exe)
-        fdata.close()
-        sys.exit(8)
-
-    # Accept the connection from the plugin
-    connected_plugin, addr = server.accept()
-    # No longer need this...
-    server.close()
-    server = None
+    fdata = PluginFork(plugin_exe)
 
     # We set the FD in an env variable, yeah kind of hackish, but
     # we don't have to disturb the client API then.
-    os.environ["LSMCLI_DEBUG_FD"] = str(connected_plugin.fileno())
-
-    # Store these to keep around
-    fdata.client = connected_plugin
+    os.environ["LSMCLI_DEBUG_FD"] = str(fdata.client.fileno())
 
     instance.plugin_fork = fdata
 
