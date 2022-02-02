@@ -473,8 +473,12 @@ class PluginFork:
         plugin_fd = plugin.fileno()
 
         try:
-            self.plugin_process = subprocess.Popen([plugin_exe, "%d" % plugin_fd], pass_fds=[plugin_fd], env=os.environ,
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.plugin_process = subprocess.Popen(
+                [plugin_exe, "%d" % plugin_fd],
+                pass_fds=[plugin_fd],
+                env=os.environ,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
         except Exception as e:
             print("File: %s issue: %s" % (plugin_exe, str(e)))
             self.close()
@@ -489,7 +493,9 @@ class PluginFork:
         plugin.close()
         server.close()
 
-        self.thread = threading.Thread(target=PluginFork.read_stdout, args=(self,), name="plugin stdout reader")
+        self.thread = threading.Thread(target=PluginFork.read_stdout,
+                                       args=(self, ),
+                                       name="plugin stdout reader")
         self.thread.start()
 
         server = None

@@ -159,9 +159,11 @@ class Client(INetworkAttachedStorage):
         if debug_fd:
             try:
                 self._tp = _TransPort(
-                    socket.fromfd(int(debug_fd), socket.AF_UNIX, socket.SOCK_STREAM))
+                    socket.fromfd(int(debug_fd), socket.AF_UNIX,
+                                  socket.SOCK_STREAM))
             except Exception as e:
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT, "LSMCLI_DEBUG_FD: %s" % str(e))
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "LSMCLI_DEBUG_FD: %s" % str(e))
         else:
             self.plugin_path = os.path.join(self._uds_path, scheme)
             if os.path.exists(self.plugin_path):

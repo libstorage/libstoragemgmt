@@ -90,8 +90,9 @@ class TransPort(object):
                            "Error while reading a message from the plug-in",
                            str(e))
         except _SocketEOF:
-            raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
-                           "Error while reading a message from the plug-in, EOF")
+            raise LsmError(
+                ErrorNumber.TRANSPORT_COMMUNICATION,
+                "Error while reading a message from the plug-in, EOF")
         return msg
 
     def __init__(self, socket_descriptor):

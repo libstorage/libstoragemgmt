@@ -13,6 +13,7 @@
 from pywbem import Uint16, CIMError
 import pywbem
 import sys
+
 DEFAULT_NAMESPACE = 'interop'
 INTEROP_NAMESPACES = ['interop', 'root/interop', 'root/PG_Interop']
 
