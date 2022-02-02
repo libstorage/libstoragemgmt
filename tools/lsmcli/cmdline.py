@@ -455,7 +455,6 @@ class PluginFork:
     def __init__(self, plugin_exe):
         self.uds_dir = tempfile.mkdtemp(prefix="LSM_DEV_")
         self.uds_socket_file = os.path.join(self.uds_dir, "uds_path")
-        self.plugin = None
         self.client = None
         self.plugin_process = None
         self.thread = None
@@ -467,11 +466,11 @@ class PluginFork:
         server.listen()
 
         # Client/plugin socket to get FD and pass to plugin
-        self.plugin = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.plugin.connect(self.uds_socket_file)
+        plugin = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        plugin.connect(self.uds_socket_file)
 
         # Start the plugin passing the open FD
-        plugin_fd = self.plugin.fileno()
+        plugin_fd = plugin.fileno()
 
         try:
             self.plugin_process = subprocess.Popen([plugin_exe, "%d" % plugin_fd], pass_fds=[plugin_fd], env=os.environ,
@@ -483,7 +482,11 @@ class PluginFork:
 
         # Accept the connection from the plugin
         self.client, addr = server.accept()
-        # No longer need this...
+
+        # No longer need these, the FD for the plugin was passed to the plugin and is open there, close
+        # our copy so that when the client closes socket we are aware.  The server listening socket is
+        # no longer needed as we only have the one "client", the plugin which is already connected.
+        plugin.close()
         server.close()
 
         self.thread = threading.Thread(target=PluginFork.read_stdout, args=(self,), name="plugin stdout reader")
@@ -504,8 +507,6 @@ class PluginFork:
     def close(self):
         if self.client:
             self.client.close()
-        if self.plugin:
-            self.plugin.close()
         if self.uds_socket_file:
             os.remove(self.uds_socket_file)
             os.rmdir(self.uds_dir)
