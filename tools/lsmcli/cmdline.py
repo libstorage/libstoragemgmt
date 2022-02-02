@@ -481,7 +481,7 @@ class PluginFork:
             sys.exit(8)
 
         # Accept the connection from the plugin
-        self.client, addr = server.accept()
+        self.client, _ = server.accept()
 
         # No longer need these, the FD for the plugin was passed to the plugin and is open there, close
         # our copy so that when the client closes socket we are aware.  The server listening socket is
