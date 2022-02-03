@@ -15,14 +15,18 @@
 #
 # Author: tasleson
 #         Gris Ge <fge@redhat.com>
-
+import argparse
 import os
+import socket
+import subprocess
 import sys
 import getpass
 import re
+import tempfile
 import time
 import tty
 import termios
+import threading
 from argparse import ArgumentParser, ArgumentTypeError
 from argparse import RawTextHelpFormatter
 import six
@@ -288,6 +292,14 @@ def _add_common_options(arg_parser, is_child=False):
                             action='version',
                             version="%s %s" % (sys.argv[0], VERSION))
 
+    # This argument is hidden and only useful for developers writing/testing a new plugin
+    arg_parser.add_argument('--fork_plugin',
+                            action="store",
+                            type=str,
+                            metavar="<plugin executable>",
+                            dest="%splugin_exe" % prefix,
+                            help=argparse.SUPPRESS)
+
     arg_parser.add_argument(
         '-u',
         '--uri',
@@ -436,6 +448,93 @@ def _check_network_host(addr):
     if valid:
         return addr
     raise ArgumentTypeError("%s is invalid IP or hostname" % addr)
+
+
+class PluginFork:
+    """Container for plugin fork data"""
+    def __init__(self, plugin_exe):
+        self.uds_dir = tempfile.mkdtemp(prefix="LSM_DEV_")
+        self.uds_socket_file = os.path.join(self.uds_dir, "uds_path")
+        self.client = None
+        self.plugin_process = None
+        self.thread = None
+
+        # Setup server side which in this case is the client with the plugin
+        # connecting back to it
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(self.uds_socket_file)
+        server.listen()
+
+        # Client/plugin socket to get FD and pass to plugin
+        plugin = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        plugin.connect(self.uds_socket_file)
+
+        # Start the plugin passing the open FD
+        plugin_fd = plugin.fileno()
+
+        try:
+            self.plugin_process = subprocess.Popen(
+                [plugin_exe, "%d" % plugin_fd],
+                pass_fds=[plugin_fd],
+                env=os.environ,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+        except Exception as e:
+            print("File: %s issue: %s" % (plugin_exe, str(e)))
+            self.close()
+            sys.exit(8)
+
+        # Accept the connection from the plugin
+        self.client, _ = server.accept()
+
+        # No longer need these, the FD for the plugin was passed to the plugin and is open there, close
+        # our copy so that when the client closes socket we are aware.  The server listening socket is
+        # no longer needed as we only have the one "client", the plugin which is already connected.
+        plugin.close()
+        server.close()
+
+        self.thread = threading.Thread(target=PluginFork.read_stdout,
+                                       args=(self, ),
+                                       name="plugin stdout reader")
+        self.thread.start()
+
+        server = None
+
+    @staticmethod
+    def read_stdout(instance):
+        output = instance.plugin_process.stdout
+        while True:
+            line = output.readline()
+            if not line:
+                break
+            else:
+                print("PLUGIN>> %s" % (line.decode("utf-8").rstrip("\n")))
+
+        if instance.plugin_process.poll() is not None:
+            # Output plugin exit code.
+            print("PLUGIN EC>> %d" % instance.plugin_process.wait())
+
+    def close(self):
+        if self.client:
+            self.client.close()
+        if self.uds_socket_file:
+            os.remove(self.uds_socket_file)
+            os.rmdir(self.uds_dir)
+
+        if self.thread:
+            rc = self.thread.join()
+
+
+def _fork_exec_plugin(instance, plugin_exe):
+    # Create a unix domain socket, fork and exec the plugin passing the FD for the socket
+    # and setting env. LSMCLI_DEBUG_FD for the client library.
+    fdata = PluginFork(plugin_exe)
+
+    # We set the FD in an env variable, yeah kind of hackish, but
+    # we don't have to disturb the client API then.
+    os.environ["LSMCLI_DEBUG_FD"] = str(fdata.client.fileno())
+
+    instance.plugin_fork = fdata
 
 
 list_choices = [
@@ -2009,6 +2108,7 @@ class CmdLine(object):
         self.c = None
         self.parser = None
         self.unknown_args = None
+        self.plugin_fork = None
         self.args = self.cli()
 
         self.cleanup = None
@@ -2049,11 +2149,20 @@ class CmdLine(object):
             if u['username'] is None:
                 raise ArgError("password specified with no user name in uri")
 
+        if self.args.plugin_exe:
+            # create the bidirectional pipe, set env variable with FD to use
+            _fork_exec_plugin(self, self.args.plugin_exe)
+
     # Does appropriate clean-up
     # @param    ec      The exit code
     def shutdown(self, ec=None):
         if self.cleanup:
             self.cleanup()
+
+        # Check and do this after everything else.
+        if self.plugin_fork is not None:
+            self.plugin_fork.close()
+            self.plugin_fork = None
 
         if ec:
             sys.exit(ec)

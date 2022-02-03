@@ -21,6 +21,7 @@ import os
 import unittest
 import threading
 
+import lsm._common
 from lsm._common import LsmError, ErrorNumber
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._data import DataDecoder as _DataDecoder
@@ -88,6 +89,10 @@ class TransPort(object):
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while reading a message from the plug-in",
                            str(e))
+        except _SocketEOF:
+            raise LsmError(
+                ErrorNumber.TRANSPORT_COMMUNICATION,
+                "Error while reading a message from the plug-in, EOF")
         return msg
 
     def __init__(self, socket_descriptor):

@@ -38,11 +38,10 @@ getent passwd libstoragemgmt >/dev/null || \
     -c "daemon account for libstoragemgmt" libstoragemgmt || exit 1
 
 
-# libconfig-devel is located in "PowerTools", add the plugin-core
-# to allow enabling.
+# libconfig-devel is located in code ready builder
 if [ "CHK$IS_RHEL8" == "CHK1" ];then
     dnf install dnf-plugins-core -y || exit 1
-    dnf config-manager --set-enabled powertools -y || exit 1
+    dnf config-manager --set-enabled ol8_codeready_builder -y || exit 1
 fi
 
 

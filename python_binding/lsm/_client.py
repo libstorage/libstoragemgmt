@@ -15,6 +15,7 @@
 # Author: tasleson
 import os
 import sys
+import socket
 from stat import S_ISSOCK
 from lsm import (Volume, NfsExport, Capabilities, Pool, System, Battery, Disk,
                  AccessGroup, FileSystem, FsSnapshot, uri_parse, LsmError,
@@ -152,19 +153,30 @@ class Client(INetworkAttachedStorage):
             (plug, proto) = scheme.split("+")
             scheme = plug
 
-        self.plugin_path = os.path.join(self._uds_path, scheme)
-
-        if os.path.exists(self.plugin_path):
-            self._tp = _TransPort(_TransPort.get_socket(self.plugin_path))
+        # See if the user of the library is the command line inteface which is wanting to
+        # locally fork & exec the plugin for development
+        debug_fd = os.getenv('LSMCLI_DEBUG_FD')
+        if debug_fd:
+            try:
+                self._tp = _TransPort(
+                    socket.fromfd(int(debug_fd), socket.AF_UNIX,
+                                  socket.SOCK_STREAM))
+            except Exception as e:
+                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                               "LSMCLI_DEBUG_FD: %s" % str(e))
         else:
-            # At this point we don't know if the user specified an incorrect
-            # plug-in in the URI or the daemon isn't started.  We will check
-            # the directory for other unix domain sockets.
-            if Client._check_daemon_exists():
-                raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
-                               "Plug-in %s not found!" % self.plugin_path)
+            self.plugin_path = os.path.join(self._uds_path, scheme)
+            if os.path.exists(self.plugin_path):
+                self._tp = _TransPort(_TransPort.get_socket(self.plugin_path))
             else:
-                _raise_no_daemon()
+                # At this point we don't know if the user specified an incorrect
+                # plug-in in the URI or the daemon isn't started.  We will check
+                # the directory for other unix domain sockets.
+                if Client._check_daemon_exists():
+                    raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
+                                   "Plug-in %s not found!" % self.plugin_path)
+                else:
+                    _raise_no_daemon()
 
         self.__start(uri, plain_text_password, timeout_ms, flags)
 

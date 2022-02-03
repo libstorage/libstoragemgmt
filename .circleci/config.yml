@@ -18,7 +18,7 @@ jobs:
          no_output_timeout: 20m
   el8:
     docker:
-      - image: centos:8
+      - image: oraclelinux:8
     steps:
       - checkout
       - run:
