@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   fedora:
     docker:
-      - image: fedora:33
+      - image: fedora
     steps:
       - checkout
       - run:
