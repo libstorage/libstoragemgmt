@@ -131,6 +131,9 @@ int main(int argc, char **argv) {
      */
     if ((host_str = strstr(devpath, "/host")) == NULL)
         invalid(argv, devpath);
+    if (strstr(devpath, "/vport"))
+        if ((host_str = strstr(host_str + 1, "/host")) == NULL)
+            invalid(argv, devpath);
     host_pos = strlen(devpath) - strlen(host_str);
 
     if ((host_next_str = strstr(&devpath[host_pos + 1], "/")) == NULL)
