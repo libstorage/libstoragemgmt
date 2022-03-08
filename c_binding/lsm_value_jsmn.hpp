@@ -16,6 +16,7 @@
  * Author: tasleson
  */
 
+#define JSMN_STATIC
 #define JSMN_PARENT_LINKS
 #include "jsmn.h"
 
@@ -218,7 +219,7 @@ std::vector<Value> Value::asArray() {
 
 std::string Payload::serialize(Value &v) { return v.serialize(); }
 
-int inc_token(int current, int amount, int max) {
+static int inc_token(int current, int amount, int max) {
     if (current + amount >= max) {
         throw ValueException("Ran out of tokens!");
     }
