@@ -41,7 +41,7 @@
 class LSM_DLL_LOCAL Transport {
   public:
     /**
-     * Size of the header which immediately proceeds the payload.
+     * Size of the header which immediately precedes the payload.
      */
     const static int HDR_LEN = 10;
 
