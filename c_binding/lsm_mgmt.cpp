@@ -197,8 +197,20 @@ int lsm_connect_password(const char *uri, const char *password,
         if (parsed_uri.valid) {
             c->raw_uri = strdup(uri);
             if (c->raw_uri) {
-                rc = driver_load(c, parsed_uri.scheme.c_str(), password,
-                                 timeout, e, 1, flags);
+                /*
+                 * The scheme can contain <plugin name>+<proto>, e.g.
+                 * targetd+ssl://user@host . We need to check for and just
+                 * pass the name prefix to driver_load
+                 */
+
+                std::string scheme = parsed_uri.scheme;
+                auto proto = scheme.find("+");
+                if (proto != std::string::npos) {
+                    scheme = scheme.substr(0, proto);
+                }
+
+                rc = driver_load(c, scheme.c_str(), password, timeout, e, 1,
+                                 flags);
                 if (rc == LSM_ERR_OK) {
                     *conn = (lsm_connect *)c;
                 }
