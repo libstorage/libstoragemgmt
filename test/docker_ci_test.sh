@@ -78,8 +78,8 @@ else
     ./configure --without-mem-leak-test || exit 1
 fi
 
-make || exit 1
-make check || { cat test-suite.log; exit 1; }
+V=1 make || exit 1
+V=1 make check || { cat test-suite.log; exit 1; }
 
 if [ "CHK$IS_PY3" == "CHK1" ];then
     make rpm || exit 1
