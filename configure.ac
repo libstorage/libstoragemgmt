@@ -103,9 +103,6 @@ if test -z $PERL ;then
     AC_MSG_ERROR([perl is required for build C API documents])
 fi
 
-dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([dlfcn.h])
-
 #Check for sqlite development libs for simc_lsmplugin
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 
