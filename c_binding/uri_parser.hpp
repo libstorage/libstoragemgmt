@@ -55,9 +55,9 @@ inline bool verify_scheme(std::string s) {
 inline std::tuple<std::string, std::string> pair(std::string s) {
     auto i = s.find("=");
     if (i == std::string::npos) {
-        return {s, ""};
+        return std::make_tuple(s, "");
     }
-    return {s.substr(0, i), s.substr(i + 1)};
+    return std::make_tuple(s.substr(0, i), s.substr(i + 1));
 }
 
 inline query_key_value parse_qs(std::string qs) {
