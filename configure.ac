@@ -120,11 +120,6 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
     sysconfdir='/etc'
 fi
 
-dnl ==========================================================================
-dnl find libxml2 library, borrowed from xmlsec
-dnl ==========================================================================
-
-PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
 AC_ARG_WITH([test],

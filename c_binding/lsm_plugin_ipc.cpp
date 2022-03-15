@@ -32,9 +32,8 @@
 #include "lsm_convert.hpp"
 #include "lsm_datatypes.hpp"
 #include "lsm_ipc.hpp"
-#include "util/qparams.h"
+#include "uri_parser.hpp"
 #include <errno.h>
-#include <libxml/uri.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -2534,8 +2533,8 @@ int lsm_plugin_error_log(lsm_plugin_ptr plug, lsm_error_ptr error) {
 
 #define STR_D(c, s)                                                            \
     do {                                                                       \
-        if (s) {                                                               \
-            (c) = strdup(s);                                                   \
+        if (s.length()) {                                                      \
+            (c) = strdup(s.c_str());                                           \
             if (!c) {                                                          \
                 rc = LSM_ERR_NO_MEMORY;                                        \
                 goto bail;                                                     \
@@ -2547,7 +2546,6 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
                                  char **server, int *port, char **path,
                                  lsm_hash **query_params) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
-    xmlURIPtr u = NULL;
 
     if (uri && strlen(uri) > 0) {
         *scheme = NULL;
@@ -2557,30 +2555,25 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
         *path = NULL;
         *query_params = NULL;
 
-        u = xmlParseURI(uri);
-        if (u) {
-            STR_D(*scheme, u->scheme);
-            STR_D(*user, u->user);
-            STR_D(*server, u->server);
-            STR_D(*path, u->path);
-            *port = u->port;
+        lsm_uri::uri u = lsm_uri::parse(std::string(uri));
+        if (u.valid) {
+            STR_D(*scheme, u.scheme);
+            STR_D(*user, u.username);
+            STR_D(*server, u.host);
+            STR_D(*path, u.path);
+            *port = u.port;
 
             *query_params = lsm_hash_alloc();
             if (*query_params) {
-                int i;
-                struct qparam_set *qp = NULL;
-                qp = qparam_query_parse(u->query_raw);
-
-                if (qp) {
-                    for (i = 0; i < qp->n; ++i) {
-                        rc = lsm_hash_string_set(*query_params, qp->p[i].name,
-                                                 qp->p[i].value);
+                if (u.query.size()) {
+                    for (const std::pair<const std::string, std::string> &n :
+                         u.query) {
+                        rc = lsm_hash_string_set(*query_params, n.first.c_str(),
+                                                 n.second.c_str());
                         if (LSM_ERR_OK != rc) {
-                            free_qparam_set(qp);
                             goto bail;
                         }
                     }
-                    free_qparam_set(qp);
                 }
             } else {
                 rc = LSM_ERR_NO_MEMORY;
@@ -2603,11 +2596,6 @@ int LSM_DLL_EXPORT lsm_uri_parse(const char *uri, char **scheme, char **user,
             *path = NULL;
             lsm_hash_free(*query_params);
             *query_params = NULL;
-        }
-
-        if (u) {
-            xmlFreeURI(u);
-            u = NULL;
         }
     }
     return rc;

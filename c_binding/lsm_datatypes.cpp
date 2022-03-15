@@ -198,11 +198,6 @@ void connection_free(lsm_connect *c) {
         c->magic = LSM_DEL_MAGIC(LSM_CONNECT_MAGIC);
         c->flags = 0;
 
-        if (c->uri) {
-            xmlFreeURI(c->uri);
-            c->uri = NULL;
-        }
-
         if (c->error) {
             lsm_error_free(c->error);
             c->error = NULL;
