@@ -15,7 +15,6 @@ libconfig-devel
 python-M2Crypto
 python-devel
 python-pywbem
-'pkgconfig(libxml-2.0)'
 'pkgconfig(check)'
 'pkgconfig(glib-2.0)'
 'pkgconfig(bash-completion) >= 2.0'
