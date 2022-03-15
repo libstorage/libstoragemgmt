@@ -1,7 +1,7 @@
 Source: libstoragemgmt
 Priority: optional
 Maintainer: Gris Ge <fge@redhat.com>
-Build-Depends: debhelper (>= 9~), autoconf, automake, libtool, libxml2-dev, pkg-config, check, libglib2.0-dev (>= 2.22.5), dpkg-dev (>= 1.16.1~), libssl-dev, dh-python, dh-autoreconf, libconfig-dev (>= 1.3.2), perl, bash-completion, procps, libsqlite3-dev, python3-dev, python3-six, dh-systemd
+Build-Depends: debhelper (>= 9~), autoconf, automake, libtool, pkg-config, check, libglib2.0-dev (>= 2.22.5), dpkg-dev (>= 1.16.1~), libssl-dev, dh-python, dh-autoreconf, libconfig-dev (>= 1.3.2), perl, bash-completion, procps, libsqlite3-dev, python3-dev, python3-six, dh-systemd
 Standards-Version: 4.1.3
 Section: libs
 Homepage: https://github.com/libstorage/libstoragemgmt
