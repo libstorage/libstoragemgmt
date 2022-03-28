@@ -7,7 +7,6 @@ libtool
 libtool-bin
 autoconf
 automake
-libxml2-dev
 check
 libglib2.0-dev
 libssl-dev

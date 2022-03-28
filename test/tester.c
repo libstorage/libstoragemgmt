@@ -2567,9 +2567,19 @@ START_TEST(test_nfs_export_funcs) {
 }
 END_TEST
 
-START_TEST(test_uri_parse) {
-    const char uri_g[] = "sim://user@host:123/path/?namespace=root/uber";
-    const char uri_no_path[] = "smis://user@host?namespace=root/emc";
+struct uri_values {
+    int rc;
+    char *uri;
+    char *scheme;
+    char *user;
+    char *host;
+    char *path;
+    int port;
+    char *key;
+    char *val;
+};
+
+void uri_test(struct uri_values *expected) {
     char *scheme = NULL;
     char *user = NULL;
     char *server = NULL;
@@ -2578,20 +2588,62 @@ START_TEST(test_uri_parse) {
     lsm_hash *qp = NULL;
     int rc = 0;
 
-    G(rc, lsm_uri_parse, uri_g, &scheme, &user, &server, &port, &path, &qp);
+    if (LSM_ERR_OK == expected->rc) {
+        G(rc, lsm_uri_parse, expected->uri, &scheme, &user, &server, &port,
+          &path, &qp);
+    } else {
+        F(rc, lsm_uri_parse, expected->uri, &scheme, &user, &server, &port,
+          &path, &qp);
+    }
 
     if (LSM_ERR_OK == rc) {
-        ck_assert_msg(strcmp(scheme, "sim") == 0, "%s", scheme);
-        ck_assert_msg(strcmp(user, "user") == 0, "%s", user);
-        ck_assert_msg(strcmp(server, "host") == 0, "%s", server);
-        ck_assert_msg(strcmp(path, "/path/") == 0, "%s", path);
-        ck_assert_msg(port == 123, "%d", port);
 
-        ck_assert_msg(qp != NULL, "qp = %p", qp);
-        if (qp) {
-            ck_assert_msg(
-                strcmp("root/uber", lsm_hash_string_get(qp, "namespace")) == 0,
-                "%s", lsm_hash_string_get(qp, "namespace"));
+        if (expected->scheme) {
+            ck_assert_msg(strcmp(scheme, expected->scheme) == 0, "%s != %s",
+                          expected->scheme, scheme);
+        } else {
+            ck_assert_msg(scheme == expected->scheme, "expected null: %s",
+                          scheme);
+        }
+
+        if (expected->user) {
+            ck_assert_msg(strcmp(user, expected->user) == 0, "%s != %s",
+                          expected->user, user);
+        } else {
+            ck_assert_msg(user == expected->user, "expected null: %s", user);
+        }
+
+        if (expected->host) {
+            ck_assert_msg(strcmp(server, expected->host) == 0, "%s != %s",
+                          expected->host, server);
+        } else {
+            ck_assert_msg(server == expected->host, "expected null: %s",
+                          server);
+        }
+
+        if (expected->path) {
+            ck_assert_msg(strcmp(path, expected->path) == 0, "%s != %s",
+                          expected->path, path);
+
+        } else {
+            ck_assert_msg(path == expected->path, "expected null: %s", path);
+        }
+
+        ck_assert_msg(port == expected->port, "%d != %d", expected->port, port);
+
+        if (expected->key && expected->val) {
+            ck_assert_msg(strcmp(expected->val,
+                                 lsm_hash_string_get(qp, expected->key)) == 0,
+                          "%s", lsm_hash_string_get(qp, expected->key));
+        } else {
+            lsm_string_list *keys = NULL;
+            G(rc, lsm_hash_keys, qp, &keys);
+            // Expecting empty hash, so keys should be null
+            ck_assert_msg(keys == NULL, "expected null keys: %p", keys);
+
+            if (keys) {
+                lsm_string_list_free(keys);
+            }
         }
 
         free(scheme);
@@ -2605,34 +2657,72 @@ START_TEST(test_uri_parse) {
         G(rc, lsm_hash_free, qp);
         qp = NULL;
     }
+}
 
-    port = 0;
+START_TEST(test_uri_parse) {
 
-    G(rc, lsm_uri_parse, uri_no_path, &scheme, &user, &server, &port, &path,
-      &qp);
+#define NUM_URI_TESTS ((int)(sizeof(tests) / sizeof(tests[0])))
+    int i = 0;
 
-    if (LSM_ERR_OK == rc) {
-        ck_assert_msg(strcmp(scheme, "smis") == 0, "%s", scheme);
-        ck_assert_msg(strcmp(user, "user") == 0, "%s", user);
-        ck_assert_msg(strcmp(server, "host") == 0, "%s", server);
-        ck_assert_msg(path == NULL, "%s", path);
-        ck_assert_msg(port == 0, "%d", port);
+    struct uri_values tests[] = {
+        {.rc = LSM_ERR_OK,
+         .uri = "sim://user@host:123/path/?namespace=root/uber",
+         .scheme = "sim",
+         .user = "user",
+         .host = "host",
+         .path = "/path/",
+         .port = 123,
+         .key = "namespace",
+         .val = "root/uber"},
+        {.rc = LSM_ERR_OK,
+         .uri = "smis://user@host?namespace=root/emc",
+         .scheme = "smis",
+         .user = "user",
+         .host = "host",
+         .path = NULL,
+         .port = -1,
+         .key = "namespace",
+         .val = "root/emc"},
+        {.rc = LSM_ERR_OK,
+         .uri = "smis+ssl://user@host:8080",
+         .scheme = "smis+ssl",
+         .user = "user",
+         .host = "host",
+         .path = NULL,
+         .port = 8080,
+         .key = NULL,
+         .val = NULL},
+        {.rc = LSM_ERR_OK,
+         .uri = "localraid://",
+         .scheme = "localraid",
+         .user = NULL,
+         .host = NULL,
+         .path = NULL,
+         .port = -1,
+         .key = NULL,
+         .val = NULL},
+        {.rc = LSM_ERR_INVALID_ARGUMENT,
+         .uri = "wat:/is@this",
+         .scheme = NULL,
+         .user = NULL,
+         .host = NULL,
+         .path = NULL,
+         .port = -1,
+         .key = NULL,
+         .val = NULL},
+        {.rc = LSM_ERR_INVALID_ARGUMENT,
+         .uri = "",
+         .scheme = NULL,
+         .user = NULL,
+         .host = NULL,
+         .path = NULL,
+         .port = -1,
+         .key = NULL,
+         .val = NULL},
+    };
 
-        ck_assert_msg(qp != NULL, "qp = %p", qp);
-        if (qp) {
-            ck_assert_msg(
-                strcmp("root/emc", lsm_hash_string_get(qp, "namespace")) == 0,
-                "%s", lsm_hash_string_get(qp, "namespace"));
-        }
-
-        free(scheme);
-        scheme = NULL;
-        free(user);
-        user = NULL;
-        free(server);
-        server = NULL;
-        G(rc, lsm_hash_free, qp);
-        qp = NULL;
+    for (i = 0; i < NUM_URI_TESTS; i++) {
+        uri_test(&tests[i]);
     }
 }
 END_TEST

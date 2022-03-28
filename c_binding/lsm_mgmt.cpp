@@ -21,12 +21,12 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include <dirent.h>
-#include <libxml/uri.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "lsm_convert.hpp"
 #include "lsm_datatypes.hpp"
+#include "uri_parser.hpp"
 
 #define COUNT_OF(x)                                                            \
     ((sizeof(x) / sizeof(0 [x])) / ((size_t)(!(sizeof(x) % sizeof(0 [x])))))
@@ -192,11 +192,24 @@ int lsm_connect_password(const char *uri, const char *password,
 
     c = connection_get();
     if (c) {
-        c->uri = xmlParseURI(uri);
-        if (c->uri && c->uri->scheme) {
+        lsm_uri::uri parsed_uri = lsm_uri::parse(std::string(uri));
+
+        if (parsed_uri.valid) {
             c->raw_uri = strdup(uri);
             if (c->raw_uri) {
-                rc = driver_load(c, c->uri->scheme, password, timeout, e, 1,
+                /*
+                 * The scheme can contain <plugin name>+<proto>, e.g.
+                 * targetd+ssl://user@host . We need to check for and just
+                 * pass the name prefix to driver_load
+                 */
+
+                std::string scheme = parsed_uri.scheme;
+                auto proto = scheme.find("+");
+                if (proto != std::string::npos) {
+                    scheme = scheme.substr(0, proto);
+                }
+
+                rc = driver_load(c, scheme.c_str(), password, timeout, e, 1,
                                  flags);
                 if (rc == LSM_ERR_OK) {
                     *conn = (lsm_connect *)c;

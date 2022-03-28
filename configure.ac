@@ -103,9 +103,6 @@ if test -z $PERL ;then
     AC_MSG_ERROR([perl is required for build C API documents])
 fi
 
-dnl Availability of various common headers (non-fatal if missing).
-AC_CHECK_HEADERS([dlfcn.h])
-
 #Check for sqlite development libs for simc_lsmplugin
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 
@@ -120,11 +117,6 @@ if test "$prefix" = "/usr" && test "$sysconfdir" = '${prefix}/etc' ; then
     sysconfdir='/etc'
 fi
 
-dnl ==========================================================================
-dnl find libxml2 library, borrowed from xmlsec
-dnl ==========================================================================
-
-PKG_CHECK_MODULES([LIBXML], [libxml-2.0])
 PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
 AC_ARG_WITH([test],
@@ -466,6 +458,7 @@ AM_CONDITIONAL(HAVE_SYSTEMD,
 CPPFLAGS="$CPPFLAGS -Wall"
 CPPFLAGS="$CPPFLAGS -Werror"
 CPPFLAGS="$CPPFLAGS -Wextra"
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 AC_CONFIG_FILES([
     libstoragemgmt.pc

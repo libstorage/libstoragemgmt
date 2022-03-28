@@ -24,7 +24,6 @@
 
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
-#include "libxml/uri.h"
 #include "lsm_ipc.hpp"
 #include <glib.h>
 
@@ -201,7 +200,6 @@ struct LSM_DLL_LOCAL _lsm_plugin {
 struct LSM_DLL_LOCAL _lsm_connect {
     uint32_t magic;   /**< Magic, used for structure validation */
     uint32_t flags;   /**< Flags for the connection */
-    xmlURIPtr uri;    /**< URI */
     char *raw_uri;    /**< Raw URI string */
     lsm_error *error; /**< Error information */
     Ipc *tp;          /**< IPC transport */

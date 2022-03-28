@@ -11,7 +11,6 @@ kernel-headers
 libconfig-devel
 libtool
 libudev-devel
-libxml2-devel
 make
 perl
 procps-ng

@@ -42,7 +42,6 @@
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include "libstoragemgmt/libstoragemgmt_volumes.h"
 
-#include <dlfcn.h>
 #include <glib.h>
 #include <regex.h>
 #include <stdlib.h>
@@ -198,11 +197,6 @@ void connection_free(lsm_connect *c) {
         c->magic = LSM_DEL_MAGIC(LSM_CONNECT_MAGIC);
         c->flags = 0;
 
-        if (c->uri) {
-            xmlFreeURI(c->uri);
-            c->uri = NULL;
-        }
-
         if (c->error) {
             lsm_error_free(c->error);
             c->error = NULL;
@@ -295,8 +289,8 @@ int driver_load(lsm_connect *c, const char *plugin_name, const char *password,
                 }
             } else {
                 *e = lsm_error_create(LSM_ERR_PLUGIN_IPC_FAIL,
-                                      "Unable to connect to plugin", NULL,
-                                      dlerror(), NULL, 0);
+                                      "Unable to connect to plugin", NULL, NULL,
+                                      NULL, 0);
 
                 rc = LSM_ERR_PLUGIN_IPC_FAIL;
             }

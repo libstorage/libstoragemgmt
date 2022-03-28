@@ -48,7 +48,7 @@ echo "Starting in dir =  $(pwd)"
 
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
-if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
+if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$EUID" -eq 0 ] ; then
     echo "Testing golang module"
 
     lsm_test_base_install \
@@ -69,11 +69,14 @@ if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
 
     lsm_test_cleanup
 else
+    if [ "$EUID" -ne 0 ] ; then
+        echo "need to run as root for golang testing"
+    fi
     echo "Skipping golang module test..."
 fi
 
 # Fetch and test the rust code to ensure we didn't break it
-if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
+if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$EUID" -eq 0 ] ; then
     echo "Testing rust-lang code base"
     lsm_test_base_install \
         "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_ALL_PLUGINS}"
@@ -93,6 +96,9 @@ if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] ; then
 
     lsm_test_cleanup
 else
+    if [ "$EUID" -ne 0 ] ; then
+        echo "need to run as root for rust testing"
+    fi
     echo "Skipping rust-lang test"
 fi
 
