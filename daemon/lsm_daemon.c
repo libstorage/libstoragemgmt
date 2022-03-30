@@ -307,18 +307,47 @@ void process_directory(const char *dir, void *p, file_op call_back) {
 int delete_socket(void *p, char *full_name) {
     struct stat statbuf;
     int err;
+    int fd = 0;
+    char *dir = NULL;
+    char *full_name_dupe = NULL;
 
     assert(p == NULL);
 
-    if (!lstat(full_name, &statbuf)) {
+    /*
+     *  We need to duplicate the full_name as dirname *may* modify it, also it
+     * may segfault if the string is static
+     */
+    full_name_dupe = strdup(full_name);
+    if (!full_name_dupe) {
+        log_and_exit("Memory allocation error when "
+                     "duplicating delete_socket:full_name\n");
+    }
+
+    dir = dirname(full_name_dupe);
+    fd = open(dir, O_DIRECTORY);
+    if (fd == -1) {
+        err = errno;
+        log_and_exit("Error on opening  directory %s, full name %s: %s\n", dir,
+                     full_name, strerror(err));
+    }
+
+    if (!fstatat(fd, full_name, &statbuf, AT_SYMLINK_NOFOLLOW)) {
         if (S_ISSOCK(statbuf.st_mode)) {
-            if (unlink(full_name)) {
+            if (unlinkat(fd, full_name, 0)) {
                 err = errno;
                 log_and_exit("Error on unlinking file %s: %s\n", full_name,
                              strerror(err));
             }
         }
     }
+
+    if (-1 == close(fd)) {
+        err = errno;
+        log_and_exit("Error on closing directory %s: %s\n", dir, strerror(err));
+    }
+
+    free(full_name_dupe);
+
     return 0;
 }
 
