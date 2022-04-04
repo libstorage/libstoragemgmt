@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
     int c;
     char *devpath;
 
+    char *sysfs_dir_check = NULL;
     char *sysfs_path;
     char *sysfs_data;
     struct stat sysfs_stat;
@@ -108,23 +109,25 @@ int main(int argc, char **argv) {
         usage(argv, 1);
     }
 
-    sysfs_path = malloc(strlen("/sys") + strlen(devpath) + 1);
-    if (!sysfs_path) {
+    sysfs_dir_check = malloc(strlen("/sys") + strlen(devpath) + 1);
+    if (!sysfs_dir_check) {
         fprintf(stderr, "Memory allocation failure!");
         return 1;
     }
 
-    strcpy(sysfs_path, "/sys");
-    strcat(sysfs_path, devpath);
+    strcpy(sysfs_dir_check, "/sys");
+    strcat(sysfs_dir_check, devpath);
 
-    if (stat(sysfs_path, &sysfs_stat) < 0) {
-        fprintf(stderr, "Cannot stat '%s': %s\n", sysfs_path, strerror(errno));
+    if (stat(sysfs_dir_check, &sysfs_stat) < 0) {
+        fprintf(stderr, "Cannot stat '%s': %s\n", sysfs_dir_check,
+                strerror(errno));
         usage(argv, 1);
     }
     if (!S_ISDIR(sysfs_stat.st_mode))
         invalid(argv, devpath);
 
-    free(sysfs_path);
+    free(sysfs_dir_check);
+    sysfs_dir_check = NULL;
 
     /*
      * Construct the path to the "scan" entry in the Scsi_Host sysfs object.
