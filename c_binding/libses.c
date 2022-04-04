@@ -475,7 +475,7 @@ static int16_t _ses_find_sas_addr(const char *sas_addr, uint8_t *add_st_data,
             continue;
         if (dp_sas->phy_count == 0)
             continue;
-        if (&dp_sas->phy_list + sizeof(struct _ses_add_st_sas_phy) > end_p)
+        if ((uint8_t *)(&dp_sas->phy_list + sizeof(struct _ses_add_st_sas_phy)) > end_p)
             goto out;
         for (i = 0; i < dp_sas->phy_count; ++i) {
             phy =
