@@ -719,8 +719,8 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
     if (i == 0)
         goto out;
 
-    *dps = (struct _sg_t10_vpd83_dp **)malloc(
-        sizeof(struct _sg_t10_vpd83_dp *) * i);
+    *dps = (struct _sg_t10_vpd83_dp **)calloc(
+        i, sizeof(struct _sg_t10_vpd83_dp *));
 
     if (*dps == NULL) {
         rc = LSM_ERR_NO_MEMORY;
@@ -735,8 +735,6 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
             rc = LSM_ERR_NO_MEMORY;
             goto out;
         }
-        (*dps)[*dp_count] = dp;
-        ++*dp_count;
 
         dp_header = (struct _sg_t10_vpd83_dp_header *)p;
         memcpy(&dp->header, dp_header, sizeof(struct _sg_t10_vpd83_dp_header));
@@ -744,7 +742,10 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
                dp_header->designator_len);
 
         p += dp_header->designator_len + sizeof(struct _sg_t10_vpd83_dp_header);
-        continue;
+
+        (*dps)[*dp_count] = dp;
+        ++*dp_count;
+        dp = NULL;
     }
 
 out:
@@ -759,14 +760,8 @@ out:
 }
 
 static struct _sg_t10_vpd83_dp *_sg_t10_vpd83_dp_new(void) {
-    struct _sg_t10_vpd83_dp *dp = NULL;
-
-    dp = (struct _sg_t10_vpd83_dp *)malloc(sizeof(struct _sg_t10_vpd83_dp));
-
-    if (dp != NULL) {
-        memset(dp, 0, sizeof(struct _sg_t10_vpd83_dp));
-    }
-    return dp;
+    return (struct _sg_t10_vpd83_dp *)calloc(1,
+                                             sizeof(struct _sg_t10_vpd83_dp));
 }
 
 static int _sg_io_open(char *err_msg, const char *disk_path, int *fd,
