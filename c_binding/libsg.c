@@ -719,8 +719,8 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
     if (i == 0)
         goto out;
 
-    *dps = (struct _sg_t10_vpd83_dp **)malloc(
-        sizeof(struct _sg_t10_vpd83_dp *) * i);
+    *dps = (struct _sg_t10_vpd83_dp **)calloc(
+        i, sizeof(struct _sg_t10_vpd83_dp *));
 
     if (*dps == NULL) {
         rc = LSM_ERR_NO_MEMORY;
