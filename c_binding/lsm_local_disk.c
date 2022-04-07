@@ -1093,13 +1093,12 @@ static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
     memset(sysfs_sas_addr, 0, _SYSFS_SAS_ADDR_LEN);
     memset(tp_sas_addr, 0, _SG_T10_SPL_SAS_ADDR_LEN);
 
-    sysfs_sas_path = (char *)malloc(sizeof(char) *
-                                    (strlen("/sys/block//device/sas_address") +
-                                     strlen(blk_name) + 1 /* trailing \0 */));
+    sysfs_sas_path = (char *)malloc(PATH_MAX);
     if (sysfs_sas_path == NULL)
         goto out;
 
-    sprintf(sysfs_sas_path, "/sys/block/%s/device/sas_address", blk_name);
+    snprintf(sysfs_sas_path, PATH_MAX, "/sys/block/%s/device/sas_address",
+             blk_name);
     if (!_file_exists(sysfs_sas_path))
         goto out;
 
