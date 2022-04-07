@@ -1,5 +1,15 @@
 News for libStorageMgmt
 
+1.9.4: Apr 7 2022
+    * Correction for udev events on SCSI vports
+    * Add hidden developer option "--fork_plugin" to fork and exec
+      plugin directly from lsmcli
+    * Misc. code improvements/bug fixes
+       - remove libxml2 dependency
+       - coverity corrections
+       - remove dlerror & library requirement
+       - remove visibility of some symbols that are private
+
 1.9.3: Nov 16 2021
     * Fix endianess issues for big endian
     * Fix megaraid plugin for volume_raid_info for RAID10, add test
