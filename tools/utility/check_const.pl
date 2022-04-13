@@ -252,7 +252,7 @@ sub parse_out_c_const() {
 
 sub _parse_py_init_file($) {
 
-    # Return a reference of array containging file path of sub python module.
+    # Return a reference of array containing file path of sub python module.
     my $init_file = shift;
     open my $init_fd, "<", $init_file
       or die "FAIL: Failed to open $init_file: $!\n";
@@ -401,7 +401,7 @@ sub record_result($$$$) {
 
     unless ($c_name) {
 
-        # ilegal python variable name, result already updated by
+        # illegal python variable name, result already updated by
         # py_name_2_c_name()
         return 1;
     }
