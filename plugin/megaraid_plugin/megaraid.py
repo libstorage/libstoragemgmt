@@ -768,7 +768,7 @@ class MegaRAID(IPlugin):
         if not volume.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input volume argument: missing plugin_data property")
+                "Illegal input volume argument: missing plugin_data property")
 
         vd_path = _vd_path_of_lsm_vol(volume)
         vol_show_output = self._storcli_exec([vd_path, "show", "all"])
