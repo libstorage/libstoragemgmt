@@ -848,7 +848,7 @@ class SmartArray(IPlugin):
         if not volume.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input volume argument: missing plugin_data property")
+                "Illegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
         ctrl_data = next(
@@ -897,7 +897,7 @@ class SmartArray(IPlugin):
         if not pool.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input volume argument: missing plugin_data property")
+                "Illegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num) = pool.plugin_data.split(":")
         ctrl_data = next(
@@ -971,7 +971,7 @@ class SmartArray(IPlugin):
         if not system.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input system argument: missing plugin_data property")
+                "Illegal input system argument: missing plugin_data property")
         return self._vrc_cap_get(system.plugin_data)
 
     @_handle_errors
@@ -1191,7 +1191,7 @@ class SmartArray(IPlugin):
         if not volume.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input volume argument: missing plugin_data property")
+                "Illegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
 
@@ -1232,7 +1232,7 @@ class SmartArray(IPlugin):
         if not volume.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Ilegal input volume argument: missing plugin_data property")
+                "Illegal input volume argument: missing plugin_data property")
 
         (ctrl_num, array_num, ld_num) = volume.plugin_data.split(":")
 
