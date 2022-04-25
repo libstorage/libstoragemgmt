@@ -16,12 +16,10 @@
 
 import json
 import socket
-import string
 import os
 import unittest
 import threading
 
-import lsm._common
 from lsm._common import LsmError, ErrorNumber
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._data import DataDecoder as _DataDecoder
@@ -82,8 +80,8 @@ class TransPort(object):
         bytes of the message.
         """
         try:
-            l = self._read_all(self.HDR_LEN)
-            msg = self._read_all(int(l))
+            num_bytes = self._read_all(self.HDR_LEN)
+            msg = self._read_all(int(num_bytes))
             # common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
@@ -262,13 +260,14 @@ class _TestTransport(unittest.TestCase):
             payload = "x" * l
             msg = {'method': 'drip', 'id': 100, 'params': payload}
             data = json.dumps(msg, cls=_DataEncoder)
+            hdr = str(len(data))
 
-            wire = string.zfill(len(data), TransPort.HDR_LEN) + data
+            wire = hdr.zfill(TransPort.HDR_LEN) + data
 
             self.assertTrue(len(msg) >= 1)
 
             for i in wire:
-                self.c.send(i)
+                self.c.send(bytes(i, 'utf-8'))
 
             reply, msg_id = self.client.read_resp()
             self.assertTrue(payload == reply)
@@ -278,6 +277,7 @@ class _TestTransport(unittest.TestCase):
         resp, msg_id = self.client.read_resp()
         self.assertTrue(resp is None)
         self.server.join()
+        self.client.close()
 
 
 if __name__ == "__main__":
