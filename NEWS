@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.9.5: Oct 14 2022
+    * Misc. bug fixes including one for failure to build on i386
+    * Add a udev rule entry for ALUA state changes
+
 1.9.4: Apr 7 2022
     * Correction for udev events on SCSI vports
     * Add hidden developer option "--fork_plugin" to fork and exec
