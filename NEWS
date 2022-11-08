@@ -1,5 +1,8 @@
 News for libStorageMgmt
 
+1.9.6: Nov 8 2022
+    * Correct run directory
+
 1.9.5: Oct 14 2022
     * Misc. bug fixes including one for failure to build on i386
     * Add a udev rule entry for ALUA state changes
