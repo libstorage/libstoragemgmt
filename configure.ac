@@ -2,9 +2,7 @@ dnl Process this file with autoconf to produce a configure script.
 dnl Copyright (C) 2011-2016 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
-AC_INIT(
-    [libstoragemgmt], [1.9.6], [libstoragemgmt-devel@lists.fedorahosted.org],
-    [], [https://github.com/libstorage/libstoragemgmt/])
+AC_INIT([libstoragemgmt],[1.9.6],[libstoragemgmt-devel@lists.fedorahosted.org],[],[https://github.com/libstorage/libstoragemgmt/])
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])
@@ -67,11 +65,11 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_CPP
-AM_PROG_CC_STDC
+AC_PROG_CC
 
-AM_PROG_LIBTOOL
+LT_INIT
 AM_PROG_CC_C_O
-AM_PROG_LD
+LT_PATH_LD
 
 AC_CHECK_HEADERS([stdint.h stdlib.h string.h sys/socket.h syslog.h unistd.h linux/nvme_ioctl.h])
 
@@ -120,8 +118,7 @@ fi
 PKG_CHECK_MODULES([LIBGLIB], [glib-2.0 >= 2.22.5])
 
 AC_ARG_WITH([test],
-    [AC_HELP_STRING([--without-test],
-                    [disable all test case])],
+    [AS_HELP_STRING([--without-test],[disable all test case])],
     [], [with_test=yes])
 
 AM_CONDITIONAL([WITH_TEST], [test "x$with_test" = "xyes"])
@@ -213,10 +210,10 @@ if test "x$with_python3" = "xyes"; then
     AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
 
     if test "x$with_smispy" = "xyes"; then
-        AC_PYTHON_MODULE([pywbem], [Required], [python3])
+        AX_PYTHON_MODULE([pywbem],[Required],[python3])
     fi
 
-    AC_PYTHON_MODULE([six], [Required], [python3])
+    AX_PYTHON_MODULE([six],[Required],[python3])
     PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
 
     if test "x$not_found_py_pkg" == "xyes"; then
@@ -256,11 +253,11 @@ but found $PYTHON_MAJOR_VERSION.x]) ;;
                    AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
 
     if test "x$with_smispy" = "xyes"; then
-        AC_PYTHON_MODULE([pywbem], [Required])
+        AX_PYTHON_MODULE([pywbem],[Required])
     fi
 
-    AC_PYTHON_MODULE([argparse], [Required])
-    AC_PYTHON_MODULE([six], [Required])
+    AX_PYTHON_MODULE([argparse],[Required])
+    AX_PYTHON_MODULE([six],[Required])
     PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
 
     if test "x$not_found_py_pkg" == "xyes"; then
