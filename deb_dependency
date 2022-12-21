@@ -24,7 +24,6 @@ lintian
 debhelper
 bash-completion
 dh-python
-dh-systemd
 dh-autoreconf
 systemd
 procps
