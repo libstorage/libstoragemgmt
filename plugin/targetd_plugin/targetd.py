@@ -58,6 +58,7 @@ _LVM_SECTOR_SIZE = 512
 
 
 def handle_errors(method):
+
     def target_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)

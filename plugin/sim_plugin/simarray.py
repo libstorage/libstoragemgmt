@@ -28,6 +28,7 @@ from lsm import (System, Volume, Disk, Pool, FileSystem, AccessGroup,
 
 
 def _handle_errors(method):
+
     def wrapper(*args, **kargs):
         try:
             return method(*args, **kargs)

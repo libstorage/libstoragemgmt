@@ -35,6 +35,7 @@ from megaraid_plugin.utils import cmd_exec, ExecError
 
 
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)

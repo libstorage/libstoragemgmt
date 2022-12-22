@@ -25,6 +25,7 @@ class IPlugin(with_metaclass(_ABCMeta, object)):
     Plug-in interface that all plug-ins must implement for basic
     operation.
     """
+
     @_abstractmethod
     def plugin_register(self, uri, password, timeout, flags=0):
         """
@@ -126,6 +127,7 @@ class IPlugin(with_metaclass(_ABCMeta, object)):
 
 
 class IStorageAreaNetwork(IPlugin):
+
     def volumes(self, search_key=None, search_value=None, flags=0):
         """
         Returns an array of volume objects
@@ -333,6 +335,7 @@ class INetworkAttachedStorage(IPlugin):
     """
     Class the represents Network attached storage (Common NFS/CIFS operations)
     """
+
     def fs(self, search_key=None, search_value=None, flags=0):
         """
         Returns a list of file systems on the controller. Raises LsmError on
@@ -474,6 +477,7 @@ class INetworkAttachedStorage(IPlugin):
 
 
 class INfs(INetworkAttachedStorage):
+
     def export_auth(self, flags=0):
         """
         Returns the types of authentication that are available for NFS

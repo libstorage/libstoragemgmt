@@ -42,6 +42,7 @@ class PluginRunner(object):
     Plug-in side common code which uses the passed in plugin to do meaningful
     work.
     """
+
     @staticmethod
     def _is_number(val):
         """

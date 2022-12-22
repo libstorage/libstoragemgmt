@@ -25,7 +25,9 @@ from lsm import (IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber,
                  search_property, Volume, Disk, LocalDisk, Battery, int_div)
 from hpsa_plugin.utils import cmd_exec, ExecError
 
+
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)

@@ -34,6 +34,7 @@ def merge_list(list_a, list_b):
 
 
 def handle_cim_errors(method):
+
     def cim_wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
