@@ -37,6 +37,7 @@ def warn(vol, blk_paths, msg):
 
 
 class LocalVol(object):
+
     def __init__(self, vol, blk_paths, sys, cap):
         self.vol = vol
         self.blk_paths = blk_paths
@@ -76,6 +77,7 @@ SUGGEST:    "{SUGGEST}"
 
 
 class SanityCheck(unittest.TestCase):
+
     def setUp(self):
         uri = None
         if os.getenv('LSMCLI_URI') is not None:

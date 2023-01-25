@@ -412,6 +412,7 @@ def _add_sd_paths(lsm_obj):
 
 # This class represents a command line argument error
 class ArgError(Exception):
+
     def __init__(self, message, *args, **kwargs):
         """
         Class represents an error.
@@ -452,6 +453,7 @@ def _check_network_host(addr):
 
 class PluginFork:
     """Container for plugin fork data"""
+
     def __init__(self, plugin_exe):
         self.uds_dir = tempfile.mkdtemp(prefix="LSM_DEV_")
         self.uds_socket_file = os.path.join(self.uds_dir, "uds_path")
@@ -1856,6 +1858,7 @@ class CmdLine(object):
     # Check to see if block ranges are overlapping
     @staticmethod
     def _check_overlap(ranges):
+
         def _overlap(r, member):
             for i in range(1, len(r)):
                 ps = getattr(r[i - 1], member)  # Previous start

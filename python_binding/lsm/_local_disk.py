@@ -36,6 +36,7 @@ def _use_c_lib_function(func_ref, arg):
 
 
 class LocalDisk(object):
+
     @staticmethod
     def vpd83_search(vpd83):
         """

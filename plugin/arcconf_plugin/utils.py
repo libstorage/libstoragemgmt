@@ -37,6 +37,7 @@ def cmd_exec(cmds):
 
 
 class ExecError(Exception):
+
     def __init__(self, cmd, errno, stdout, stderr, *args, **kwargs):
         Exception.__init__(self, *args, **kwargs)
         self.cmd = cmd

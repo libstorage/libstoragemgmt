@@ -35,6 +35,7 @@ from megaraid_plugin.utils import cmd_exec, ExecError
 
 
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
@@ -531,13 +532,24 @@ class MegaRAID(IPlugin):
                 ctrl_show_all_output["Version"]["Bios Version"],
                 ctrl_show_all_output["Version"]["Firmware Version"])
 
-            if ctrl_show_all_output["Capabilities"]["Enable JBOD"] == "Yes":
-                mode = System.MODE_HBA
+            if "Capabilities" in ctrl_show_all_output and \
+                    "Enable JBOD" in ctrl_show_all_output["Capabilities"]:
+
+                if ctrl_show_all_output["Capabilities"]["Enable JBOD"] == "Yes":
+                    mode = System.MODE_HBA
+                else:
+                    mode = System.MODE_HARDWARE_RAID
+                # Notes for JBOD/HBA mode of MegaRAID:
+                # "storcli /c0/e9/s1 set jbod" require "storcli /c0 set jbod=on"
+                # be executed first.
+            elif "Status" in ctrl_show_all_output and \
+                    "Current Personality" in ctrl_show_all_output["Status"]:
+                if ctrl_show_all_output["Status"]["Current Personality"] == "HBA-Mode ":
+                    mode = System.MODE_HBA
+                else:
+                    mode = System.MODE_HBA
             else:
-                mode = System.MODE_HARDWARE_RAID
-            # Notes for JBOD/HBA mode of MegaRAID:
-            # "storcli /c0/e9/s1 set jbod" require "storcli /c0 set jbod=on"
-            # be excuted first.
+                mode = System.MODE_UNKNOWN
 
             rc_lsm_syss.append(
                 System(sys_id,

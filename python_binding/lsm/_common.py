@@ -409,6 +409,7 @@ class SocketEOF(Exception):
 @default_property('msg', doc='Error message')
 @default_property('data', doc='Optional error data')
 class LsmError(Exception):
+
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
         Class represents an error.
@@ -586,7 +587,9 @@ def return_requires(*types):
     needs to be language agnostic, so making sure we have the correct types
     is quite important.
     """
+
     def outer(func):
+
         @functools.wraps(func)
         def inner(*args, **kwargs):
             r = func(*args, **kwargs)
@@ -613,6 +616,7 @@ def return_requires(*types):
 
 
 class TestCommon(unittest.TestCase):
+
     def setUp(self):
         pass
 

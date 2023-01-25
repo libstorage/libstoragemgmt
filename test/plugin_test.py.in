@@ -80,6 +80,7 @@ def mb_in_bytes(mib):
 
 
 def record_result(method):
+
     def recorder(*args, **kwargs):
         try:
             result = method(*args, **kwargs)
@@ -119,6 +120,7 @@ def r_iqn():
 
 
 class Duration(object):
+
     def __init__(self):
         self.start = 0
         self.end = 0

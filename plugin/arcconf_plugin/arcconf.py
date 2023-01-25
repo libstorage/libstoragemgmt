@@ -69,6 +69,7 @@ LOGICAL_DEVICE_CRITICAL = 3
 
 
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)

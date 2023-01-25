@@ -24,6 +24,7 @@ from arcconf_plugin import Arcconf
 
 
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)

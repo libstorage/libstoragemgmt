@@ -38,6 +38,7 @@ class DataEncoder(json.JSONEncoder):
     """
     Custom json encoder for objects derived form ILsmData
     """
+
     def default(self, my_class):
         if not isinstance(my_class, IData):
             raise ValueError('incorrect class type:' + str(type(my_class)))
@@ -49,6 +50,7 @@ class DataDecoder(json.JSONDecoder):
     """
     Custom json decoder for objects derived from ILsmData
     """
+
     @staticmethod
     def __process_dict(d):
         """
@@ -100,6 +102,7 @@ class IData(with_metaclass(_ABCMeta, object)):
     Base class functionality of serializable
     classes.
     """
+
     def _to_dict(self):
         """
         Represent the class as a dictionary
@@ -722,6 +725,7 @@ class FileSystem(IData):
 @default_property('ts', doc="Time stamp the snapshot was created")
 @default_property("plugin_data", doc="Private plugin data")
 class FsSnapshot(IData):
+
     def __init__(self, _id, _name, _ts, _plugin_data=None):
         self._id = _id
         self._name = _name
@@ -777,6 +781,7 @@ class NfsExport(IData):
 @default_property('dest_block', doc="Destination logical block address")
 @default_property('block_count', doc="Number of blocks")
 class BlockRange(IData):
+
     def __init__(self, _src_block, _dest_block, _block_count):
         self._src_block = _src_block
         self._dest_block = _dest_block

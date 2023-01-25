@@ -23,11 +23,11 @@ import re
 from lsm import (IPlugin, Client, Capabilities, VERSION, LsmError, ErrorNumber,
                  uri_parse, System, Pool, size_human_2_size_bytes,
                  search_property, Volume, Disk, LocalDisk, Battery, int_div)
-
 from hpsa_plugin.utils import cmd_exec, ExecError
 
 
 def _handle_errors(method):
+
     def _wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
@@ -41,7 +41,7 @@ def _handle_errors(method):
         except ExecError as exec_error:
             if 'No controllers detected' in exec_error.stdout:
                 raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM,
-                               "No HP SmartArray deteceted by ssacli.")
+                               "No HP SmartArray detected by ssacli.")
             else:
                 raise LsmError(ErrorNumber.PLUGIN_BUG, str(exec_error))
         except Exception as common_error:
@@ -719,7 +719,6 @@ class SmartArray(IPlugin):
                 for array_key_name in list(ctrl_data[key_name].keys()):
                     if not array_key_name.startswith("Logical Drive"):
                         continue
-
                     lsm_vols.append(
                         SmartArray._hp_ld_to_lsm_vol(
                             ctrl_data[key_name][array_key_name], pool_id,

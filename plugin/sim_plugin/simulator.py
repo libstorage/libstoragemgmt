@@ -25,6 +25,7 @@ class SimPlugin(INfs, IStorageAreaNetwork):
     """
     Simple class that implements enough to allow the framework to be exercised.
     """
+
     def __init__(self):
         self.uri = None
         self.password = None

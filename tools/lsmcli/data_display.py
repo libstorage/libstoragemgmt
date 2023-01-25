@@ -330,6 +330,7 @@ def disk_link_speed_to_str(link_speed):
 
 
 class PlugData(object):
+
     def __init__(self, description, plugin_version):
         self.desc = description
         self.version = plugin_version
@@ -398,6 +399,7 @@ class PoolRAIDInfo(object):
 
 
 class VcrCap(object):
+
     def __init__(self, system_id, raid_types, strip_sizes):
         self.system_id = system_id
         self.raid_types = raid_types
@@ -503,6 +505,7 @@ class VolumeRAMCacheInfo(object):
 
 
 class DisplayData(object):
+
     def __init__(self):
         pass
 
