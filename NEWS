@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.9.7: Jan 27 2023
+    * Fix megaraid for PERC H330 Adapter
+      https://github.com/libstorage/libstoragemgmt/issues/520
+
 1.9.6: Nov 8 2022
     * Correct run directory
 
