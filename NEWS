@@ -1,5 +1,9 @@
 News for libStorageMgmt
 
+1.9.8: Apr 17 2023
+    * FIPS correction
+      https://github.com/libstorage/libstoragemgmt/pull/528
+
 1.9.7: Jan 27 2023
     * Fix megaraid for PERC H330 Adapter
       https://github.com/libstorage/libstoragemgmt/issues/520
