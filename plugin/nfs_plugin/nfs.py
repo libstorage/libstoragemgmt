@@ -55,7 +55,13 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         if auth_type is None:
             auth_type = 'sec'
 
-        hsh = hashlib.md5()
+        try:
+            # The use of md5 is not used for security, indicate
+            # this to hashlib so that we can run when fips is enabled
+            hsh = hashlib.md5(usedforsecurity=False)
+        except Exception:
+            hsh = hashlib.md5()
+
         hsh.update(path.encode('utf-8'))
         hsh.update(auth_type.encode('utf-8'))
         if anon_uid is not None and anon_uid != NfsExport.ANON_UID_GID_NA:

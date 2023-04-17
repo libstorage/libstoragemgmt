@@ -345,7 +345,12 @@ def uri_parameters(uri):
 # @param    t   Item to generate signature on.
 # @returns  md5 hex digest.
 def md5(t):
-    h = hashlib.md5()
+    try:
+        # The use of md5 is not used for security, indicate
+        # this to hashlib so that we can run when fips is enabled
+        h = hashlib.md5(usedforsecurity=False)
+    except Exception:
+        h = hashlib.md5()
     h.update(t.encode("utf-8"))
     return h.hexdigest()
 
