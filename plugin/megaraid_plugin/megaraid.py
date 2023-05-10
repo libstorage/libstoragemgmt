@@ -547,7 +547,7 @@ class MegaRAID(IPlugin):
                 if ctrl_show_all_output["Status"]["Current Personality"] == "HBA-Mode ":
                     mode = System.MODE_HBA
                 else:
-                    mode = System.MODE_HBA
+                    mode = System.MODE_HARDWARE_RAID
             else:
                 mode = System.MODE_UNKNOWN
 
