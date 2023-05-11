@@ -1,6 +1,8 @@
+##
+## SPDX-License-Identifier: LGPL-2.1-or-later
+##
 ## Process this file with automake to produce Makefile.in
-
-## Copyright (C) 2011 Red Hat, Inc.
-## See COPYING.LIB for the License of this software
+##
+## Copyright (C) 2011-2023 Red Hat, Inc.
 
 SUBDIRS=libstoragemgmt

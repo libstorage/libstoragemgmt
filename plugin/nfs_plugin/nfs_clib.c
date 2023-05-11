@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: LGPL-2.1-or-later */
+
 #include <Python.h>
 #include <mntent.h>
 #include <stdbool.h>

@@ -1,3 +1,10 @@
+/*
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ *
+ * Copyright 2012-2023 Red Hat, Inc.
+ * 
+ */
+
 #include "lsm_ipc.h"
 
 #include <iostream>
