@@ -1,6 +1,6 @@
 /*
  * SPDX-License-Identifier: LGPL-2.1-or-later
- * 
+ *
  * Copyright (C) 2011-2023 Red Hat, Inc.
  * (C) Copyright (C) 2017 Hewlett Packard Enterprise Development LP
  *

@@ -525,7 +525,8 @@ class MegaRAID(IPlugin):
             if "Capabilities" in ctrl_show_all_output and \
                     "Enable JBOD" in ctrl_show_all_output["Capabilities"]:
 
-                if ctrl_show_all_output["Capabilities"]["Enable JBOD"] == "Yes":
+                if ctrl_show_all_output["Capabilities"][
+                        "Enable JBOD"] == "Yes":
                     mode = System.MODE_HBA
                 else:
                     mode = System.MODE_HARDWARE_RAID
@@ -534,7 +535,8 @@ class MegaRAID(IPlugin):
                 # be executed first.
             elif "Status" in ctrl_show_all_output and \
                     "Current Personality" in ctrl_show_all_output["Status"]:
-                if ctrl_show_all_output["Status"]["Current Personality"] == "HBA-Mode ":
+                if ctrl_show_all_output["Status"][
+                        "Current Personality"] == "HBA-Mode ":
                     mode = System.MODE_HBA
                 else:
                     mode = System.MODE_HARDWARE_RAID
