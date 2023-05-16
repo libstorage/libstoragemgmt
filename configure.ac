@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl Copyright (C) 2011-2016 Red Hat, Inc.
+dnl Copyright (C) 2011-2023 Red Hat, Inc.
 dnl See COPYING.LIB for the License of this software
 
 AC_INIT([libstoragemgmt],[1.9.8],[libstoragemgmt-devel@lists.fedorahosted.org],[],[https://github.com/libstorage/libstoragemgmt/])

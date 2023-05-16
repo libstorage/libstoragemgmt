@@ -1,16 +1,6 @@
-# Copyright (C) 2015-2017 Red Hat, Inc.
-# This library is free software; you can redistribute it and/or
-# modify it under the terms of the GNU Lesser General Public
-# License as published by the Free Software Foundation; either
-# version 2.1 of the License, or any later version.
+# SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# This library is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public
-# License along with this library; If not, see <http://www.gnu.org/licenses/>.
+# Copyright (C) 2015-2023 Red Hat, Inc.
 #
 # Author: Gris Ge <fge@redhat.com>
 
@@ -535,7 +525,8 @@ class MegaRAID(IPlugin):
             if "Capabilities" in ctrl_show_all_output and \
                     "Enable JBOD" in ctrl_show_all_output["Capabilities"]:
 
-                if ctrl_show_all_output["Capabilities"]["Enable JBOD"] == "Yes":
+                if ctrl_show_all_output["Capabilities"][
+                        "Enable JBOD"] == "Yes":
                     mode = System.MODE_HBA
                 else:
                     mode = System.MODE_HARDWARE_RAID
@@ -544,7 +535,8 @@ class MegaRAID(IPlugin):
                 # be executed first.
             elif "Status" in ctrl_show_all_output and \
                     "Current Personality" in ctrl_show_all_output["Status"]:
-                if ctrl_show_all_output["Status"]["Current Personality"] == "HBA-Mode ":
+                if ctrl_show_all_output["Status"][
+                        "Current Personality"] == "HBA-Mode ":
                     mode = System.MODE_HBA
                 else:
                     mode = System.MODE_HARDWARE_RAID
