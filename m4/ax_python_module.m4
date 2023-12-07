@@ -33,6 +33,7 @@ AC_DEFUN([AX_PYTHON_MODULE],[
         PYTHON_TEST="python2"
     else
         PYTHON_TEST="$3"
+        python3 --version
     fi
 
     PYTHON_NAME=`basename $PYTHON_TEST`
