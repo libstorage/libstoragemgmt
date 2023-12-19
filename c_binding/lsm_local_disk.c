@@ -12,6 +12,7 @@
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <led/libled.h>
 #include <libudev.h>
 #include <limits.h>
 #include <math.h> /* For log10() */
@@ -29,7 +30,6 @@
 #include "libiscsi.h"
 #include "libnvme.h"
 #include "libsas.h"
-#include "libses.h"
 #include "libsg.h"
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
@@ -137,9 +137,6 @@ static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
  *  * sysfs file content start with '0x'.
  */
 static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr);
-
-static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err, int action,
-                     int action_type);
 
 /*
  * `tp_sas_addr` should be char[_SG_T10_SPL_SAS_ADDR_LEN]
@@ -1023,52 +1020,189 @@ out:
     return rc;
 }
 
-int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
-    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
-                     _SES_CTRL_SET);
-}
+int led_ctx_slot_entry_get(const char *disk_path, struct led_ctx **ctx,
+                           struct led_slot_list_entry **se,
+                           lsm_error **lsm_err) {
 
-int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
-    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_IDENT,
-                     _SES_CTRL_CLEAR);
-}
-
-int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
-    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
-                     _SES_CTRL_SET);
-}
-
-int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
-    return _ses_ctrl(disk_path, lsm_err, _SES_DEV_CTRL_RQST_FAULT,
-                     _SES_CTRL_CLEAR);
-}
-
-static int _ses_ctrl(const char *disk_path, lsm_error **lsm_err, int action,
-                     int action_type) {
+    led_status_t libled_rc;
+    enum led_cntrl_type supported_cntrl;
+    char dev_name[PATH_MAX];
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
-    char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
+
+    *se = NULL;
+    *lsm_err = NULL;
+
+    _lsm_err_msg_clear(err_msg);
+
+    libled_rc = led_new(ctx);
+    if (libled_rc != LED_STATUS_SUCCESS) {
+        rc = LSM_ERR_LIB_BUG;
+        snprintf(err_msg, _LSM_ERR_MSG_LEN, "libled error on led_new(%d)",
+                 libled_rc);
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    libled_rc = led_scan(*ctx);
+    if (libled_rc != LED_STATUS_SUCCESS) {
+        rc = LSM_ERR_LIB_BUG;
+        snprintf(err_msg, _LSM_ERR_MSG_LEN, "libled error on led_scan(%d)",
+                 libled_rc);
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    libled_rc = led_device_name_lookup(disk_path, dev_name);
+    if (libled_rc != LED_STATUS_SUCCESS) {
+        rc = LSM_ERR_LIB_BUG;
+        snprintf(err_msg, sizeof(err_msg),
+                 "libled error on led_device_name_lookup(%d)", libled_rc);
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    supported_cntrl = led_is_management_supported(*ctx, dev_name);
+    if (supported_cntrl == LED_CNTRL_TYPE_UNKNOWN) {
+        rc = LSM_ERR_NO_SUPPORT;
+        snprintf(err_msg, sizeof(err_msg),
+                 "controller type unknown and unsupported");
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    if (!led_controller_slot_support(supported_cntrl)) {
+        rc = LSM_ERR_NO_SUPPORT;
+        snprintf(err_msg, sizeof(err_msg),
+                 "controller does not support slots API");
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    *se = led_slot_find_by_device_name(*ctx, supported_cntrl, dev_name);
+    if (!*se) {
+        rc = LSM_ERR_NO_SUPPORT;
+        snprintf(err_msg, sizeof(err_msg), "Unable to locate slot for device");
+        *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+        goto out;
+    }
+
+    return rc;
+out:
+    led_slot_list_entry_free(*se);
+    led_free(*ctx);
+    return rc;
+}
+
+int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
+    struct led_ctx *ctx = NULL;
+    led_status_t libled_rc;
+    struct led_slot_list_entry *slot_entry = NULL;
+    int rc = LSM_ERR_OK;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    enum led_ibpi_pattern current_state = 0;
+    enum led_ibpi_pattern desired_state = 0;
 
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* arg_count */, disk_path, lsm_err), rc,
           out);
 
-    _good(_sas_addr_get(err_msg, disk_path, tp_sas_addr), rc, out);
+    rc = led_ctx_slot_entry_get(disk_path, &ctx, &slot_entry, lsm_err);
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
 
-    /* SEND DIAGNOSTIC
-     * SES-3, 6.1.3 Enclosure Control diagnostic page
-     * SES-3, Table 78 — Device Slot control element
-     */
-    _good(_ses_dev_slot_ctrl(err_msg, tp_sas_addr, action, action_type), rc,
-          out);
+    // We need to figure out what is set, so that we don't overwrite locate/fail
+    // LEDs
+    current_state = led_slot_state(slot_entry);
+    desired_state = current_state;
+
+    switch (current_state) {
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
+        // Both LEDs currently illuminated
+        if (led_state == LSM_DISK_LED_STATUS_IDENT_OFF) {
+            desired_state = LED_IBPI_PATTERN_FAILED_DRIVE;
+        } else if (led_state == LSM_DISK_LED_STATUS_FAULT_OFF) {
+            desired_state = LED_IBPI_PATTERN_LOCATE;
+        }
+        break;
+    case LED_IBPI_PATTERN_LOCATE:
+        // IDENT is currently on, FAULT off
+        switch (led_state) {
+        case LSM_DISK_LED_STATUS_IDENT_ON:
+            desired_state = current_state;
+            break;
+        case LSM_DISK_LED_STATUS_IDENT_OFF:
+            desired_state = LED_IBPI_PATTERN_NORMAL;
+            break;
+        case LSM_DISK_LED_STATUS_FAULT_ON:
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
+            break;
+        case LSM_DISK_LED_STATUS_FAULT_OFF:
+            desired_state = current_state;
+            break;
+        }
+        break;
+    case LED_IBPI_PATTERN_FAILED_DRIVE:
+        // FAULT is currently on, IDENT off
+        switch (led_state) {
+        case LSM_DISK_LED_STATUS_IDENT_ON:
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
+            break;
+        case LSM_DISK_LED_STATUS_IDENT_OFF:
+            desired_state = current_state;
+            break;
+        case LSM_DISK_LED_STATUS_FAULT_ON:
+            desired_state = current_state;
+            break;
+        case LSM_DISK_LED_STATUS_FAULT_OFF:
+            desired_state = LED_IBPI_PATTERN_NORMAL;
+            break;
+        }
+        break;
+    default:
+        // Nothing currently on
+        if (led_state == LSM_DISK_LED_STATUS_IDENT_ON) {
+            desired_state = LED_IBPI_PATTERN_LOCATE;
+        } else if (led_state == LSM_DISK_LED_STATUS_FAULT_ON) {
+            desired_state = LED_IBPI_PATTERN_FAILED_DRIVE;
+        }
+        break;
+    }
+
+    if (current_state != desired_state) {
+        libled_rc = led_slot_set(ctx, slot_entry, desired_state);
+        if (libled_rc != LED_STATUS_SUCCESS) {
+            rc = LSM_ERR_LIB_BUG;
+            snprintf(err_msg, _LSM_ERR_MSG_LEN, "led_slot_set(%d)", libled_rc);
+        }
+    }
 
 out:
     if (rc != LSM_ERR_OK) {
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
+    led_slot_list_entry_free(slot_entry);
+    led_free(ctx);
     return rc;
+}
+
+int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
+    return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_ON);
+}
+
+int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
+    return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_OFF);
+}
+
+int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
+    return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_ON);
+}
+
+int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
+    return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_OFF);
 }
 
 static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
@@ -1142,8 +1276,11 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
                                                  lsm_error **lsm_err) {
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
-    char tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN];
-    struct _ses_dev_slot_status status;
+    struct led_ctx *ctx = NULL;
+    struct led_slot_list_entry *slot_entry = NULL;
+    enum led_ibpi_pattern led_state = LED_IBPI_PATTERN_UNKNOWN;
+
+    *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
 
     _lsm_err_msg_clear(err_msg);
 
@@ -1151,21 +1288,29 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
                           lsm_err),
           rc, out);
 
-    _good(_sas_addr_get(err_msg, disk_path, tp_sas_addr), rc, out);
-
-    _good(_ses_status_get(err_msg, tp_sas_addr, &status), rc, out);
+    rc = led_ctx_slot_entry_get(disk_path, &ctx, &slot_entry, lsm_err);
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
 
     *led_status = 0;
-
-    if (status.fault_reqstd || status.fault_sensed)
+    led_state = led_slot_state(slot_entry);
+    switch (led_state) {
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
+        *led_status = LSM_DISK_LED_STATUS_IDENT_ON;
         *led_status |= LSM_DISK_LED_STATUS_FAULT_ON;
-    else
+        break;
+    case LED_IBPI_PATTERN_LOCATE:
+        *led_status = LSM_DISK_LED_STATUS_IDENT_ON;
+        break;
+    case LED_IBPI_PATTERN_FAILED_DRIVE:
+        *led_status = LSM_DISK_LED_STATUS_FAULT_ON;
+        break;
+    default:
+        *led_status = LSM_DISK_LED_STATUS_IDENT_OFF;
         *led_status |= LSM_DISK_LED_STATUS_FAULT_OFF;
-
-    if (status.ident)
-        *led_status |= LSM_DISK_LED_STATUS_IDENT_ON;
-    else
-        *led_status |= LSM_DISK_LED_STATUS_IDENT_OFF;
+        break;
+    }
 
 out:
     if (rc != LSM_ERR_OK) {
@@ -1174,6 +1319,8 @@ out:
         if (lsm_err != NULL)
             *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
     }
+    led_slot_list_entry_free(slot_entry);
+    led_free(ctx);
     return rc;
 }
 
