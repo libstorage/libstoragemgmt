@@ -9,6 +9,10 @@
 #ifndef _LIBSG_H_
 #define _LIBSG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -275,5 +279,9 @@ LSM_DLL_LOCAL int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
  *  host_no != NULL
  */
 LSM_DLL_LOCAL int _sg_host_no(char *err_msg, int fd, unsigned int *host_no);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* End of _LIBSG_H_ */

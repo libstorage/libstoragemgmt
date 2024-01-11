@@ -12,6 +12,10 @@
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Retrieve FC host speed via /sys/class/fc_host/host<host_no>/speed
  * Preconditions:
@@ -23,4 +27,7 @@
 LSM_DLL_LOCAL int _fc_host_speed_get(char *err_msg, unsigned int host_no,
                                      uint32_t *link_speed);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* End of _LIBFC_H_ */
