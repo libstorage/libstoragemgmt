@@ -1291,7 +1291,7 @@ lsm_error_ptr LSM_DLL_EXPORT lsm_error_create(
  * Plug-in macros for creating errors
  */
 #define LSM_ERROR_CREATE_PLUGIN_MSG(code, msg)                                 \
-    lsm_error_create(code, msg, NULL, NULL, NULL, 0)
+    lsm_error_create((lsm_error_number)code, msg, NULL, NULL, NULL, 0)
 
 #define LSM_ERROR_CREATE_PLUGIN_EXCEPTION(code, msg, exception)                \
     lsm_error_create((code), (msg), (exception), NULL, NULL, 0)

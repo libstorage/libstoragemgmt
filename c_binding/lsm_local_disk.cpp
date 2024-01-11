@@ -34,6 +34,7 @@
 #include "libstoragemgmt/libstoragemgmt.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
+#include "lsm_datatypes.hpp"
 #include "utils.h"
 
 #define _LSM_MAX_SERIAL_NUM_LEN 253
@@ -964,7 +965,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
                              protocol_id);
             goto out;
         }
-        *link_type = protocol_id;
+        *link_type = (lsm_disk_link_type)protocol_id;
         break;
     }
 
@@ -984,7 +985,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
         if (tmp_rc == LSM_ERR_OK) {
             sub_page_hdr =
                 (struct t10_proto_port_mode_sub_page_hdr *)protocol_mode_page;
-            *link_type = sub_page_hdr->protocol_id;
+            *link_type = (lsm_disk_link_type)sub_page_hdr->protocol_id;
         } else if (tmp_rc == LSM_ERR_NO_SUPPORT) {
             tmp_rc = _sg_io_mode_sense(
                 err_msg, fd, _SCSI_MODE_SENSE_PSP_PAGE_CODE,
@@ -992,7 +993,7 @@ int lsm_local_disk_link_type_get(const char *disk_path,
             if (tmp_rc == LSM_ERR_OK) {
                 page_0_hdr =
                     (struct t10_proto_port_mode_page_0_hdr *)protocol_mode_page;
-                *link_type = page_0_hdr->protocol_id;
+                *link_type = (lsm_disk_link_type)page_0_hdr->protocol_id;
             } else if (tmp_rc != LSM_ERR_NO_SUPPORT) {
                 rc = LSM_ERR_LIB_BUG;
                 goto out;
@@ -1100,8 +1101,8 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
     struct led_slot_list_entry *slot_entry = NULL;
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
-    enum led_ibpi_pattern current_state = 0;
-    enum led_ibpi_pattern desired_state = 0;
+    enum led_ibpi_pattern current_state = LED_IBPI_PATTERN_UNKNOWN;
+    enum led_ibpi_pattern desired_state = LED_IBPI_PATTERN_UNKNOWN;
 
     _lsm_err_msg_clear(err_msg);
 
@@ -1426,3 +1427,4 @@ out:
 
     return rc;
 }
+
