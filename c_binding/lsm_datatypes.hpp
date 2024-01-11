@@ -20,6 +20,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * When we pass in a pointer for an out value we want to make sure that
+ * the pointer isn't null, and that the dereferenced value is != NULL to prevent
+ * memory leaks.
+ */
+#define CHECK_RP(x) (!(x) || *(x) != NULL)
+
 /* Helper macros to ease getter functions */
 #define MEMBER_FUNC_GET(return_type, arg_type, validation, member, error)      \
     return_type arg_type##_##member##_get(arg_type *x) {                       \
