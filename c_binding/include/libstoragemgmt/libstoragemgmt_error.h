@@ -109,7 +109,7 @@ typedef enum {
     /** Insufficient space */
     LSM_ERR_NOT_ENOUGH_SPACE = 350,
 
-    /** Error comunicating with plug-in */
+    /** Error communicating with plug-in */
     LSM_ERR_TRANSPORT_COMMUNICATION = 400,
     /** Transport serialization error */
     LSM_ERR_TRANSPORT_SERIALIZATION = 401,
@@ -118,7 +118,7 @@ typedef enum {
 
     LSM_ERR_LAST_INIT_IN_ACCESS_GROUP = 502,
 
-    /** Unsupport search key */
+    /** Unsupported search key */
     LSM_ERR_UNSUPPORTED_SEARCH_KEY = 510,
 
     LSM_ERR_EMPTY_ACCESS_GROUP = 511,
