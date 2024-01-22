@@ -1302,14 +1302,16 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
         *led_status |= LSM_DISK_LED_STATUS_FAULT_ON;
         break;
     case LED_IBPI_PATTERN_LOCATE:
-        *led_status = LSM_DISK_LED_STATUS_IDENT_ON;
+        *led_status =
+            LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_OFF;
         break;
     case LED_IBPI_PATTERN_FAILED_DRIVE:
-        *led_status = LSM_DISK_LED_STATUS_FAULT_ON;
+        *led_status =
+            LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF;
         break;
     default:
-        *led_status = LSM_DISK_LED_STATUS_IDENT_OFF;
-        *led_status |= LSM_DISK_LED_STATUS_FAULT_OFF;
+        *led_status =
+            LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_OFF;
         break;
     }
 
@@ -1428,3 +1430,242 @@ out:
     return rc;
 }
 
+lsm_error *translate_led_to_lsm(led_status_t led_error, const char *msg) {
+    lsm_error_number rc = LSM_ERR_OK;
+
+    switch (led_error) {
+    case LED_STATUS_SUCCESS:
+        break;
+    case LED_STATUS_OUT_OF_MEMORY:
+        rc = LSM_ERR_NO_MEMORY;
+        break;
+    case LED_STATUS_NOT_SUPPORTED:
+        rc = LSM_ERR_NO_SUPPORT;
+        break;
+    case LED_STATUS_NOT_A_PRIVILEGED_USER:
+        rc = LSM_ERR_PERMISSION_DENIED;
+        break;
+    case LED_STATUS_LOG_FILE_ERROR:
+        rc = LSM_ERR_NOT_FOUND_GENERIC;
+        break;
+    case LED_STATUS_UNDEFINED:
+    case LED_STATUS_NULL_POINTER:
+    case LED_STATUS_INVALID_NODE:
+    case LED_STATUS_INVALID_PATH:
+    case LED_STATUS_OUT_OF_RANGE:
+    case LED_STATUS_INVALID_SUBOPTION:
+    case LED_STATUS_INVALID_CONTROLLER:
+    case LED_STATUS_INVALID_STATE:
+    case LED_STATUS_CMDLINE_ERROR:
+    case LED_STATUS_DATA_ERROR:
+    case LED_STATUS_LIST_EMPTY:
+    case LED_STATUS_ONEXIT_ERROR:
+        rc = LSM_ERR_INVALID_ARGUMENT;
+        break;
+    case LED_STATUS_IBPI_DETERMINE_ERROR:
+        rc = LSM_ERR_LIB_BUG;
+        break;
+    default:
+        rc = LSM_ERR_LIB_BUG;
+        break;
+    }
+
+    if (LSM_ERR_OK != rc) {
+        return LSM_ERROR_CREATE_PLUGIN_MSG(rc, msg);
+    }
+    return NULL;
+}
+
+int lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
+    led_ctx *ctx = NULL;
+
+    if (CHECK_RP(handle) || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    if (led_new(&ctx) != LED_STATUS_SUCCESS) {
+        return LSM_ERR_NO_MEMORY;
+    }
+
+    if (led_scan(ctx) != LED_STATUS_SUCCESS) {
+        led_free(ctx);
+        return LSM_ERR_NO_MEMORY;
+    }
+
+    *handle = (lsm_led_handle *)calloc(1, sizeof(lsm_led_handle));
+    if (!(*handle)) {
+        return LSM_ERR_NO_MEMORY;
+    }
+    (*handle)->magic = LSM_LED_HANDLE_MAGIC;
+    (*handle)->ctx = ctx;
+    return LSM_ERR_OK;
+}
+
+void lsm_led_handle_free(lsm_led_handle *handle) {
+    if (LSM_IS_LED_HANDLE(handle)) {
+        led_free(handle->ctx);
+        handle->ctx = NULL;
+        handle->magic = 0;
+        free(handle);
+    }
+}
+
+int lsm_led_slot_iterator_get(lsm_led_handle *handle,
+                              lsm_led_slot_itr **slot_itr, lsm_error **lsm_err,
+                              lsm_flag flags) {
+
+    lsm_led_slot_itr *itr = NULL;
+    led_status_t led_rc = LED_STATUS_SUCCESS;
+
+    if (!LSM_IS_LED_HANDLE(handle) || CHECK_RP(slot_itr) || CHECK_RP(lsm_err) ||
+        LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+
+    itr = (lsm_led_slot_itr *)calloc(1, sizeof(lsm_led_slot_itr));
+    if (!itr) {
+        return LSM_ERR_NO_MEMORY;
+    }
+
+    itr->magic = LSM_LED_SLOT_ITR_MAGIC;
+    itr->entry.magic = LSM_LED_SLOT_MAGIC;
+
+    led_rc = led_slots_get(handle->ctx, &itr->sl);
+    if (led_rc != LED_STATUS_SUCCESS) {
+        *lsm_err = translate_led_to_lsm(
+            led_rc, "Unexpected return for 'led_slots_get'");
+        return LSM_ERR_LIB_BUG;
+    }
+
+    *slot_itr = itr;
+    return LSM_ERR_OK;
+}
+
+void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
+                                               lsm_led_slot_itr *slot_itr) {
+    if (LSM_IS_LED_HANDLE(handle) && LSM_IS_LED_SLOT_ITR(slot_itr)) {
+        slot_itr->entry.slot = NULL;
+        slot_itr->entry.magic = 0;
+        led_slot_list_free(slot_itr->sl);
+    }
+}
+
+void LSM_DLL_EXPORT lsm_led_slot_iterator_reset(lsm_led_handle *handle,
+                                                lsm_led_slot_itr *slot_itr) {
+    if (LSM_IS_LED_HANDLE(handle) && LSM_IS_LED_SLOT_ITR(slot_itr)) {
+        led_slot_list_reset(slot_itr->sl);
+    }
+}
+
+lsm_led_slot *lsm_led_slot_next(lsm_led_handle *handle,
+                                lsm_led_slot_itr *slot_itr) {
+    if (LSM_IS_LED_HANDLE(handle) && LSM_IS_LED_SLOT_ITR(slot_itr)) {
+        slot_itr->entry.slot = led_slot_next(slot_itr->sl);
+        if (slot_itr->entry.slot) {
+            return &slot_itr->entry;
+        }
+    }
+    return NULL;
+}
+
+const char LSM_DLL_EXPORT *lsm_led_slot_id(lsm_led_slot *slot) {
+    if (LSM_IS_LED_SLOT_ENTRY(slot)) {
+        return led_slot_id(slot->slot);
+    }
+    return NULL;
+}
+
+const char LSM_DLL_EXPORT *lsm_led_slot_device(lsm_led_slot *slot) {
+    if (LSM_IS_LED_SLOT_ENTRY(slot)) {
+        return led_slot_device(slot->slot);
+    }
+    return NULL;
+}
+
+uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
+    uint32_t translated = LSM_DISK_LED_STATUS_UNKNOWN;
+    if (LSM_IS_LED_SLOT_ENTRY(slot)) {
+        enum led_ibpi_pattern state = led_slot_state(slot->slot);
+        enum led_cntrl_type cntrl = led_slot_cntrl(slot->slot);
+
+        switch (state) {
+        case (LED_IBPI_PATTERN_NORMAL): {
+            translated =
+                (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_OFF);
+            break;
+        }
+        case (LED_IBPI_PATTERN_LOCATE): {
+            translated =
+                (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_OFF);
+            break;
+        }
+        case (LED_IBPI_PATTERN_FAILED_DRIVE): {
+            translated =
+                (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF);
+            break;
+        }
+        case (LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE): {
+            translated =
+                (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON);
+        }
+        default:
+            break;
+        }
+
+        if (cntrl != LED_CNTRL_TYPE_SCSI) {
+            // Mask off fault led
+            translated &=
+                (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_ON);
+        }
+    }
+
+    return translated;
+}
+int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
+                            uint32_t led_state, lsm_error **lsm_err,
+                            lsm_flag flags) {
+
+    int rc = LSM_ERR_INVALID_ARGUMENT;
+    enum led_ibpi_pattern state = LED_IBPI_PATTERN_UNKNOWN;
+    led_status_t lib_rc = LED_STATUS_SUCCESS;
+
+    if (!LSM_IS_LED_HANDLE(handle) || !LSM_IS_LED_SLOT_ENTRY(slot) ||
+        CHECK_RP(lsm_err) || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return rc;
+    }
+
+    if (led_state) {
+        switch (led_state) {
+        case (
+            (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_OFF)): {
+            state = LED_IBPI_PATTERN_NORMAL;
+            break;
+        }
+        case (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_OFF): {
+            state = LED_IBPI_PATTERN_LOCATE;
+            break;
+        }
+        case (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF): {
+            state = LED_IBPI_PATTERN_FAILED_DRIVE;
+            break;
+        }
+        case (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON): {
+            state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
+            break;
+        }
+        default:
+            return rc;
+        }
+
+        lib_rc = led_slot_set(handle->ctx, slot->slot, state);
+        if (lib_rc != LED_STATUS_SUCCESS) {
+            *lsm_err = translate_led_to_lsm(
+                lib_rc, "Unexpected return for 'led_slot_set'");
+            rc = lsm_error_number_get(*lsm_err);
+        } else {
+            rc = LSM_ERR_OK;
+        }
+    }
+
+    return rc;
+}

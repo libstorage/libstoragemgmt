@@ -81,6 +81,9 @@ typedef enum {
     /** NFS export not found */
     LSM_ERR_NOT_FOUND_NFS_EXPORT = 206,
 
+    /** Some resource not found, non-specific, added in 1.10 */
+    LSM_ERR_NOT_FOUND_GENERIC = 207,
+
     /** System not found */
     LSM_ERR_NOT_FOUND_SYSTEM = 208,
     /** Disk not found */

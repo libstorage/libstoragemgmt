@@ -547,6 +547,266 @@ int LSM_DLL_EXPORT lsm_local_disk_link_speed_get(const char *disk_path,
                                                  uint32_t *link_speed,
                                                  lsm_error **lsm_err);
 
+/**
+ * lsm_led_handle_get - Retrieves a handle for the LED slots API
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *    Return a handle to be used for LED slots API addition.
+ *    This handle is used by most of the API slots methods.
+ *    Make sure to call lsm_led_handle_free() to release resources.
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer to be initialized by this
+ * function.
+ * @flags:
+ *      lsm_flag. Used for future expandability , currently must be set to 0.
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL
+ *          * LSM_ERR_LIB_BUG
+ *              When something unexpected happens.
+ *          * LSM_ERR_PERMISSION_DENIED
+ *              Insufficient permission to initialize handle
+ *          * LSM_ERR_NO_SUPPORT
+ *              Action is not supported.
+ *
+ */
+int LSM_DLL_EXPORT lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags);
+
+/**
+ * lsm_led_handle_free - Frees the resources associated with the slots API
+ * handle. Version: 1.10
+ *
+ * Description:
+ *       Frees the resources for a handle that is used for LED slots.
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer that was obtained by
+ *      lsm_led_handle_get()
+ *
+ * Return:
+ *      void
+ */
+void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle);
+
+/**
+ * lsm_led_slot_iterator_get - obtain an slot iterator
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *       Returns a slot iterator which is used to iterator over the
+ *       available slots.
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer to be initialized by this
+ *                       function.
+ * @slot_itr:
+ *      lsm_led_slot_itr. Returned slots iterator.
+ *
+ * @lsm_err:
+ *      lsm_error. Output pointer of lsm_error. Error message could be retrieved
+ * via lsm_error_message_get(). Memory should be freed by lsm_error_free().
+ *
+ * @flags:
+ *      lsm_flag. Bitfield for providing future behavior modifications, requires
+ *      0 for version 1.10
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL
+ *          * LSM_ERR_LIB_BUG
+ *              When something unexpected happens.
+ *          * LSM_ERR_PERMISSION_DENIED
+ *              Insufficient permission to initialize handle
+ *          * LSM_ERR_NO_SUPPORT
+ *              Action is not supported.
+ *
+ */
+int LSM_DLL_EXPORT lsm_led_slot_iterator_get(lsm_led_handle *handle,
+                                             lsm_led_slot_itr **slot_itr,
+                                             lsm_error **lsm_err,
+                                             lsm_flag flags);
+
+/**
+ * lsm_led_slot_iterator_free - Frees the resources obtained by
+ * lsm_led_slot_iterator_get() Version: 1.10
+ *
+ * Description:
+ *       Frees the resources for the iterator.
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer that was obtained by
+ *      lsm_led_handle_get()
+ * @slot_itr:
+ *      lsm_led_slot_itr. Slots iterator that will have its resources freed.
+ *
+ * Return:
+ *      void
+ */
+void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
+                                               lsm_led_slot_itr *slot_itr);
+
+/**
+ * lsm_led_slot_iterator_reset - Reset the iterator to allow restarting
+ * iteration Version: 1.10
+ *
+ * Description:
+ *       Resets the iterator so that iteration can be done again.
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer that was obtained by
+ *      lsm_led_handle_get
+ * @slot_itr:
+ *      lsm_led_slot_itr. Slots iterator that will be reset.
+ *
+ * Return:
+ *      void
+ */
+void LSM_DLL_EXPORT lsm_led_slot_iterator_reset(lsm_led_handle *handle,
+                                                lsm_led_slot_itr *slot_itr);
+
+/**
+ * lsm_led_slot_next - Advances iterator to next slot
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *       Moves iterator to next LED slot
+ *
+ * @handle:
+ *      lsm_led_handle.  Opaque handle pointer that was obtained by
+ *      lsm_led_handle_get().
+ * @slot_itr:
+ *      lsm_led_slot_itr. Slots iterator that will be reset.
+ *
+ * Return:
+ *      lsm_led_slot or NULL when iteration has completed.  Do not store a copy
+ * of the returned slot pointer.  Its only valid until lsm_led_slot_next() is
+ * called again or iterator is freed.  Do not call free on the returned pointer.
+ * Any resources will be reclaimed when lsm_led_slot_iterator_free() is called.
+ */
+lsm_led_slot LSM_DLL_EXPORT *lsm_led_slot_next(lsm_led_handle *handle,
+                                               lsm_led_slot_itr *slot_itr);
+
+/**
+ * lsm_led_slot_status_get - Return the current LED status
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *      Query the status of LED at specified slot.  Requires permission to open
+ *      hardware (root)
+ *
+ * @slot:
+ *      lsm_led_slot.  Opaque slot pointer.
+ *
+ * Return:
+ *      The return value is a bit sensitive field:
+ *          * LSM_DISK_LED_STATUS_UNKNOWN
+ *          * LSM_DISK_LED_STATUS_IDENT_ON
+ *          * LSM_DISK_LED_STATUS_IDENT_OFF
+ *          * LSM_DISK_LED_STATUS_IDENT_UNKNOWN
+ *          * LSM_DISK_LED_STATUS_FAULT_ON
+ *          * LSM_DISK_LED_STATUS_FAULT_OFF
+ *          * LSM_DISK_LED_STATUS_FAULT_UNKNOWN
+ */
+uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot);
+
+/**
+ * lsm_led_slot_status_set - Sets the LED for the specified slot
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *       Set the status of LED at specified slot.  Requires permission to r/w
+ hardware (root)
+ *
+ * @handle:
+ *      lsm_led_handle. Opaque led slots API pointer.
+ * @slot:
+ *      lsm_led_slot.  Opaque slot pointer.
+ * @led_status:
+ *   uint32_t. Bitfield of desired LED state, examples:
+ *   LSM_DISK_LED_STATUS_IDENT_OFF|LSM_DISK_LED_STATUS_FAULT_OFF,
+ *   LSM_DISK_LED_STATUS_IDENT_ON|LSM_DISK_LED_STATUS_FAULT_OFF,
+ *   LSM_DISK_LED_STATUS_FAULT_ON|LSM_DISK_LED_STATUS_IDENT_OFF,
+ *   LSM_DISK_LED_STATUS_IDENT_ON|LSM_DISK_LED_STATUS_FAULT_ON
+ * @lsm_err:
+ *      Output pointer of lsm_error. Error message could be retrieved via
+ *      lsm_error_message_get(). Memory should be freed by lsm_error_free().
+ *
+ * @flags:
+ *      Bitfield for providing future behavior modifications, requires 0 for
+ * version 1.10
+ *
+ * Return:
+ *      Error code as enumerated by 'lsm_error_number':
+ *          * LSM_ERR_OK
+ *              On success.
+ *          * LSM_ERR_INVALID_ARGUMENT
+ *              When any argument is NULL
+ *          * LSM_ERR_LIB_BUG
+ *              When something unexpected happens.
+ *          * LSM_ERR_PERMISSION_DENIED
+ *              Insufficient permission to write to hardware
+ *          * LSM_ERR_NO_SUPPORT
+ *              Action is not supported.
+ */
+int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle,
+                                           lsm_led_slot *slot,
+                                           uint32_t led_status,
+                                           lsm_error **lsm_err, lsm_flag flags);
+
+/**
+ * lsm_led_slot_id - return the specified slot identifier
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *       Returns the slot identifier for the specified slot.
+ *
+ * @slot:
+ *      lsm_led_slot.  Opaque slot pointer obtained from  lsm_led_slot_next()
+ *
+ * Return:
+ *      string representing slot identifier. Pointer valid until
+ * lsm_led_slot_next gets called or slots iterator gets freed.  Make a copy if
+ * you need a longer life span, eg. strdup(). Do not call free on returned
+ * value.
+ */
+const char LSM_DLL_EXPORT *lsm_led_slot_id(lsm_led_slot *slot);
+
+/**
+ * lsm_led_slot_device - return the specified slot device node
+ * Version:
+ *      1.10
+ *
+ * Description:
+ *       Returns the device node for the specified slot.
+ *
+ * @slot:
+ *      lsm_led_slot.  Opaque slot pointer obtained from lsm_led_slot_next()
+ *
+ * Notes: Returned value may be NULL, not all slots have a device node!
+ *
+ * Return:
+ *      string representing device node, may be NULL as not all slots have a
+ * device node. Pointer valid until lsm_led_slot_next gets called or slots
+ * iterator gets freed.  Make a copy eg. strdup() if you need a longer life
+ * span. Do not call free on returned value.
+ */
+const char LSM_DLL_EXPORT *lsm_led_slot_device(lsm_led_slot *slot);
+
 #ifdef __cplusplus
 }
 #endif
