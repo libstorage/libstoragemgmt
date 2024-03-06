@@ -29,11 +29,12 @@ from lsm.lsmcli.data_display import (DisplayData, PlugData, out,
                                      vol_provision_str_to_type,
                                      vol_rep_type_str_to_type, VolumeRAIDInfo,
                                      PoolRAIDInfo, VcrCap, LocalDiskInfo,
-                                     VolumeRAMCacheInfo)
+                                     VolumeRAMCacheInfo, LocalLedSlotInfo)
 
 _CONNECTION_FREE_COMMANDS = [
     'local-disk-list', 'local-disk-ident-led-on', 'local-disk-ident-led-off',
-    'local-disk-fault-led-on', 'local-disk-fault-led-off'
+    'local-disk-fault-led-on', 'local-disk-fault-led-off',
+    'local-led-slot-list'
 ]
 
 if six.PY3:
@@ -1138,6 +1139,12 @@ cmds = (
         optional=[],
     ),
     dict(
+        name='local-led-slot-list',
+        help='Query slots with LED identification',
+        args=[],
+        optional=[],
+    ),
+    dict(
         name='volume-cache-info',
         help='Query volume RAM cache information',
         args=[
@@ -2225,6 +2232,16 @@ class CmdLine(object):
                               info_dict["health_status"]))
 
         self.display_data(local_disks)
+
+    def local_led_slot_list(self, args):
+        local_led_slots = []
+
+        with LocalDisk.led_slots_open() as slots:
+            for s in slots:
+                local_led_slots.append(
+                    LocalLedSlotInfo(s.id(), s.state(), s.device()))
+
+        self.display_data(local_led_slots)
 
     def volume_cache_info(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
