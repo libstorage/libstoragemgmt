@@ -560,10 +560,16 @@ class LocalDisk(object):
             Version:
                 1.10
 
-            Sets the state for the given slot.
+            Sets the state for the given slot. Please note that not all LED hardware supports both
+            identification and fault LEDs.  Using this API, please specify what you would like regardless
+            of support and the hardware will adhere to your request as best it can.
 
             Parameters:
                 led_state: (bitmap) with one of the following combinations
+                LSM_DISK_LED_STATUS_IDENT_ON => Implies fault off,
+                LSM_DISK_LED_STATUS_FAULT_ON => Implies ident and fault on
+                LSM_DISK_LED_STATUS_IDENT_OFF => Implies both ident and fault are off,
+                LSM_DISK_LED_STATUS_FAULT_OFF => Implies both ident and fault are off,
                 (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_OFF)
                 (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_OFF)
                 (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF)

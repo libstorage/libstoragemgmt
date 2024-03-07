@@ -736,7 +736,15 @@ uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot);
  * @slot:
  *      lsm_led_slot.  Opaque slot pointer.
  * @led_status:
- *   uint32_t. Bitfield of desired LED state, examples:
+ *   uint32_t. Bitfield of desired LED state.  Please note that not all LED
+ hardware supports both
+ *   identification and fault LEDs.  Using this API, please specify what you
+ would like regardless
+ *   of support and the hardware will adhere to your request as best it can.
+ *   LSM_DISK_LED_STATUS_IDENT_ON => Implies fault off,
+ *   LSM_DISK_LED_STATUS_FAULT_ON => Implies ident and fault on
+ *   LSM_DISK_LED_STATUS_IDENT_OFF => Implies both ident and fault are off,
+ *   LSM_DISK_LED_STATUS_FAULT_OFF => Implies both ident and fault are off,
  *   LSM_DISK_LED_STATUS_IDENT_OFF|LSM_DISK_LED_STATUS_FAULT_OFF,
  *   LSM_DISK_LED_STATUS_IDENT_ON|LSM_DISK_LED_STATUS_FAULT_OFF,
  *   LSM_DISK_LED_STATUS_FAULT_ON|LSM_DISK_LED_STATUS_IDENT_OFF,
@@ -754,7 +762,7 @@ uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot);
  *          * LSM_ERR_OK
  *              On success.
  *          * LSM_ERR_INVALID_ARGUMENT
- *              When any argument is NULL
+ *              When any argument is NULL, incorrect, or has an incorrect value
  *          * LSM_ERR_LIB_BUG
  *              When something unexpected happens.
  *          * LSM_ERR_PERMISSION_DENIED
