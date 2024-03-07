@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
-# Copyright (C) 2012-2023 Red Hat, Inc.
+# Copyright (C) 2012-2024 Red Hat, Inc.
 # (C) Copyright 2017 Hewlett Packard Enterprise Development LP
 #
 # Author: Tony Asleson <tasleson@redhat.com>
@@ -34,7 +34,7 @@ from lsm.lsmcli.data_display import (DisplayData, PlugData, out,
 _CONNECTION_FREE_COMMANDS = [
     'local-disk-list', 'local-disk-ident-led-on', 'local-disk-ident-led-off',
     'local-disk-fault-led-on', 'local-disk-fault-led-off',
-    'local-led-slot-list'
+    'local-led-slot-list', 'local-led-slot-set'
 ]
 
 if six.PY3:
@@ -236,6 +236,33 @@ def _valid_ip6_address(address):
         return all(len(x) <= 4 for x in parts) and \
                all(x in allowed for x in "".join(parts))
     return False
+
+
+def _check_led_state(state):
+    # Make sure the state is in the correct form
+    valid_options = dict(IDENT_ON=Disk.LED_STATUS_IDENT_ON,
+                         IDENT_OFF=Disk.LED_STATUS_IDENT_OFF,
+                         FAULT_ON=Disk.LED_STATUS_FAULT_ON,
+                         FAULT_OFF=Disk.LED_STATUS_FAULT_OFF)
+    t_states = state.upper().split(":")
+    for s in t_states:
+        if s not in valid_options.keys():
+            raise ArgumentTypeError("Invalid state '%s', valid choices = %s" %
+                                    (s, list(valid_options.keys())))
+
+    if len(t_states) == len(set(t_states)):
+        if len(t_states) > 2:
+            raise ArgumentTypeError("Maximum number of LED state values is 2!")
+        if len(t_states) == 2:
+            if t_states[0][0:4] == t_states[1][0:4]:
+                raise ArgumentTypeError(
+                    "States which counteract one another are invalid!")
+            return valid_options[t_states[0]] | valid_options[t_states[1]]
+        else:
+            return valid_options[t_states[0]]
+    else:
+        raise ArgumentTypeError("Repeated same LED state is invalid! %s" %
+                                t_states)
 
 
 def _is_valid_network_name(ip_hn):
@@ -622,6 +649,17 @@ tgt_id_filter_opt = dict(
 local_disk_path_opt = dict(name='--path',
                            help="Local disk path",
                            metavar='<DISK_PATH>')
+
+local_disk_led_slot_opt = dict(name='--slot',
+                               help="LED slot identifier",
+                               metavar='<slot_id>')
+
+local_disk_led_slot_state_opt = dict(
+    name="--state",
+    help=
+    "LED slot value state (IDENT_[ON|OFF] or [FAULT_[ON|OFF], or combination separated with ':')",
+    metavar='<state>',
+    type=_check_led_state)
 
 cmds = (
     dict(
@@ -1201,6 +1239,14 @@ cmds = (
         help='Turn off the fault LED for a local disk',
         args=[
             dict(local_disk_path_opt),
+        ],
+    ),
+    dict(
+        name='local-led-slot-set',
+        help='Sets the state of the specified LED',
+        args=[
+            dict(local_disk_led_slot_opt),
+            dict(local_disk_led_slot_state_opt),
         ],
     ),
 )
@@ -2295,3 +2341,12 @@ class CmdLine(object):
 
     def local_disk_fault_led_off(self, args):
         LocalDisk.fault_led_off(args.path)
+
+    def local_led_slot_set(self, args):
+        with LocalDisk.led_slots_open() as slots:
+            for s in slots:
+                if s.id() == args.slot:
+                    s.state_set(args.state)
+                    return
+
+        raise ArgError("LED slot id '%s' not found!" % (args.slot))
