@@ -789,9 +789,13 @@ static PyObject *led_slot_iterator_get(PyObject *self, PyObject *args,
     _alloc_check(rc_list, flag_no_mem, out);
 
     if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
-        lsm_error_free(lsm_err);
-        lsm_err = NULL;
+        if (lsm_err) {
+            err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
+            lsm_error_free(lsm_err);
+            lsm_err = NULL;
+        } else {
+            err_msg_obj = PyUnicode_FromString("");
+        }
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
@@ -957,9 +961,13 @@ static PyObject *led_slot_status_set(PyObject *self, PyObject *args,
     _alloc_check(rc_list, flag_no_mem, out);
 
     if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
-        lsm_error_free(lsm_err);
-        lsm_err = NULL;
+        if (lsm_err) {
+            err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
+            lsm_error_free(lsm_err);
+            lsm_err = NULL;
+        } else {
+            err_msg_obj = PyUnicode_FromString("");
+        }
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
