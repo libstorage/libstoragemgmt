@@ -1054,7 +1054,7 @@ int led_ctx_slot_entry_get(const char *disk_path, struct led_ctx **ctx,
         goto out;
     }
 
-    libled_rc = led_device_name_lookup(disk_path, dev_name);
+    libled_rc = led_device_name_lookup(*ctx, disk_path, dev_name);
     if (libled_rc != LED_STATUS_SUCCESS) {
         rc = LSM_ERR_LIB_BUG;
         snprintf(err_msg, sizeof(err_msg),
@@ -1450,10 +1450,7 @@ lsm_error *translate_led_to_lsm(led_status_t led_error, const char *msg) {
         break;
     case LED_STATUS_UNDEFINED:
     case LED_STATUS_NULL_POINTER:
-    case LED_STATUS_INVALID_NODE:
     case LED_STATUS_INVALID_PATH:
-    case LED_STATUS_OUT_OF_RANGE:
-    case LED_STATUS_INVALID_SUBOPTION:
     case LED_STATUS_INVALID_CONTROLLER:
     case LED_STATUS_INVALID_STATE:
     case LED_STATUS_CMDLINE_ERROR:
