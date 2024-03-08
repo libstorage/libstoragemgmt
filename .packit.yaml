@@ -15,6 +15,7 @@ downstream_package_name: libstoragemgmt
 actions:
     post-upstream-clone: "wget https://src.fedoraproject.org/rpms/libstoragemgmt/raw/main/f/libstoragemgmt.spec -O libstoragemgmt.spec"
     create-archive:
+      - dnf copr enable tasleson/ledmon-upstream
       - ./autogen.sh
       - ./configure
       - make dist
