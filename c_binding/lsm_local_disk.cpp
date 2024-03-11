@@ -1281,13 +1281,14 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
     struct led_slot_list_entry *slot_entry = NULL;
     enum led_ibpi_pattern led_state = LED_IBPI_PATTERN_UNKNOWN;
 
-    *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
-
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 3 /* arg_count */, disk_path, led_status,
                           lsm_err),
           rc, out);
+
+    /* Do this after we have check for null pointers! */
+    *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
 
     rc = led_ctx_slot_entry_get(disk_path, &ctx, &slot_entry, lsm_err);
     if (rc != LSM_ERR_OK) {
