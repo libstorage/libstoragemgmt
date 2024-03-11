@@ -14,7 +14,6 @@ upstream_package_name: libstoragemgmt
 downstream_package_name: libstoragemgmt
 actions:
     post-upstream-clone: "wget https://src.fedoraproject.org/rpms/libstoragemgmt/raw/main/f/libstoragemgmt.spec -O libstoragemgmt.spec"
-    post-upstream-clone: "dnf copr enable tasleson/ledmon-upstream"
     create-archive:
       - ./autogen.sh
       - ./configure
@@ -29,6 +28,9 @@ jobs:
   - centos-stream-8-x86_64
   - rhel-8-x86_64
   - rhel-9-x86_64
+  additional_repos:
+    - copr://tasleson/ledmon-upstream
+
 
 srpm_build_deps:
 - wget
@@ -50,3 +52,4 @@ srpm_build_deps:
 - sqlite-devel
 - glib2-devel
 - valgrind
+- ledmon-devel
