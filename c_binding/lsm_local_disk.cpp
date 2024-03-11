@@ -1056,7 +1056,11 @@ int led_ctx_slot_entry_get(const char *disk_path, struct led_ctx **ctx,
 
     libled_rc = led_device_name_lookup(*ctx, disk_path, dev_name);
     if (libled_rc != LED_STATUS_SUCCESS) {
-        rc = LSM_ERR_LIB_BUG;
+        if (libled_rc == LED_STATUS_INVALID_PATH) {
+            rc = LSM_ERR_NOT_FOUND_DISK;
+        } else {
+            rc = LSM_ERR_LIB_BUG;
+        }
         snprintf(err_msg, sizeof(err_msg),
                  "libled error on led_device_name_lookup(%d)", libled_rc);
         *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
