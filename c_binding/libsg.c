@@ -142,8 +142,8 @@ struct _sg_t10_vpd83_header {
     uint8_t dev_type  : 5;
     uint8_t qualifier : 3;
 #else
-    uint8_t qualifier      : 3;
-    uint8_t dev_type       : 5;
+    uint8_t qualifier : 3;
+    uint8_t dev_type  : 5;
 #endif
     uint8_t page_code;
     uint16_t page_len_be;
@@ -154,8 +154,8 @@ struct _sg_t10_vpd80_header {
     uint8_t dev_type  : 5;
     uint8_t qualifier : 3;
 #else
-    uint8_t qualifier      : 3;
-    uint8_t dev_type       : 5;
+    uint8_t qualifier : 3;
+    uint8_t dev_type  : 5;
 #endif
     uint8_t page_code;
     uint16_t page_len_be;
@@ -186,8 +186,8 @@ struct _sg_t10_sense_fixed {
     uint8_t response_code : 7;
     uint8_t valid         : 1;
 #else
-    uint8_t valid          : 1;
-    uint8_t response_code  : 7;
+    uint8_t valid         : 1;
+    uint8_t response_code : 7;
 #endif
     uint8_t reserved;
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -244,8 +244,8 @@ struct _sg_t10_info_excep_mode_page_0_hdr {
     uint8_t reserved : 4;
     uint8_t mrie     : 4;
 #else
-    uint8_t mrie           : 4;
-    uint8_t reserved       : 4;
+    uint8_t mrie     : 4;
+    uint8_t reserved : 4;
 #endif
 };
 
@@ -288,9 +288,9 @@ struct _sg_t10_ata_pass_through_12_cdb {
     uint8_t ck_cond    : 1;
     uint8_t off_line   : 2;
 #else
-    uint8_t obsolete       : 3;
-    uint8_t protocol       : 4;
-    uint8_t reserved_0     : 1;
+    uint8_t obsolete   : 3;
+    uint8_t protocol   : 4;
+    uint8_t reserved_0 : 1;
 
     uint8_t off_line   : 2;
     uint8_t ck_cond    : 1;

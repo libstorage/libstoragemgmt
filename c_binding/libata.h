@@ -13,6 +13,10 @@
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _ATA_IDENTIFY_DEVICE_DATA_LEN 512
 
 /*
@@ -43,4 +47,7 @@ LSM_DLL_LOCAL int _ata_cur_speed_get(char *err_msg, uint8_t *id_dev_data,
 LSM_DLL_LOCAL int32_t _ata_health_status(uint8_t status, uint8_t lba_mid,
                                          uint8_t lba_high);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* End of _LIBATA_H_ */

@@ -508,9 +508,10 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         """
         if tgt_masks is None:
             tgt_masks = self._tgt_masks()
-        return list(m for m in tgt_masks
-                    if (m['vol_name'] == vol_name and m['pool_name'] ==
-                        pool_name and m['ag_id'] == ag_id)) != []
+        return list(
+            m for m in tgt_masks
+            if (m['vol_name'] == vol_name and m['pool_name'] == pool_name
+                and m['ag_id'] == ag_id)) != []
 
     def _lsm_vol_of_id(self, vol_id, error=None):
         try:

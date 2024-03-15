@@ -955,7 +955,7 @@ class MegaRAID(IPlugin):
             slot_nums.append(slot_num)
 
         # Handle request volume name, LSI only allow 15 characters.
-        name = re.sub('[^0-9a-zA-Z_\-]+', '', name)[:15]
+        name = re.sub('[^0-9a-zA-Z_-]+', '', name)[:15]
 
         if enclosure_str == ' ':
             drives_str = "drives=%s" % ','.join(slot_nums)

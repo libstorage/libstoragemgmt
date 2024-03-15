@@ -104,6 +104,9 @@ fi
 #Check for sqlite development libs for simc_lsmplugin
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 
+# Check for lib led
+PKG_CHECK_MODULES([LIBLED], [ledmon])
+
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir
 dnl as this makes a lot of things break in testing situations

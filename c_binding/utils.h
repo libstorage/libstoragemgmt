@@ -13,6 +13,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _LSM_ERR_MSG_LEN 4096
 
 #define _good(rc, rc_val, out)                                                 \
@@ -105,5 +109,9 @@ LSM_DLL_LOCAL int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
  * Convert an errno to a string representation.
  */
 LSM_DLL_LOCAL char *error_to_str(int errnum, char *buf, size_t buflen);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* End of _LIB_UTILS_H_ */

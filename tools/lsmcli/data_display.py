@@ -426,6 +426,14 @@ class LocalDiskInfo(object):
         self.health_status = health_status
 
 
+class LocalLedSlotInfo(object):
+
+    def __init__(self, id, state, device):
+        self.id = id
+        self.state = state
+        self.device = device
+
+
 class VolumeRAMCacheInfo(object):
 
     _PHY_DISK_CACHE_STATUS_MAP = {
@@ -849,6 +857,22 @@ class DisplayData(object):
         'column_skip_keys': LOCAL_DISK_COLUMN_SKIP_KEYS,
         'value_conv_enum': LOCAL_DISK_VALUE_CONV_ENUM,
         'value_conv_human': LOCAL_DISK_VALUE_CONV_HUMAN,
+    }
+
+    LOCAL_LED_SLOT_HEADER = OrderedDict()
+    LOCAL_LED_SLOT_HEADER['id'] = 'Slot ID'
+    LOCAL_LED_SLOT_HEADER['state'] = 'LED state'
+    LOCAL_LED_SLOT_HEADER['device'] = 'Device Node'
+
+    LOCAL_LED_SLOT_SKIP_KEYS = []
+    LOCAL_LED_SLOT_CONV_ENUM = {'state': disk_led_status_to_str}
+    LOCAL_LED_SLOT_CONV_HUMAN = []
+
+    VALUE_CONVERT[LocalLedSlotInfo] = {
+        'headers': LOCAL_LED_SLOT_HEADER,
+        'column_skip_keys': LOCAL_LED_SLOT_SKIP_KEYS,
+        'value_conv_enum': LOCAL_LED_SLOT_CONV_ENUM,
+        'value_conv_human': LOCAL_LED_SLOT_CONV_HUMAN,
     }
 
     BATTERY_HEADER = OrderedDict()
