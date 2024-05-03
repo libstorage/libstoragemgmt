@@ -575,6 +575,8 @@ int LSM_DLL_EXPORT lsm_local_disk_link_speed_get(const char *disk_path,
  *              Insufficient permission to initialize handle
  *          * LSM_ERR_NO_SUPPORT
  *              Action is not supported.
+ *          * LSM_ERR_NO_MEMORY
+ *              Insufficient memory (heap)
  *
  */
 int LSM_DLL_EXPORT lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags);
