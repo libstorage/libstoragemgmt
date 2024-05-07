@@ -12,6 +12,10 @@
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Retrieve iSCSI host speed via /sys/class/scsi_host/host<host_no>/port_speed
  * Preconditions:
@@ -22,5 +26,9 @@
  */
 LSM_DLL_LOCAL int _iscsi_host_speed_get(char *err_msg, unsigned int host_no,
                                         uint32_t *link_speed);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* End of _LIBISCSI_H_ */

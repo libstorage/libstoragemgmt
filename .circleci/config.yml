@@ -3,34 +3,59 @@ jobs:
   fedora:
     docker:
       - image: fedora
+    environment:
+      GHURL: << pipeline.project.git_url >>
+      GHBR: << pipeline.git.branch >>
     steps:
-      - checkout
       - run:
-         command: ./test/docker_ci_test.sh
+         command:  dnf install -y git dnf-plugins-core
+         no_output_timeout: 5m
+      - run:
+         command:  dnf copr enable -y tasleson/ledmon-upstream
+         no_output_timeout: 5m
+      - run:
+         command: git clone $GHURL
+         no_output_timeout: 5m
+      - run:
+         command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
          no_output_timeout: 20m
   el7:
     docker:
       - image: centos:7
+    environment:
+      GHURL: << pipeline.project.git_url >>
+      GHBR: << pipeline.git.branch >>
     steps:
-      - checkout
       - run:
-         command: ./test/docker_ci_test.sh
+         command:  yum install -y git  yum-plugin-copr
+         no_output_timeout: 20m
+      - run:
+         command:  yum copr enable -y tasleson/ledmon-upstream
+         no_output_timeout: 20m
+      - run:
+         command: git clone $GHURL
+         no_output_timeout: 5m
+      - run:
+         command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
          no_output_timeout: 20m
   el8:
     docker:
       - image: oraclelinux:8
+    environment:
+      GHURL: << pipeline.project.git_url >>
+      GHBR: << pipeline.git.branch >>
     steps:
-      - checkout
       - run:
-         command: ./test/docker_ci_test.sh
-         no_output_timeout: 20m
-  ubuntu:
-    docker:
-      - image: ubuntu:22.04
-    steps:
-      - checkout
+         command:  dnf install -y git dnf-plugins-core
+         no_output_timeout: 5m
       - run:
-         command: ./test/docker_ci_test.sh
+         command:  dnf copr enable -y tasleson/ledmon-upstream
+         no_output_timeout: 5m
+      - run:
+         command: git clone $GHURL
+         no_output_timeout: 5m
+      - run:
+         command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
          no_output_timeout: 20m
 
 workflows:
@@ -40,4 +65,3 @@ workflows:
     - fedora
     - el7
     - el8
-    - ubuntu

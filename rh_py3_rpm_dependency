@@ -20,3 +20,4 @@ python3-six
 sqlite-devel
 tar
 valgrind
+ledmon-devel

@@ -114,6 +114,24 @@ typedef struct _lsm_hash lsm_hash;
 typedef struct _lsm_target_port lsm_target_port;
 
 /**
+ * Opaque data type for LED handle for slots support
+ * New in version 1.10
+ */
+typedef struct _lsm_led_handle lsm_led_handle;
+
+/**
+ * Opaque data type for the LED slot iterator
+ * New in version 1.10
+ */
+typedef struct _lsm_led_slot_itr lsm_led_slot_itr;
+
+/**
+ * Opaque data type for a specific slot returned via iterator.
+ * New in version 1.10
+ */
+typedef struct _lsm_led_slot lsm_led_slot;
+
+/**
  * Opaque data type for battery
  */
 typedef struct _lsm_battery lsm_battery;

@@ -16,10 +16,19 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "lsm_ipc.hpp"
 #include <glib.h>
+#include <led/libled.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * When we pass in a pointer for an out value we want to make sure that
+ * the pointer isn't null, and that the dereferenced value is != NULL to prevent
+ * memory leaks.
+ */
+#define CHECK_RP(x) (!(x) || *(x) != NULL)
+
 /* Helper macros to ease getter functions */
 #define MEMBER_FUNC_GET(return_type, arg_type, validation, member, error)      \
     return_type arg_type##_##member##_get(arg_type *x) {                       \
@@ -298,6 +307,28 @@ struct LSM_DLL_LOCAL _lsm_battery {
     uint64_t status;
     char *system_id;
     char *plugin_data;
+};
+
+#define LSM_LED_HANDLE_MAGIC   0xAA7A0014
+#define LSM_IS_LED_HANDLE(obj) MAGIC_CHECK(obj, LSM_LED_HANDLE_MAGIC)
+struct LSM_DLL_LOCAL _lsm_led_handle {
+    uint32_t magic;
+    struct led_ctx *ctx;
+};
+
+#define LSM_LED_SLOT_MAGIC         0xAA7A0016
+#define LSM_IS_LED_SLOT_ENTRY(obj) MAGIC_CHECK(obj, LSM_LED_SLOT_MAGIC)
+struct LSM_DLL_LOCAL _lsm_led_slot {
+    uint32_t magic;
+    struct led_slot_list_entry *slot;
+};
+
+#define LSM_LED_SLOT_ITR_MAGIC   0xAA7A0015
+#define LSM_IS_LED_SLOT_ITR(obj) MAGIC_CHECK(obj, LSM_LED_SLOT_ITR_MAGIC)
+struct LSM_DLL_LOCAL _lsm_led_slot_itr {
+    uint32_t magic;
+    struct led_slot_list *sl;
+    struct _lsm_led_slot entry;
 };
 
 /**

@@ -161,13 +161,6 @@ static int verify_initiator_id(const char *id, lsm_access_group_init_type t,
  */
 #define CHECK_STR(x) (!(x) || !strlen(x))
 
-/**
- * When we pass in a pointer for an out value we want to make sure that
- * the pointer isn't null, and that the dereferenced value is != NULL to prevent
- * memory leaks.
- */
-#define CHECK_RP(x) (!(x) || *(x) != NULL)
-
 int lsm_connect_password(const char *uri, const char *password,
                          lsm_connect **conn, uint32_t timeout, lsm_error_ptr *e,
                          lsm_flag flags) {

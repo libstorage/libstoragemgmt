@@ -9,13 +9,18 @@ import six
 
 from lsm import LsmError, ErrorNumber
 
-from lsm._clib import (_local_disk_vpd83_search, _local_disk_vpd83_get,
-                       _local_disk_health_status_get, _local_disk_rpm_get,
-                       _local_disk_list, _local_disk_link_type_get,
-                       _local_disk_ident_led_on, _local_disk_ident_led_off,
-                       _local_disk_fault_led_on, _local_disk_fault_led_off,
-                       _local_disk_serial_num_get, _local_disk_led_status_get,
-                       _local_disk_link_speed_get)
+from lsm._clib import (
+    _local_disk_vpd83_search, _local_disk_vpd83_get,
+    _local_disk_health_status_get, _local_disk_rpm_get, _local_disk_list,
+    _local_disk_link_type_get, _local_disk_ident_led_on,
+    _local_disk_ident_led_off, _local_disk_fault_led_on,
+    _local_disk_fault_led_off, _local_disk_serial_num_get,
+    _local_disk_led_status_get, _local_disk_link_speed_get,
+    _local_led_slot_handle_get, _local_led_slot_handle_free,
+    _local_led_slot_iterator_get, _local_led_slot_iterator_free,
+    _local_led_slot_iterator_next, _local_led_slot_status_get,
+    _local_led_slot_status_set, _local_led_slot_id, _local_led_slot_device,
+    _local_led_slot_iterator_reset)
 
 
 def _use_c_lib_function(func_ref, arg):
@@ -36,7 +41,7 @@ class LocalDisk(object):
             1.3
         Usage:
             Find out the disk paths for given SCSI VPD page 0x83 NAA type
-            ID. Considering multipath, certain VPD83 might have multiple disks
+            ID. Considering multi-path, some VPD83 may have multiple disks
             associated.
         Parameters:
             vpd83 (string)
@@ -483,3 +488,224 @@ class LocalDisk(object):
                 No capability required as this is a library level method.
         """
         return _use_c_lib_function(_local_disk_link_speed_get, disk_path)
+
+    class LedSlot(object):
+        """
+        Class that represents a "slot" which has data and behavior relating to turning LEDs off/on.
+        """
+
+        def __init__(self, handle, slot):
+            """
+            Version:
+                1.10
+            Usage:
+                Object initializer for LedSlot
+            Parameters:
+                handle (unsigned long long)
+                slot (unsigned long long)
+            """
+            self.h = handle
+            self.s = slot
+
+        def id(self):
+            """
+            Version:
+                1.10
+
+            Returns the string identifier for the given slot
+            """
+            return _local_led_slot_id(self.s)
+
+        def device(self):
+            """
+            Version:
+                1.10
+
+            Returns the slot device node for the given slot, can be "None" as a slot may not have
+            a device node.
+            """
+            return _local_led_slot_device(self.s)
+
+        def state(self):
+            """
+            Version:
+                1.10
+
+            led_status (integer, bit map)
+                Could be combination of these values:
+                    lsm.Disk.LED_STATUS_UNKNOWN
+                    lsm.Disk.LED_STATUS_IDENT_ON
+                    lsm.Disk.LED_STATUS_IDENT_OFF
+                    lsm.Disk.LED_STATUS_IDENT_UNKNOWN
+                        Has identification LED, but status is unknown.
+                        If certain disk has no identification LED,
+                        'led_status' should not contain
+                        'lsm.Disk.LED_STATUS_IDENT_ON' or
+                        'lsm.Disk.LED_STATUS_IDENT_OFF' or
+                        'lsm.Disk.LED_STATUS_IDENT_UNKNOWN'
+                    lsm.Disk.LED_STATUS_FAULT_ON
+                    lsm.Disk.LED_STATUS_FAULT_OFF
+                    lsm.Disk.LED_STATUS_FAULT_UNKNOWN
+                        Has fault LED, but status is unknown.
+                        If disk has no fault LED,
+                        'led_status' should not contain
+                        'lsm.Disk.LED_STATUS_FAULT_ON' or
+                        'lsm.Disk.LED_STATUS_FAULT_OFF' or
+                        'lsm.Disk.LED_STATUS_FAULT_UNKNOWN'
+            """
+            return _local_led_slot_status_get(self.s)
+
+        def state_set(self, led_state):
+            """
+            Version:
+                1.10
+
+            Sets the state for the given slot. Please note that not all LED hardware supports both
+            identification and fault LEDs.  Using this API, please specify what you would like regardless
+            of support and the hardware will adhere to your request as best it can.
+
+            Parameters:
+                led_state: (bitmap) with one of the following combinations
+                LSM_DISK_LED_STATUS_IDENT_ON => Implies fault off,
+                LSM_DISK_LED_STATUS_FAULT_ON => Implies ident and fault on
+                LSM_DISK_LED_STATUS_IDENT_OFF => Implies both ident and fault are off,
+                LSM_DISK_LED_STATUS_FAULT_OFF => Implies both ident and fault are off,
+                (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_OFF)
+                (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_OFF)
+                (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF)
+                (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON)
+
+            SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.PERMISSION_DENIED
+                    Insufficient permissions.
+
+            Returns:
+                None
+            """
+            (_, err_no,
+             err_msg) = _local_led_slot_status_set(self.h, self.s, led_state)
+            if err_no != ErrorNumber.OK:
+                raise LsmError(err_no, err_msg)
+            return None
+
+    class LEDSlotsItr(object):
+        """
+            Version:
+                1.10
+
+            Class the provides for the iterator functionality
+        """
+
+        def __init__(self, handle):
+            """
+            Version:
+                1.10
+
+            Initializes the iterator.
+            """
+            self.h = handle
+            self.i = None
+            self.done = False  # Just in case __next__ some how gets called when we have
+            # completed the iteration
+
+        def __iter__(self):
+            """
+            Version:
+                1.10
+
+            Provides needed method of normal python iteration
+            """
+            if self.i is None:
+                # Setup the iterator
+                (itr, err_no, err_msg) = _local_led_slot_iterator_get(self.h)
+                if err_no != ErrorNumber.OK:
+                    raise LsmError(err_no, err_msg)
+                self.i = itr
+            else:
+                # reset the existing iterator
+                _local_led_slot_iterator_reset(self.h, self.i)
+            self.done = False
+            return self
+
+        def __next__(self):
+            """
+            Version:
+                1.10
+
+            Provides needed method of normal python iteration
+            """
+            # Increment the iterator and return value
+            if self.h is not None and self.i is not None and self.done == False:
+                slot = _local_led_slot_iterator_next(self.h, self.i)
+                if slot != 0:
+                    return LocalDisk.LedSlot(self.h, slot)
+                else:
+                    self.done = True
+                    raise StopIteration
+
+        def __enter__(self):
+            """
+            Version:
+                1.10
+
+            Provides needed method for using "with" statement
+            """
+            return self
+
+        def __exit__(self, _e_t, _e_v, _e_tb):
+            """
+            Version:
+                1.10
+
+            Provides needed method for using "with" statement
+            """
+            self.close()
+
+        def close(self):
+            """
+            Version:
+                1.10
+
+            Releases resources for iterator.  This needs to be called to prevent resource leaks.
+            Alternatively, you can use the with statement to ensure this gets called.
+            """
+            if self.i is not None:
+                _local_led_slot_iterator_free(self.h, self.i)
+                self.i = None
+            if self.h is not None:
+                _local_led_slot_handle_free(self.h)
+                self.h = None
+
+    @staticmethod
+    def led_slots_open():
+        """
+        Version 1.10
+
+        Obtains a slots iterator.
+
+        Parameters:
+            None
+
+        Returns LEDSlotsItr
+
+        Note: You must call `close()` on returned object to free resources.  'with' statement
+        is supported for returned iterator object.
+
+        SpecialExceptions:
+            LsmError
+                ErrorNumber.LIB_BUG
+                    Internal bug.
+                ErrorNumber.PERMISSION_DENIED
+                    Insufficient permissions to use slots API.
+
+        Capability:
+            N/A
+                No capability required as this is a library level method.
+        """
+        (handle, err_no, err_msg) = _local_led_slot_handle_get()
+        if err_no != ErrorNumber.OK:
+            raise LsmError(err_no, err_msg)
+        return LocalDisk.LEDSlotsItr(handle)

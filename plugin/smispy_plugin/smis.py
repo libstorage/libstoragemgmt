@@ -145,8 +145,9 @@ class Smis(IStorageAreaNetwork):
         if 'ca_cert_file' in u['parameters']:
             ca_cert_file = u['parameters']['ca_cert_file']
             if not os.path.lexists(ca_cert_file):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "ca_cert_file: '%s' does not exists")
+                raise LsmError(
+                    ErrorNumber.INVALID_ARGUMENT,
+                    "ca_cert_file: '%s' does not exists" % ca_cert_file)
             no_ssl_verify = False
 
         self._c = SmisCommon(url, u['username'], password, namespace,

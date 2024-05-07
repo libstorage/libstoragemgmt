@@ -9,6 +9,10 @@
 #ifndef _LIBSG_H_
 #define _LIBSG_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -106,18 +110,18 @@ struct _sg_t10_vpd83_dp_header {
 };
 
 /* SPC-5 rev 7, Table 486 - Designation descriptor. */
-LSM_DLL_LOCAL struct _sg_t10_vpd83_dp {
+struct _sg_t10_vpd83_dp {
     struct _sg_t10_vpd83_dp_header header;
     uint8_t designator[0xff];
 };
 
-LSM_DLL_LOCAL struct _sg_t10_vpd83_naa_header {
+struct _sg_t10_vpd83_naa_header {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     uint8_t data_msb : 4;
     uint8_t naa_type : 4;
 #else
-    uint8_t naa_type        : 4;
-    uint8_t data_msb        : 4;
+    uint8_t naa_type : 4;
+    uint8_t data_msb : 4;
 #endif
 };
 
@@ -275,5 +279,9 @@ LSM_DLL_LOCAL int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
  *  host_no != NULL
  */
 LSM_DLL_LOCAL int _sg_host_no(char *err_msg, int fd, unsigned int *host_no);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* End of _LIBSG_H_ */

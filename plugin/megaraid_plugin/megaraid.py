@@ -456,7 +456,7 @@ class MegaRAID(IPlugin):
                     ErrorNumber.PLUGIN_BUG,
                     "MegaRAID storcli failed with error %d: %s" %
                     (detail_status['ErrCd'], detail_status['ErrMsg']))
-            real_data = ctrl_output[0].get('Response Data')
+            real_data = ctrl_output[0].get('Response Data', {})
             if real_data and 'Response Data' in list(real_data.keys()):
                 return real_data['Response Data']
 
@@ -955,7 +955,7 @@ class MegaRAID(IPlugin):
             slot_nums.append(slot_num)
 
         # Handle request volume name, LSI only allow 15 characters.
-        name = re.sub('[^0-9a-zA-Z_\-]+', '', name)[:15]
+        name = re.sub('[^0-9a-zA-Z_-]+', '', name)[:15]
 
         if enclosure_str == ' ':
             drives_str = "drives=%s" % ','.join(slot_nums)

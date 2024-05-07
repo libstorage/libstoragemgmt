@@ -868,7 +868,7 @@ class AccessGroup(IData):
            10:00:00:00:c9:95:2f:de
 
         Acceptable WWPN format is:
-            ^[0x|0X]{0,1}(:?[0-9A-Fa-f]{2}[\.\-:]{0,1}){7}[0-9A-Fa-f]{2}$
+            ^[0x|0X]{0,1}(:?[0-9A-Fa-f]{2}[.-:]{0,1}){7}[0-9A-Fa-f]{2}$
         Acceptable WWPN example:
            10:00:00:00:c9:95:2f:de
            10:00:00:00:C9:95:2F:DE
