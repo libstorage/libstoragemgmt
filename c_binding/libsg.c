@@ -735,7 +735,6 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
 
         (*dps)[*dp_count] = dp;
         ++*dp_count;
-        dp = NULL;
     }
 
 out:
