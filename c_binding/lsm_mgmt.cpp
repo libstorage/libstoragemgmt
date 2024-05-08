@@ -363,16 +363,17 @@ int lsm_plugin_info_get(lsm_connect *c, char **desc, char **version,
 
             if (!*desc || !*version) {
                 rc = LSM_ERR_NO_MEMORY;
-                free(*desc);
-                free(*version);
             }
         }
     } catch (const ValueException &ve) {
+        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
+    }
+
+    if (rc != LSM_ERR_OK) {
         free(*desc);
         *desc = NULL;
         free(*version);
         *version = NULL;
-        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
     }
 
     return rc;
