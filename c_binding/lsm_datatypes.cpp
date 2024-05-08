@@ -971,7 +971,6 @@ static lsm_string_list *standardize_init_list(lsm_string_list *initiators) {
                     break;
                 }
                 free(wwpn);
-                wwpn = NULL;
             }
         }
     }
