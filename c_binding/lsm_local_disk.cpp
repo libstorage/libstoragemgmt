@@ -1540,6 +1540,7 @@ int lsm_led_slot_iterator_get(lsm_led_handle *handle,
     if (led_rc != LED_STATUS_SUCCESS) {
         *lsm_err = translate_led_to_lsm(
             led_rc, "Unexpected return for 'led_slots_get'");
+        free(itr);
         return LSM_ERR_LIB_BUG;
     }
 
