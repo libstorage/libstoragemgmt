@@ -1244,6 +1244,8 @@ static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
            _SG_T10_SPL_SAS_ADDR_LEN);
 
 out:
+    /* ensure sas addr is always nul terminated */
+    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
     free(sysfs_sas_path);
 }
 
@@ -1271,6 +1273,8 @@ static int _sas_addr_get(char *err_msg, const char *disk_path,
     }
 
 out:
+    /* regardless of how to finish, ensure string is always null terminated */
+    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
     if (fd >= 0)
         close(fd);
     return rc;
