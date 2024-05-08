@@ -1124,7 +1124,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
     desired_state = current_state;
 
     switch (current_state) {
-    case LED_IBPI_PATTERN_LOCATE_AND_FAIL:
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
         // Both LEDs currently illuminated
         if (led_state == LSM_DISK_LED_STATUS_IDENT_OFF) {
             desired_state = LED_IBPI_PATTERN_FAILED_DRIVE;
@@ -1142,7 +1142,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
             desired_state = LED_IBPI_PATTERN_NORMAL;
             break;
         case LSM_DISK_LED_STATUS_FAULT_ON:
-            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         case LSM_DISK_LED_STATUS_FAULT_OFF:
             desired_state = current_state;
@@ -1153,7 +1153,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
         // FAULT is currently on, IDENT off
         switch (led_state) {
         case LSM_DISK_LED_STATUS_IDENT_ON:
-            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         case LSM_DISK_LED_STATUS_IDENT_OFF:
             desired_state = current_state;
@@ -1302,7 +1302,7 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
     *led_status = 0;
     led_state = led_slot_state(slot_entry);
     switch (led_state) {
-    case LED_IBPI_PATTERN_LOCATE_AND_FAIL:
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
         *led_status = LSM_DISK_LED_STATUS_IDENT_ON;
         *led_status |= LSM_DISK_LED_STATUS_FAULT_ON;
         break;
@@ -1606,7 +1606,7 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
                 (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF);
             break;
         }
-        case (LED_IBPI_PATTERN_LOCATE_AND_FAIL): {
+        case (LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE): {
             translated =
                 (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON);
         }
@@ -1643,7 +1643,7 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
             break;
         }
         case (LSM_DISK_LED_STATUS_FAULT_ON): {
-            state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         }
         case (LSM_DISK_LED_STATUS_IDENT_OFF): {
@@ -1668,7 +1668,7 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
             break;
         }
         case (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON): {
-            state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         }
         default:
