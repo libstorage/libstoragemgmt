@@ -219,6 +219,11 @@ static int inc_token(int current, int amount, int max) {
 Value lsm_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
                 int *consumed) {
 
+    if (!tok) {
+        throw ValueException(
+            "Invalid parameter: lsm_parse param 'tok' is null");
+    }
+
     int i = start_tok;
 
     int len = tok[i].end - tok[i].start;
@@ -293,10 +298,12 @@ Value Payload::deserialize(const std::string &json_str) {
             if (rc < 0) {
                 if (JSMN_ERROR_NOMEM == rc) {
                     free(tok);
+                    tok = NULL;
                     num_tokens *= 2;
                     continue;
                 } else {
                     free(tok);
+                    tok = NULL;
                     throw ValueException("In-valid json");
                 }
             }
