@@ -50,10 +50,15 @@ int Transport::msg_send(const std::string &msg, int &error_code) {
         ssize_t msg_size = data.size();
 
         while (written < msg_size) {
-            int wrote = send(s, data.c_str() + written, (msg_size - written),
-                             MSG_NOSIGNAL); // Prevent SIGPIPE on write
+            ssize_t wrote =
+                send(s, data.c_str() + written, (msg_size - written),
+                     MSG_NOSIGNAL); // Prevent SIGPIPE on write
             if (wrote != -1) {
-                written += wrote;
+                ssize_t t = written;
+                if (__builtin_add_overflow(t, wrote, &written)) {
+                    error_code = EOVERFLOW;
+                    break;
+                }
             } else {
                 error_code = errno;
                 break;
