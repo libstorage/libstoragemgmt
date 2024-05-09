@@ -146,6 +146,7 @@ const char *_random_vpd(char *buff) {
     ssize_t cur_got = 0;
     size_t got = 0;
     size_t i = 0;
+    size_t tmp = 0;
     size_t needed = (_VPD_83_LEN - 1) / 2 - 1;
     /* Skip the first two digits. We will use '50'. */
     /* Assuming _VPD_83_LEN is odd number */
@@ -161,12 +162,27 @@ const char *_random_vpd(char *buff) {
         return buff;
 
     while (got < needed) {
-        cur_got = read(fd, raw_data + got, needed - got);
-        if (cur_got < 0) {
+
+        size_t remaining = 0;
+        if (__builtin_sub_overflow(needed, got, &remaining)) {
             close(fd);
+            buff[0] = '\0';
             return buff;
         }
-        got += cur_got;
+
+        cur_got = read(fd, raw_data + got, remaining);
+        if (cur_got < 0) {
+            close(fd);
+            buff[0] = '\0';
+            return buff;
+        }
+
+        tmp = got;
+        if (__builtin_add_overflow(tmp, cur_got, &got)) {
+            close(fd);
+            buff[0] = '\0';
+            return buff;
+        }
     }
     close(fd);
 
