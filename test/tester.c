@@ -3670,6 +3670,7 @@ START_TEST(test_local_disk_vpd83_get) {
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
     free(vpd83);
+    vpd83 = NULL;
 
     /* Test non-exist disk */
     rc = lsm_local_disk_vpd83_get(NOT_EXIST_SD_PATH, &vpd83, &lsm_err);
