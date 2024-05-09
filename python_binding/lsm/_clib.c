@@ -732,6 +732,7 @@ static PyObject *led_slot_handle_get(PyObject *self, PyObject *args,
 
 out:
     if (flag_no_mem == true) {
+        lsm_led_handle_free(handle);
         Py_XDECREF(rc_list);
         Py_XDECREF(err_no_obj);
         Py_XDECREF(err_msg_obj);
