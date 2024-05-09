@@ -3603,6 +3603,7 @@ START_TEST(test_local_disk_serial_num_get) {
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
     free(serial_num);
+    serial_num = NULL;
 
     /* Test nonexistent disk */
     rc =
