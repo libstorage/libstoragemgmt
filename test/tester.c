@@ -757,7 +757,6 @@ START_TEST(test_access_groups) {
             lsm_access_group_record_free(updated);
             updated = NULL;
         }
-        init_list = NULL;
     }
 
     if (group) {
