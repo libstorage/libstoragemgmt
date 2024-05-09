@@ -68,18 +68,12 @@ void _be_raw_to_hex(uint8_t *raw, size_t len, char *out) {
 }
 
 bool _file_exists(const char *path) {
-    int fd = -1;
-
     assert(path != NULL);
 
-    fd = open(path, O_RDONLY);
-    if ((fd == -1) && (errno == ENOENT))
-        return false;
-
-    if (fd >= 0) {
-        close(fd);
+    if (access(path, F_OK) == 0) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 int _read_file(const char *path, uint8_t *buff, ssize_t *size,
