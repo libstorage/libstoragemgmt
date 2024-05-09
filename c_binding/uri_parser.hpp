@@ -113,7 +113,7 @@ inline struct uri parse(std::string uri) {
         return rc;
     }
 
-    rc.scheme = scheme_tmp;
+    rc.scheme = std::move(scheme_tmp);
 
     auto remainder = uri.substr(req + 3);
 
@@ -157,7 +157,7 @@ inline struct uri parse(std::string uri) {
     }
 
     // Only part left should be host, which is a ipv4, hostname, or ipv6
-    rc.host = remainder;
+    rc.host = std::move(remainder);
     rc.valid = true;
     return rc;
 }
