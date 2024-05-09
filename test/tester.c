@@ -93,10 +93,11 @@ void generate_random(char *buff, uint32_t len) {
     uint32_t i = 0;
     ssize_t cur_got = 0;
     size_t got = 0;
+    size_t tmp = 0;
     int fd = -1;
     uint8_t *raw_data;
 
-    if (buff == NULL)
+    if (buff == NULL || len == 0)
         return;
 
     raw_data = (uint8_t *)malloc(len * sizeof(uint8_t));
@@ -115,7 +116,13 @@ void generate_random(char *buff, uint32_t len) {
         if (cur_got < 0) {
             goto out;
         }
-        got += cur_got;
+
+        tmp = got;
+        if (__builtin_add_overflow(tmp, cur_got, &got)) {
+            close(fd);
+            buff[0] = '\0';
+            return;
+        }
     }
 
     for (i = 0; i < (len - 1); ++i) {
