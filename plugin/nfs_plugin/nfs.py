@@ -62,7 +62,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
 
     @staticmethod
     def _parse_options(optionstring):
-        """ Parse a comma separted option list into a dict """
+        """ Parse a comma separated option list into a dict """
         options = {}
 
         if optionstring is None:
