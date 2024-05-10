@@ -119,9 +119,8 @@ void generate_random(char *buff, uint32_t len) {
 
         tmp = got;
         if (__builtin_add_overflow(tmp, cur_got, &got)) {
-            close(fd);
             buff[0] = '\0';
-            return;
+            goto out;
         }
     }
 
