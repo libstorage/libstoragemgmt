@@ -43,18 +43,12 @@ int _get_db_from_plugin_ptr(char *err_msg, lsm_plugin_ptr c, sqlite3 **db) {
  * Copy from c_binding/utils.c, will remove if that was exposed out.
  */
 bool _file_exists(const char *path) {
-    int fd = -1;
-
     assert(path != NULL);
 
-    fd = open(path, O_RDONLY);
-    if ((fd == -1) && (errno == ENOENT))
-        return false;
-
-    if (fd >= 0) {
-        close(fd);
+    if (access(path, F_OK) == 0) {
+        return true;
     }
-    return true;
+    return false;
 }
 
 /*
