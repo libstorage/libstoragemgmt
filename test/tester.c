@@ -3827,7 +3827,6 @@ START_TEST(test_batteries) {
         ck_assert_msg(compare_battery(bs[i], b_copy) == 0,
                       "src copy miss-match");
         lsm_battery_record_free(b_copy);
-        b_copy = NULL;
 
         id = lsm_battery_id_get(bs[i]);
         ck_assert_msg(id != NULL && strlen(id) > 0, "NULL");
