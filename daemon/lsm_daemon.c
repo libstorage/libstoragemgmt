@@ -548,6 +548,11 @@ int process_plugin(void *p, char *full_name) {
     } else {
         /* The only real way to get here is failed strdup as
            setup_socket will exit on error. */
+
+        /* static code checkers incorrectly flag a failure to close fd */
+        if (item->fd >= 0) {
+            close(item->fd);
+        }
         free(item);
         item = NULL;
         log_and_exit("strdup failed %s\n", full_name);

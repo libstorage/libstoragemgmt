@@ -16,6 +16,7 @@ License:        LGPLv2+
 URL:            https://github.com/libstorage/libstoragemgmt
 Source0:        https://github.com/libstorage/libstoragemgmt/releases/download/%{version}/%{name}-%{version}.tar.gz
 Requires:       python3-%{name}
+Requires:       ledmon-libs
 
 # Packages that have been removed
 Obsoletes:      %{name}-netapp-plugin < %{version}-%{release}
@@ -33,6 +34,7 @@ BuildRequires:  bash-completion
 BuildRequires:  libconfig-devel
 BuildRequires:  systemd-devel
 BuildRequires:  kernel-headers
+BuildRequires:  ledmon-devel
 %if %{with python2}
 BuildRequires:  python2-six
 BuildRequires:  python2-devel

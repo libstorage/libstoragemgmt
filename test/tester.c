@@ -93,10 +93,11 @@ void generate_random(char *buff, uint32_t len) {
     uint32_t i = 0;
     ssize_t cur_got = 0;
     size_t got = 0;
+    size_t tmp = 0;
     int fd = -1;
     uint8_t *raw_data;
 
-    if (buff == NULL)
+    if (buff == NULL || len == 0)
         return;
 
     raw_data = (uint8_t *)malloc(len * sizeof(uint8_t));
@@ -115,7 +116,12 @@ void generate_random(char *buff, uint32_t len) {
         if (cur_got < 0) {
             goto out;
         }
-        got += cur_got;
+
+        tmp = got;
+        if (__builtin_add_overflow(tmp, cur_got, &got)) {
+            buff[0] = '\0';
+            goto out;
+        }
     }
 
     for (i = 0; i < (len - 1); ++i) {
@@ -750,7 +756,6 @@ START_TEST(test_access_groups) {
             lsm_access_group_record_free(updated);
             updated = NULL;
         }
-        init_list = NULL;
     }
 
     if (group) {
@@ -3597,6 +3602,7 @@ START_TEST(test_local_disk_serial_num_get) {
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
     free(serial_num);
+    serial_num = NULL;
 
     /* Test nonexistent disk */
     rc =
@@ -3663,6 +3669,7 @@ START_TEST(test_local_disk_vpd83_get) {
     if (lsm_err != NULL)
         lsm_error_free(lsm_err);
     free(vpd83);
+    vpd83 = NULL;
 
     /* Test non-exist disk */
     rc = lsm_local_disk_vpd83_get(NOT_EXIST_SD_PATH, &vpd83, &lsm_err);
@@ -3820,7 +3827,6 @@ START_TEST(test_batteries) {
         ck_assert_msg(compare_battery(bs[i], b_copy) == 0,
                       "src copy miss-match");
         lsm_battery_record_free(b_copy);
-        b_copy = NULL;
 
         id = lsm_battery_id_get(bs[i]);
         ck_assert_msg(id != NULL && strlen(id) > 0, "NULL");

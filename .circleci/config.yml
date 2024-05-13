@@ -19,25 +19,6 @@ jobs:
       - run:
          command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
          no_output_timeout: 20m
-  el7:
-    docker:
-      - image: centos:7
-    environment:
-      GHURL: << pipeline.project.git_url >>
-      GHBR: << pipeline.git.branch >>
-    steps:
-      - run:
-         command:  yum install -y git  yum-plugin-copr
-         no_output_timeout: 20m
-      - run:
-         command:  yum copr enable -y tasleson/ledmon-upstream
-         no_output_timeout: 20m
-      - run:
-         command: git clone $GHURL
-         no_output_timeout: 5m
-      - run:
-         command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
-         no_output_timeout: 20m
   el8:
     docker:
       - image: oraclelinux:8
@@ -63,5 +44,4 @@ workflows:
   workflow:
     jobs:
     - fedora
-    - el7
     - el8

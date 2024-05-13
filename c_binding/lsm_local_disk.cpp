@@ -1124,7 +1124,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
     desired_state = current_state;
 
     switch (current_state) {
-    case LED_IBPI_PATTERN_LOCATE_AND_FAIL:
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
         // Both LEDs currently illuminated
         if (led_state == LSM_DISK_LED_STATUS_IDENT_OFF) {
             desired_state = LED_IBPI_PATTERN_FAILED_DRIVE;
@@ -1142,7 +1142,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
             desired_state = LED_IBPI_PATTERN_NORMAL;
             break;
         case LSM_DISK_LED_STATUS_FAULT_ON:
-            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         case LSM_DISK_LED_STATUS_FAULT_OFF:
             desired_state = current_state;
@@ -1153,7 +1153,7 @@ int ledlib_set(const char *disk_path, lsm_error **lsm_err, int led_state) {
         // FAULT is currently on, IDENT off
         switch (led_state) {
         case LSM_DISK_LED_STATUS_IDENT_ON:
-            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            desired_state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         case LSM_DISK_LED_STATUS_IDENT_OFF:
             desired_state = current_state;
@@ -1244,6 +1244,8 @@ static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
            _SG_T10_SPL_SAS_ADDR_LEN);
 
 out:
+    /* ensure sas addr is always nul terminated */
+    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
     free(sysfs_sas_path);
 }
 
@@ -1271,6 +1273,8 @@ static int _sas_addr_get(char *err_msg, const char *disk_path,
     }
 
 out:
+    /* regardless of how to finish, ensure string is always null terminated */
+    tp_sas_addr[_SG_T10_SPL_SAS_ADDR_LEN - 1] = '\0';
     if (fd >= 0)
         close(fd);
     return rc;
@@ -1302,7 +1306,7 @@ int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
     *led_status = 0;
     led_state = led_slot_state(slot_entry);
     switch (led_state) {
-    case LED_IBPI_PATTERN_LOCATE_AND_FAIL:
+    case LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE:
         *led_status = LSM_DISK_LED_STATUS_IDENT_ON;
         *led_status |= LSM_DISK_LED_STATUS_FAULT_ON;
         break;
@@ -1536,6 +1540,7 @@ int lsm_led_slot_iterator_get(lsm_led_handle *handle,
     if (led_rc != LED_STATUS_SUCCESS) {
         *lsm_err = translate_led_to_lsm(
             led_rc, "Unexpected return for 'led_slots_get'");
+        free(itr);
         return LSM_ERR_LIB_BUG;
     }
 
@@ -1606,7 +1611,7 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
                 (LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_IDENT_OFF);
             break;
         }
-        case (LED_IBPI_PATTERN_LOCATE_AND_FAIL): {
+        case (LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE): {
             translated =
                 (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON);
         }
@@ -1643,7 +1648,7 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
             break;
         }
         case (LSM_DISK_LED_STATUS_FAULT_ON): {
-            state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         }
         case (LSM_DISK_LED_STATUS_IDENT_OFF): {
@@ -1668,7 +1673,7 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
             break;
         }
         case (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON): {
-            state = LED_IBPI_PATTERN_LOCATE_AND_FAIL;
+            state = LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE;
             break;
         }
         default:

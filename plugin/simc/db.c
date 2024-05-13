@@ -678,6 +678,15 @@ void _db_sql_trans_rollback(sqlite3 *db) {
                      NULL /* don't parse output */);
 }
 
+static void remove_trail_sep(int items_printed, char *s) {
+    int nul_pos = items_printed - strlen(", ") + 1;
+    if (nul_pos >= 0 && nul_pos < _BUFF_SIZE) {
+        s[nul_pos] = '\0';
+    } else {
+        s[0] = '\0';
+    }
+}
+
 int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...) {
     int rc = LSM_ERR_OK;
     char sql_cmd[_BUFF_SIZE * 4];
@@ -719,8 +728,8 @@ int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...) {
     va_end(arg);
 
     /* Remove the trailing ", " */
-    keys_str[keys_printed - strlen(", ") + 1] = '\0';
-    values_str[values_printed - strlen(", ") + 1] = '\0';
+    remove_trail_sep(keys_printed, keys_str);
+    remove_trail_sep(values_printed, values_str);
 
     _snprintf_buff(err_msg, rc, out, sql_cmd,
                    "INSERT INTO %s (%s) VALUES (%s);", table_name, keys_str,

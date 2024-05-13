@@ -50,10 +50,15 @@ int Transport::msg_send(const std::string &msg, int &error_code) {
         ssize_t msg_size = data.size();
 
         while (written < msg_size) {
-            int wrote = send(s, data.c_str() + written, (msg_size - written),
-                             MSG_NOSIGNAL); // Prevent SIGPIPE on write
+            ssize_t wrote =
+                send(s, data.c_str() + written, (msg_size - written),
+                     MSG_NOSIGNAL); // Prevent SIGPIPE on write
             if (wrote != -1) {
-                written += wrote;
+                ssize_t t = written;
+                if (__builtin_add_overflow(t, wrote, &written)) {
+                    error_code = EOVERFLOW;
+                    break;
+                }
             } else {
                 error_code = errno;
                 break;
@@ -67,19 +72,23 @@ int Transport::msg_send(const std::string &msg, int &error_code) {
     return rc;
 }
 
-static std::string string_read(int fd, size_t count, int &error_code) {
+static std::string string_read(int fd, ssize_t count, int &error_code) {
     char buff[4096];
-    size_t amount_read = 0;
+    ssize_t amount_read = 0;
     std::string rc = "";
 
     error_code = 0;
 
     while (amount_read < count) {
-        ssize_t rd =
-            recv(fd, buff, std::min(sizeof(buff), (count - amount_read)),
-                 MSG_WAITALL);
+        ssize_t rd = recv(
+            fd, buff, std::min((ssize_t)(sizeof(buff)), (count - amount_read)),
+            MSG_WAITALL);
         if (rd > 0) {
-            amount_read += rd;
+            ssize_t t = amount_read;
+            if (__builtin_add_overflow(t, rd, &amount_read)) {
+                error_code = EOVERFLOW;
+                break;
+            }
             rc += std::string(buff, rd);
         } else {
             error_code = errno;
@@ -101,7 +110,10 @@ std::string Transport::msg_recv(int &error_code) {
     if (len.size() && error_code == 0) {
         payload_len = strtoul(len.c_str(), NULL, 10);
         if (payload_len < 0x80000000) { /* Should be big enough */
-            msg = string_read(s, payload_len, error_code);
+            ssize_t len = payload_len;
+            msg = string_read(s, len, error_code);
+        } else {
+            error_code = EOVERFLOW;
         }
         // fprintf(stderr, "<<< %s\n", msg.c_str());
     }

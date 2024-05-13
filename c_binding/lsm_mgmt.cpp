@@ -363,16 +363,17 @@ int lsm_plugin_info_get(lsm_connect *c, char **desc, char **version,
 
             if (!*desc || !*version) {
                 rc = LSM_ERR_NO_MEMORY;
-                free(*desc);
-                free(*version);
             }
         }
     } catch (const ValueException &ve) {
+        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
+    }
+
+    if (rc != LSM_ERR_OK) {
         free(*desc);
         *desc = NULL;
         free(*version);
         *version = NULL;
-        rc = log_exception(c, LSM_ERR_PLUGIN_BUG, "Unexpected type", ve.what());
     }
 
     return rc;
@@ -1064,8 +1065,8 @@ int lsm_volume_create(lsm_connect *c, lsm_pool *pool, const char *volumeName,
 
     int rc = rpc(c, "volume_create", parameters, response);
     if (LSM_ERR_OK == rc) {
-        *newVolume = (lsm_volume *)parse_job_response(c, response, rc, job,
-                                                      (convert)value_to_volume);
+        *newVolume = (lsm_volume *)parse_job_response(
+            c, std::move(response), rc, job, (convert)value_to_volume);
     }
     return rc;
 }
@@ -1094,7 +1095,7 @@ int lsm_volume_resize(lsm_connect *c, lsm_volume *volume, uint64_t newSize,
     int rc = rpc(c, "volume_resize", parameters, response);
     if (LSM_ERR_OK == rc) {
         *resizedVolume = (lsm_volume *)parse_job_response(
-            c, response, rc, job, (convert)value_to_volume);
+            c, std::move(response), rc, job, (convert)value_to_volume);
     }
     return rc;
 }
@@ -1127,7 +1128,7 @@ int lsm_volume_replicate(lsm_connect *c, lsm_pool *pool,
     int rc = rpc(c, "volume_replicate", parameters, response);
     if (LSM_ERR_OK == rc) {
         *newReplicant = (lsm_volume *)parse_job_response(
-            c, response, rc, job, (convert)value_to_volume);
+            c, std::move(response), rc, job, (convert)value_to_volume);
     }
     return rc;
 }
@@ -1363,7 +1364,7 @@ int lsm_access_group_create(lsm_connect *c, const char *name,
 
     std::map<std::string, Value> p;
     p["name"] = Value(name);
-    p["init_id"] = id;
+    p["init_id"] = std::move(id);
     p["init_type"] = Value((int32_t)init_type);
     p["system"] = system_to_value(system);
     p["flags"] = Value(flags);
@@ -1428,7 +1429,7 @@ static int _lsm_ag_add_delete(lsm_connect *c, lsm_access_group *access_group,
 
     std::map<std::string, Value> p;
     p["access_group"] = access_group_to_value(access_group);
-    p["init_id"] = id;
+    p["init_id"] = std::move(id);
     p["init_type"] = Value((int32_t)init_type);
     p["flags"] = Value(flags);
 
@@ -1796,7 +1797,7 @@ int lsm_fs_create(lsm_connect *c, lsm_pool *pool, const char *name,
 
     int rc = rpc(c, "fs_create", parameters, response);
     if (LSM_ERR_OK == rc) {
-        *fs = (lsm_fs *)parse_job_response(c, response, rc, job,
+        *fs = (lsm_fs *)parse_job_response(c, std::move(response), rc, job,
                                            (convert)value_to_fs);
     }
     return rc;
@@ -1842,7 +1843,7 @@ int lsm_fs_resize(lsm_connect *c, lsm_fs *fs, uint64_t new_size_bytes,
 
     int rc = rpc(c, "fs_resize", parameters, response);
     if (LSM_ERR_OK == rc) {
-        *rfs = (lsm_fs *)parse_job_response(c, response, rc, job,
+        *rfs = (lsm_fs *)parse_job_response(c, std::move(response), rc, job,
                                             (convert)value_to_fs);
     }
     return rc;
@@ -1869,8 +1870,8 @@ int lsm_fs_clone(lsm_connect *c, lsm_fs *src_fs, const char *name,
 
     int rc = rpc(c, "fs_clone", parameters, response);
     if (LSM_ERR_OK == rc) {
-        *cloned_fs = (lsm_fs *)parse_job_response(c, response, rc, job,
-                                                  (convert)value_to_fs);
+        *cloned_fs = (lsm_fs *)parse_job_response(c, std::move(response), rc,
+                                                  job, (convert)value_to_fs);
     }
     return rc;
 }
@@ -2046,8 +2047,8 @@ int lsm_fs_ss_create(lsm_connect *c, lsm_fs *fs, const char *name,
 
     int rc = rpc(c, "fs_snapshot_create", parameters, response);
     if (LSM_ERR_OK == rc) {
-        *snapshot = (lsm_fs_ss *)parse_job_response(c, response, rc, job,
-                                                    (convert)value_to_ss);
+        *snapshot = (lsm_fs_ss *)parse_job_response(c, std::move(response), rc,
+                                                    job, (convert)value_to_ss);
     }
     return rc;
 }

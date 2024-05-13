@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
         usage(argv, 1);
     }
     if (write(fd, sysfs_data, strlen(sysfs_data)) < 0) {
+        close(fd);
         fprintf(stderr, "Cannot write '%s': %s\n", sysfs_path, strerror(errno));
         usage(argv, 1);
     }
