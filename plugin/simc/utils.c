@@ -149,6 +149,7 @@ const char *_random_vpd(char *buff) {
     assert(buff != NULL);
 
     memset(buff, 0, _VPD_83_LEN);
+    memset(raw_data, 0, sizeof(raw_data));
 
     /* Coverity said we should not use rand() */
     fd = open("/dev/urandom", O_RDONLY);

@@ -699,6 +699,46 @@ out:
     return rc_list;
 }
 
+static void *get_single_pointer_arg(PyObject *args) {
+    PyObject *pylong = NULL;
+
+    if (!PyArg_ParseTuple(args, "O", &pylong)) {
+        return NULL;
+    }
+
+    void *r = PyLong_AsVoidPtr(pylong);
+    if (!r || PyErr_Occurred()) {
+        return NULL;
+    }
+    return r;
+}
+
+static bool get_handle_and_itr(PyObject *args, lsm_led_handle **handle,
+                               lsm_led_slot_itr **itr) {
+    PyObject *handle_addr = NULL;
+    PyObject *itr_addr = NULL;
+    lsm_led_handle *t_handle = NULL;
+    lsm_led_slot_itr *t_itr = NULL;
+
+    if (!PyArg_ParseTuple(args, "OO", &handle_addr, &itr_addr)) {
+        return false;
+    }
+
+    t_handle = PyLong_AsVoidPtr(handle_addr);
+    if (!t_handle || PyErr_Occurred()) {
+        return false;
+    }
+
+    t_itr = PyLong_AsVoidPtr(itr_addr);
+    if (!itr || PyErr_Occurred()) {
+        return false;
+    }
+
+    *handle = t_handle;
+    *itr = t_itr;
+    return true;
+}
+
 static PyObject *led_slot_handle_get(PyObject *self, PyObject *args,
                                      PyObject *kwargs) {
     int rc = LSM_ERR_OK;
@@ -724,9 +764,9 @@ static PyObject *led_slot_handle_get(PyObject *self, PyObject *args,
     _alloc_check(err_msg_obj, flag_no_mem, out);
 
     if (rc == LSM_ERR_OK) {
-        rc_obj = PyLong_FromLongLong((unsigned long long)handle);
+        rc_obj = PyLong_FromVoidPtr(handle);
     } else {
-        rc_obj = PyLong_FromLongLong(0ull);
+        rc_obj = PyLong_FromVoidPtr(NULL);
     }
     _alloc_check(rc_obj, flag_no_mem, out);
 
@@ -747,16 +787,15 @@ out:
 
 static PyObject *led_slot_handle_free(PyObject *self, PyObject *args,
                                       PyObject *kwargs) {
-    unsigned long long handle_address = 0;
     lsm_led_handle *handle = NULL;
 
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "K", &handle_address)) {
+    handle = get_single_pointer_arg(args);
+    if (!handle) {
         return NULL;
     }
-    handle = (lsm_led_handle *)handle_address;
     lsm_led_handle_free(handle);
     Py_RETURN_NONE;
 }
@@ -768,7 +807,6 @@ static PyObject *led_slot_iterator_get(PyObject *self, PyObject *args,
     lsm_flag flags = LSM_ERR_OK;
     lsm_led_handle *handle = NULL;
     lsm_led_slot_itr *slot_itr = NULL;
-    unsigned long long handle_address = 0;
     PyObject *rc_list = NULL;
     PyObject *rc_obj = NULL;
     PyObject *err_msg_obj = NULL;
@@ -778,11 +816,10 @@ static PyObject *led_slot_iterator_get(PyObject *self, PyObject *args,
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "K", &handle_address)) {
+    handle = get_single_pointer_arg(args);
+    if (!handle) {
         return NULL;
     }
-
-    handle = (lsm_led_handle *)handle_address;
     rc = lsm_led_slot_iterator_get(handle, &slot_itr, &lsm_err, flags);
     err_no_obj = PyInt_FromLong(rc);
     _alloc_check(err_no_obj, flag_no_mem, out);
@@ -800,7 +837,7 @@ static PyObject *led_slot_iterator_get(PyObject *self, PyObject *args,
         _alloc_check(err_msg_obj, flag_no_mem, out);
         goto out;
     } else {
-        rc_obj = PyLong_FromLongLong((unsigned long long)slot_itr);
+        rc_obj = PyLong_FromVoidPtr(slot_itr);
         _alloc_check(rc_obj, flag_no_mem, out);
         err_msg_obj = PyUnicode_FromString("");
         _alloc_check(err_msg_obj, flag_no_mem, out);
@@ -823,40 +860,32 @@ out:
 
 static PyObject *led_slot_iterator_free(PyObject *self, PyObject *args,
                                         PyObject *kwargs) {
-    unsigned long long handle_addr = 0;
-    unsigned long long itr_addr = 0;
     lsm_led_handle *handle = NULL;
     lsm_led_slot_itr *itr = NULL;
 
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "KK", &handle_addr, &itr_addr)) {
+    if (!get_handle_and_itr(args, &handle, &itr)) {
         return NULL;
     }
 
-    handle = (lsm_led_handle *)handle_addr;
-    itr = (lsm_led_slot_itr *)itr_addr;
     lsm_led_slot_iterator_free(handle, itr);
     Py_RETURN_NONE;
 }
 
 static PyObject *led_slot_iterator_reset(PyObject *self, PyObject *args,
                                          PyObject *kwargs) {
-    unsigned long long handle_addr = 0;
-    unsigned long long itr_addr = 0;
     lsm_led_handle *handle = NULL;
     lsm_led_slot_itr *itr = NULL;
 
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "KK", &handle_addr, &itr_addr)) {
+    if (!get_handle_and_itr(args, &handle, &itr)) {
         return NULL;
     }
 
-    handle = (lsm_led_handle *)handle_addr;
-    itr = (lsm_led_slot_itr *)itr_addr;
     lsm_led_slot_iterator_reset(handle, itr);
     Py_RETURN_NONE;
 }
@@ -864,8 +893,6 @@ static PyObject *led_slot_iterator_reset(PyObject *self, PyObject *args,
 static PyObject *led_slot_iterator_next(PyObject *self, PyObject *args,
                                         PyObject *kwargs) {
     PyObject *rc_obj = NULL;
-    unsigned long long handle_addr = 0;
-    unsigned long long itr_addr = 0;
     lsm_led_handle *handle = NULL;
     lsm_led_slot_itr *itr = NULL;
     lsm_led_slot *slot = NULL;
@@ -875,21 +902,12 @@ static PyObject *led_slot_iterator_next(PyObject *self, PyObject *args,
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "KK", &handle_addr, &itr_addr)) {
+    if (!get_handle_and_itr(args, &handle, &itr)) {
         return NULL;
     }
 
-    handle = (lsm_led_handle *)handle_addr;
-    itr = (lsm_led_slot_itr *)itr_addr;
-
     slot = lsm_led_slot_next(handle, itr);
-
-    if (slot)
-        rc_obj = PyLong_FromLongLong((unsigned long long)slot);
-    else {
-        rc_obj = PyLong_FromLongLong(0ull);
-    }
-
+    rc_obj = PyLong_FromVoidPtr(slot);
     _alloc_check(rc_obj, flag_no_mem, out);
 
 out:
@@ -904,7 +922,6 @@ static PyObject *led_slot_status_get(PyObject *self, PyObject *args,
                                      PyObject *kwargs) {
 
     PyObject *rc_obj = NULL;
-    unsigned long long slot_addr = 0;
     lsm_led_slot *slot = NULL;
     uint32_t state = 0;
     bool flag_no_mem = false;
@@ -912,11 +929,11 @@ static PyObject *led_slot_status_get(PyObject *self, PyObject *args,
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "K", &slot_addr)) {
+    slot = get_single_pointer_arg(args);
+    if (!slot) {
         return NULL;
     }
 
-    slot = (lsm_led_slot *)slot_addr;
     state = lsm_led_slot_status_get(slot);
 
     rc_obj = PyLong_FromLongLong(state);
@@ -937,8 +954,8 @@ static PyObject *led_slot_status_set(PyObject *self, PyObject *args,
     int rc = LSM_ERR_OK;
     PyObject *rc_list = NULL;
     PyObject *err_msg_obj = NULL;
-    unsigned long long handle_addr = 0;
-    unsigned long long slot_addr = 0;
+    PyObject *handle_addr = NULL;
+    PyObject *slot_addr = NULL;
     unsigned long long state = 0;
     lsm_led_handle *handle = NULL;
     lsm_led_slot *slot = NULL;
@@ -948,12 +965,19 @@ static PyObject *led_slot_status_set(PyObject *self, PyObject *args,
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "KKK", &handle_addr, &slot_addr, &state)) {
+    if (!PyArg_ParseTuple(args, "OOK", &handle_addr, &slot_addr, &state)) {
         return NULL;
     }
 
-    handle = (lsm_led_handle *)handle_addr;
-    slot = (lsm_led_slot *)slot_addr;
+    handle = PyLong_AsVoidPtr(handle_addr);
+    if (!handle || PyErr_Occurred()) {
+        return NULL;
+    }
+
+    slot = PyLong_AsVoidPtr(slot_addr);
+    if (!slot || PyErr_Occurred()) {
+        return NULL;
+    }
 
     rc = lsm_led_slot_status_set(handle, slot, state, &lsm_err, flag);
 
@@ -997,7 +1021,6 @@ out:
 static PyObject *led_slot_id(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     PyObject *rc_obj = NULL;
-    unsigned long long slot_addr = 0;
     lsm_led_slot *slot = NULL;
     bool flag_no_mem = false;
     const char *id = NULL;
@@ -1005,11 +1028,10 @@ static PyObject *led_slot_id(PyObject *self, PyObject *args, PyObject *kwargs) {
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "K", &slot_addr)) {
+    slot = get_single_pointer_arg(args);
+    if (!slot) {
         return NULL;
     }
-
-    slot = (lsm_led_slot *)slot_addr;
 
     id = lsm_led_slot_id(slot);
     if (id) {
@@ -1032,7 +1054,6 @@ static PyObject *led_slot_device(PyObject *self, PyObject *args,
                                  PyObject *kwargs) {
 
     PyObject *rc_obj = Py_None;
-    unsigned long long slot_addr = 0;
     lsm_led_slot *slot = NULL;
     bool flag_no_mem = false;
     const char *device_node = NULL;
@@ -1040,11 +1061,10 @@ static PyObject *led_slot_device(PyObject *self, PyObject *args,
     _UNUSED(self);
     _UNUSED(kwargs);
 
-    if (!PyArg_ParseTuple(args, "K", &slot_addr)) {
+    slot = get_single_pointer_arg(args);
+    if (!slot) {
         return NULL;
     }
-
-    slot = (lsm_led_slot *)slot_addr;
     device_node = lsm_led_slot_device(slot);
     if (device_node) {
         rc_obj = PyUnicode_FromString(device_node);
