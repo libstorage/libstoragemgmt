@@ -11,9 +11,6 @@ jobs:
          command:  dnf install -y git dnf-plugins-core
          no_output_timeout: 5m
       - run:
-         command:  dnf copr enable -y tasleson/ledmon-upstream
-         no_output_timeout: 5m
-      - run:
          command: git clone $GHURL
          no_output_timeout: 5m
       - run:
