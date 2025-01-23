@@ -31,6 +31,7 @@ BuildRequires:  autoconf automake libtool check-devel perl-interpreter
 BuildRequires:  glib2-devel
 BuildRequires:  systemd
 BuildRequires:  bash-completion
+BuildRequires:  pkgconfig(bash-completion)
 BuildRequires:  libconfig-devel
 BuildRequires:  systemd-devel
 BuildRequires:  kernel-headers

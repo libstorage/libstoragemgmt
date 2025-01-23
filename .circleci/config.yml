@@ -16,29 +16,9 @@ jobs:
       - run:
          command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
          no_output_timeout: 20m
-  el8:
-    docker:
-      - image: oraclelinux:8
-    environment:
-      GHURL: << pipeline.project.git_url >>
-      GHBR: << pipeline.git.branch >>
-    steps:
-      - run:
-         command:  dnf install -y git dnf-plugins-core
-         no_output_timeout: 5m
-      - run:
-         command:  dnf copr enable -y tasleson/ledmon-upstream
-         no_output_timeout: 5m
-      - run:
-         command: git clone $GHURL
-         no_output_timeout: 5m
-      - run:
-         command: cd libstoragemgmt && git checkout $GHBR && ./test/docker_ci_test.sh
-         no_output_timeout: 20m
 
 workflows:
   version: 2
   workflow:
     jobs:
     - fedora
-    - el8

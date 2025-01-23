@@ -82,6 +82,7 @@ V=1 make || exit 1
 V=1 make check || { cat test-suite.log; exit 1; }
 
 if [ "CHK$IS_PY3" == "CHK1" ];then
+    echo "Testing 'make rpm'"
     make rpm || exit 1
 fi
 

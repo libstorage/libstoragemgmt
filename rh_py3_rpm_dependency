@@ -1,6 +1,7 @@
 autoconf
 automake
 bash-completion
+bash-completion-devel
 check-devel
 chrpath
 file
