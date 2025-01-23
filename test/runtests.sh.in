@@ -76,6 +76,17 @@ if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$E
     STARTING_POINT=$(pwd)
     _good cd "${src_dir}"/
 
+    # We need to setup directory where the shared library has been built as we are linking to it
+    # in the rust-binding via FFI
+    export RUSTFLAGS="-L$LD_LIBRARY_PATH"
+    export RUSTDOCFLAGS=$RUSTFLAGS
+
+    echo "RUSTFLAGS=$RUSTFLAGS"
+    echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+    echo "Directory listing of .libs directory"
+    _good ls -l $LD_LIBRARY_PATH
+
     #fetch the module
     if [ ! -d libstoragemgmt-rust ]; then
         _good git clone https://github.com/libstorage/libstoragemgmt-rust
