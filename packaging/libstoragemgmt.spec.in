@@ -265,10 +265,6 @@ popd
 %endif
 
 %pre
-getent group libstoragemgmt >/dev/null || groupadd -r libstoragemgmt
-getent passwd libstoragemgmt >/dev/null || \
-    useradd -r -g libstoragemgmt -d /var/run/lsm -s /sbin/nologin \
-    -c "daemon account for libstoragemgmt" libstoragemgmt
 
 %post
 /sbin/ldconfig
@@ -385,6 +381,7 @@ fi
 %{_mandir}/man1/simc_lsmplugin.1*
 
 %{_unitdir}/%{name}.service
+%{_sysusersdir}/%{name}.conf
 
 %ghost %dir %attr(0775, -, -) /run/lsm/
 %ghost %dir %attr(0775, -, -) /run/lsm/ipc

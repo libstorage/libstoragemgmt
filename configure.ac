@@ -445,6 +445,14 @@ if test "x$with_systemdsystemunitdir" != xno; then
         AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 fi
 
+#Setup the sysusersdir for systemd stuff
+AC_ARG_WITH([systemd-sysusersdir],
+        AS_HELP_STRING([--with-systemd-sysusersdir=DIR], [Directory for systemd sysusers files]),
+        [], [with_systemdsysusersdir=$($PKG_CONFIG --variable=sysusersdir systemd)])
+if test "x$with_systemdsysusersdir" != xno; then
+        AC_SUBST([systemdsysusersdir], [$with_systemdsysusersdir])
+fi
+
 #Setup the tmpfilesdir for systemd stuff
 AC_ARG_WITH([systemd-tmpfilesdir],
         AS_HELP_STRING([--with-systemd-tmpfilesdir=DIR], [Directory for systemd temporary files]),
@@ -502,6 +510,7 @@ AC_CONFIG_FILES([
     tools/bash_completion/Makefile
     packaging/Makefile
     packaging/daemon/Makefile
+    packaging/daemon/user_group/Makefile
     packaging/libstoragemgmt.spec
     doc/man/Makefile
     test/Makefile])
