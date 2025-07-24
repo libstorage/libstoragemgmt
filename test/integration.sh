@@ -10,15 +10,22 @@ function _good
     eval "$@"
     local rc=$?
     if [ $rc -ne 0 ]; then
+        echo "Dumping daemon output on error"
+        cat /tmp/lsmd_log.txt
         exit 1
     fi
 }
 
 # Make sure service is running
-systemctl start libstoragemgmt
+if ! pgrep -x "lsmd" > /dev/null; then
+    echo "Starting the lsmd daemon"
+    /usr/bin/lsmd -d -v > /tmp/lsmd_log.txt 2>&1 &
+    sleep 5
+fi
 
 export LSMCLI_URI="sim://"
 _good python3 cmdtest.py.in -c /usr/bin/lsmcli
 
 export LSM_TEST_URI="sim://"
 _good python3 plugin_test.py.in
+
