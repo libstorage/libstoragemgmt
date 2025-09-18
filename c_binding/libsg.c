@@ -841,7 +841,9 @@ static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
      */
 
     for (; i < len; ++i)
-        sprintf(&sense_data_str[i * 2], "%02x", sense_data[i]);
+        snprintf(&sense_data_str[i * 2],
+                 _T10_SPC_SENSE_DATA_STR_MAX_LENGTH - (i * 2), "%02x",
+                 sense_data[i]);
 
     switch (*sense_key) {
     case _T10_SPC_SENSE_KEY_NO_SENSE:
