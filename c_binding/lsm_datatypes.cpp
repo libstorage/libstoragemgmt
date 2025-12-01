@@ -1416,6 +1416,11 @@ int lsm_capability_set(lsm_storage_capabilities *cap, lsm_capability_type t,
     return rc;
 }
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wvarargs"
+#endif
+
 int lsm_capability_set_n(lsm_storage_capabilities *cap,
                          lsm_capability_value_type v, ...) {
     int rc = LSM_ERR_OK;
@@ -1440,6 +1445,10 @@ int lsm_capability_set_n(lsm_storage_capabilities *cap,
     va_end(var_arg);
     return rc;
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 static char *bytes_to_string(uint8_t *a, uint32_t len) {
     char *buff = NULL;
