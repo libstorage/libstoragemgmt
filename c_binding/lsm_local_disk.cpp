@@ -1620,9 +1620,10 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
         }
 
         if (cntrl != LED_CNTRL_TYPE_SCSI) {
-            // Mask off fault led
+            // Mask off fault LED (clear any FAULT_* state)
             translated &=
-                (LSM_DISK_LED_STATUS_IDENT_OFF | LSM_DISK_LED_STATUS_FAULT_ON);
+                ~(LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_FAULT_OFF |
+                  LSM_DISK_LED_STATUS_FAULT_UNKNOWN);
         }
     }
 
