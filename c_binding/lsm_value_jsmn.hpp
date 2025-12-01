@@ -265,8 +265,9 @@ Value lsm_parse(jsmntok_t *tok, int start_tok, int end_tok, const char *j,
             // Get the key
             i += inc_token(i, 1, end_tok);
             if (tok[i].type != JSMN_STRING) {
-                throw ValueException("Expecting JSON object key to be string " +
-                                     tok[i].type);
+                throw ValueException(
+                    "Expecting JSON object key to be string " +
+                    std::to_string(static_cast<int>(tok[i].type)));
             } else {
                 std::string key(j + tok[i].start, tok[i].end - tok[i].start);
                 i += inc_token(i, 1, end_tok);
