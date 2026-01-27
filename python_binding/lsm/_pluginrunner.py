@@ -9,7 +9,6 @@ import traceback
 import sys
 from lsm import LsmError, error, ErrorNumber
 from lsm.lsmcli import cmd_line_wrapper
-import six
 import errno
 
 from lsm._common import SocketEOF as _SocketEOF
@@ -61,7 +60,7 @@ class PluginRunner(object):
 
                     self.tp.send_error(0, -32099,
                                        'Error instantiating plug-in ' + str(e))
-                    raise six.reraise(*ec_info)
+                    raise ec_info[1].with_traceback(ec_info[2])
 
             except Exception:
                 error(traceback.format_exc())

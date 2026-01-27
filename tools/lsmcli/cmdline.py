@@ -19,7 +19,6 @@ import termios
 import threading
 from argparse import ArgumentParser, ArgumentTypeError
 from argparse import RawTextHelpFormatter
-import six
 from lsm import (Client, Pool, VERSION, LsmError, Disk, Volume, JobStatus,
                  ErrorNumber, BlockRange, uri_parse, Proxy,
                  size_human_2_size_bytes, AccessGroup, FileSystem, NfsExport,
@@ -36,9 +35,6 @@ _CONNECTION_FREE_COMMANDS = [
     'local-disk-fault-led-on', 'local-disk-fault-led-off',
     'local-led-slot-list', 'local-led-slot-set'
 ]
-
-if six.PY3:
-    long = int
 
 try:
     from collections import OrderedDict
@@ -146,7 +142,7 @@ def _check_positive_integer(num):
     :return: Numeric value, else exception
     """
     try:
-        rc = long(num, 10)
+        rc = int(num, 10)
         if rc < 0:
             raise ArgumentTypeError(
                 "invalid: require positive integer value '%d'" % rc)
@@ -1941,9 +1937,9 @@ class CmdLine(object):
         for b in range(len(src_starts)):
 
             # Validate some assumptions for source & count
-            count = long(counts[b])
-            src_start = long(src_starts[b])
-            dst_start = long(dst_starts[b])
+            count = int(counts[b])
+            src_start = int(src_starts[b])
+            dst_start = int(dst_starts[b])
 
             if count < 0:
                 raise ArgError("--count: value < 0")

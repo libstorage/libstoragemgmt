@@ -10,7 +10,6 @@
 from abc import ABCMeta as _ABCMeta
 import re
 import binascii
-from six import with_metaclass
 
 try:
     import simplejson as json
@@ -20,8 +19,6 @@ except ImportError:
 from json.decoder import WHITESPACE
 
 from lsm._common import get_class, default_property, ErrorNumber, LsmError
-
-import six
 
 
 class DataEncoder(json.JSONEncoder):
@@ -87,7 +84,7 @@ class DataDecoder(json.JSONDecoder):
         return DataDecoder.__decode(json.loads(json_string))
 
 
-class IData(with_metaclass(_ABCMeta, object)):
+class IData(object, metaclass=_ABCMeta):
     """
     Base class functionality of serializable
     classes.
@@ -1093,7 +1090,7 @@ class Capabilities(IData):
         """
         lsm_cap_to_str_conv = dict()
         for c_str, c_int in list(Capabilities.__dict__.items()):
-            if isinstance(c_str, six.string_types) and type(c_int) == int and \
+            if isinstance(c_str, str) and type(c_int) == int and \
                     c_str[0] != '_' and \
                     Capabilities._CAP_NUM_BEGIN <= c_int <= Capabilities._NUM:
                 lsm_cap_to_str_conv[c_int] = c_str
