@@ -48,7 +48,6 @@ srpm_build_deps:
 - glib2-devel
 - python3-devel
 - python3-pywbem
-- python3-six
 - sqlite-devel
 - glib2-devel
 - valgrind
