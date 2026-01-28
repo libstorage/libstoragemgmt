@@ -9,7 +9,6 @@ CIM_StorageVolume.
 """
 
 import sys
-import six
 
 from lsm import md5, Volume, LsmError, ErrorNumber
 from smispy_plugin.utils import (merge_list, cim_path_to_path_str,
@@ -229,4 +228,4 @@ def volume_create_error_handler(smis_common, method_data, exec_info=None):
         (error_type, error_msg, error_trace) = sys.exc_info()
     else:
         (error_type, error_msg, error_trace) = exec_info
-    six.reraise(error_type, error_msg, error_trace)
+    raise error_msg.with_traceback(error_trace)

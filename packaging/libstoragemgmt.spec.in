@@ -1,11 +1,4 @@
 %bcond_with     test
-%global py2_build_dir %{_builddir}/%{name}-%{version}-%{release}-python2
-
-%if 0%{?rhel} > 7 || 0%{?fedora} > 28
-%bcond_with     python2
-%else
-%bcond_without  python2
-%endif
 
 Name:           libstoragemgmt
 Version:        @VERSION@
@@ -21,7 +14,6 @@ Requires:       ledmon-libs
 # Packages that have been removed
 Obsoletes:      %{name}-netapp-plugin < %{version}-%{release}
 Obsoletes:      %{name}-nstor-plugin < %{version}-%{release}
-Obsoletes:      python2-%{name}-clibs < %{version}-%{release}
 Obsoletes:      python3-%{name}-clibs < %{version}-%{release}
 Obsoletes:      %{name}-nfs-plugin-clibs < %{version}-%{release}
 
@@ -36,13 +28,8 @@ BuildRequires:  libconfig-devel
 BuildRequires:  systemd-devel
 BuildRequires:  kernel-headers
 BuildRequires:  ledmon-devel
-%if %{with python2}
-BuildRequires:  python2-six
-BuildRequires:  python2-devel
-%endif
 BuildRequires:  procps
 BuildRequires:  sqlite-devel
-BuildRequires:  python3-six
 BuildRequires:  python3-devel
 
 %{?systemd_requires}
@@ -68,25 +55,6 @@ The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
 
-%if %{with python2}
-%package        -n python2-%{name}
-Summary:        Python2 client libraries and plug-in support for %{name}
-Group:          System Environment/Libraries
-Requires:       %{name}%{?_isa} = %{version}-%{release}
-%{?python_provide:%python_provide python2-%{name}}
-
-%description    -n python2-%{name}
-This package contains python client libraries as well as python
-framework support and open source plug-ins written in python.
-
-# If obsoleted plugins are installed, we need to meet it's requirement
-# of having the correct version of this package functionality installed too as
-# the update occurs first, before the obsolete removes the obsoleted package.
-Provides:       python2-%{name} < %{version}-%{release}
-%{?python_provide:%python_provide python2-%{name}-clibs}
-
-%endif
-
 %package        -n python3-%{name}
 Summary:        Python 3 client libraries and plug-in support for %{name}
 Group:          System Environment/Libraries
@@ -107,9 +75,6 @@ Summary:        Files for SMI-S generic array support for %{name}
 Group:          System Environment/Libraries
 BuildRequires:  python3-pywbem
 Requires:       python3-pywbem
-%if %{with python2}
-BuildRequires:  python2-pywbem
-%endif
 BuildArch:      noarch
 Provides:       %{name}-ibm-v7k-plugin = 2:%{version}-%{release}
 Obsoletes:      %{name}-ibm-v7k-plugin <= 2:0.1.0-3
@@ -207,32 +172,12 @@ plugin selection for locally managed storage.
 
 %build
 ./autogen.sh
-%if %{with python2}
-# Copy the whole directory to Python2 build
-rm -fr %{py2_build_dir}
-cp -a . %{py2_build_dir}
-%endif
 
 %configure --with-python3 --disable-static
 V=1 make %{?_smp_mflags}
 
-%if %{with python2}
-pushd %{py2_build_dir}
-%configure --disable-static
-V=1 make %{?_smp_mflags}
-popd
-%endif
-
 %install
 rm -rf %{buildroot}
-
-%if %{with python2}
-pushd %{py2_build_dir}
-make install DESTDIR=%{buildroot}
-rm -rf %{buildroot}/%{python_sitelib}/lsm/plugin
-rm -rf %{buildroot}/%{_bindir}/lsmcli
-popd
-%endif
 
 make install DESTDIR=%{buildroot}
 
@@ -252,16 +197,6 @@ then
   cat test-suite.log || true
   exit 1
 fi
-
-%if %{with python2}
-pushd %{py2_build_dir}
-if ! make check
-then
-  cat test-suite.log || true
-  exit 1
-fi
-popd
-%endif
 %endif
 
 %pre
@@ -394,27 +329,6 @@ fi
 %{_libdir}/pkgconfig/%{name}.pc
 %{_mandir}/man3/lsm_*
 %{_mandir}/man3/libstoragemgmt*
-
-%if %{with python2}
-%files -n python2-%{name}
-#Python library files
-%dir %{python2_sitearch}/lsm
-%{python2_sitearch}/lsm/__init__.*
-%{python2_sitearch}/lsm/_client.*
-%{python2_sitearch}/lsm/_common.*
-%{python2_sitearch}/lsm/_local_disk.*
-%{python2_sitearch}/lsm/_data.*
-%{python2_sitearch}/lsm/_iplugin.*
-%{python2_sitearch}/lsm/_pluginrunner.*
-%{python2_sitearch}/lsm/_transport.*
-%{python2_sitearch}/lsm/version.*
-%{python2_sitearch}/lsm/_clib.*
-%dir %{python2_sitearch}/lsm/lsmcli
-%{python2_sitearch}/lsm/lsmcli/__init__.*
-%{python2_sitearch}/lsm/lsmcli/data_display.*
-%{python2_sitearch}/lsm/lsmcli/cmdline.*
-
-%endif
 
 %files -n python3-%{name}
 %dir %{python3_sitearch}/lsm

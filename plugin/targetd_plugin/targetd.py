@@ -11,7 +11,6 @@ import time
 import socket
 import re
 import base64
-import six
 import ssl
 import os
 
@@ -20,15 +19,8 @@ from lsm import (Pool, Volume, System, Capabilities, IStorageAreaNetwork, INfs,
                  uri_parse, md5, VERSION, common_urllib2_error_handler,
                  search_property, AccessGroup, int_div)
 
-try:
-    from urllib.request import (Request, urlopen)
-    from urllib.parse import (urlunsplit)
-except ImportError:
-    from urllib2 import (Request, urlopen)
-    from urlparse import (urlunsplit)
-
-if six.PY3:
-    long = int
+from urllib.request import (Request, urlopen)
+from urllib.parse import (urlunsplit)
 
 DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
@@ -276,7 +268,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                 vpd83 = TargetdStorage._uuid_to_vpd83(vol['uuid'])
                 volumes.append(
                     Volume(vol['uuid'], vol['name'], vpd83, 512,
-                           long(int_div(vol['size'], 512)),
+                           int(int_div(vol['size'], 512)),
                            Volume.ADMIN_STATE_ENABLED, self.system.id, p_name))
         return search_property(volumes, search_key, search_value)
 

@@ -15,7 +15,6 @@ import os
 import datetime
 import time
 import sys
-import six
 
 from lsm import LsmError, ErrorNumber, md5
 
@@ -577,7 +576,7 @@ class SmisCommon(object):
             # Make sure to save off current exception as we could cause
             # another when trying to dump debug data.
             self._dump_wbem_xml(cmd)
-            six.reraise(*exc_info)
+            raise exc_info[1].with_traceback(exc_info[2])
 
     def _cim_srv_of_sys_id(self, srv_name, sys_id, raise_error):
         property_list = ['SystemName']

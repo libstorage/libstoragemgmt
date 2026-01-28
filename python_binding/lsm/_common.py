@@ -29,7 +29,6 @@ except ImportError:
     from urlparse import urlparse
 import functools
 import traceback
-import six
 import ssl
 import socket
 
@@ -81,8 +80,7 @@ def common_urllib2_error_handler(exp):
     except AttributeError:
         pass
 
-    # Python3 is the gift that keeps on giving!
-    if six.PY3 and isinstance(exp, ConnectionError):
+    if isinstance(exp, ConnectionError):
         raise LsmError(ErrorNumber.NETWORK_CONNREFUSED, str(exp))
 
     if isinstance(exp, socket.error):
@@ -346,12 +344,7 @@ def md5(t):
 
 
 def int_div(a, b):
-    # Trying to avoid using past.old_div as we don't have future on all
-    # platforms we are trying to support
-    if six.PY3:
-        return a // b
-    else:
-        return int(a) / int(b)
+    return a // b
 
 
 # Converts a list of arguments to string.
@@ -564,8 +557,8 @@ def type_compare(method_name, exp_type, act_val):
         # A number of times a method will return None or some valid type,
         # only check on the type if the value is not None
         if exp_type != type(act_val) and act_val is not None:
-            if (isinstance(exp_type, six.string_types)
-                    and isinstance(act_val, six.string_types)):
+            if (isinstance(exp_type, str)
+                    and isinstance(act_val, str)):
                 return
             if not inspect.isclass(exp_type) or \
                     not issubclass(type(act_val), exp_type):

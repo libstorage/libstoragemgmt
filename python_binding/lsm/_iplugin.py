@@ -7,10 +7,9 @@
 from abc import ABCMeta as _ABCMeta
 from abc import abstractmethod as _abstractmethod
 from lsm import LsmError, ErrorNumber
-from six import with_metaclass
 
 
-class IPlugin(with_metaclass(_ABCMeta, object)):
+class IPlugin(object, metaclass=_ABCMeta):
     """
     Plug-in interface that all plug-ins must implement for basic
     operation.
