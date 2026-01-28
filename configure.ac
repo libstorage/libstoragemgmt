@@ -166,20 +166,8 @@ fi
 PKG_CHECK_MODULES([LIBUDEV], [libudev])
 
 dnl ==========================================================================
-dnl If we have python3 support or the user specified it explicitly use it.
+dnl Check for Python 3
 dnl ==========================================================================
-
-AC_ARG_WITH([python3],
-    [AS_HELP_STRING([--with-python3],
-        [Use Python3 only])],
-    [with_python3=yes],
-    [])
-
-AC_ARG_WITH([python2],
-    [AS_HELP_STRING([--with-python2],
-        [Use Python2 only])],
-    [force_2=yes],
-    [])
 
 dnl ==========================================================================
 dnl Add option '--without-smispy' to exclude SMI-S python plugin.
@@ -199,103 +187,38 @@ else
     AC_SUBST(WITH_SMISPY, no)
 fi
 
-if test "x$force_2" = "xyes"; then
-    if test "x$with_python3" = "xyes"; then
-        AC_MSG_ERROR([--with-python2 and --with-python3 cannot be specified together])
-    fi
-else
-    AM_PATH_PYTHON([3], [with_python3=yes], [:])
+AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python 3 is required]))
+
+if test "x$with_smispy" = "xyes"; then
+    AX_PYTHON_MODULE([pywbem],[Required],[python3])
 fi
 
-if test "x$with_python3" = "xyes"; then
-    AC_SUBST(WITH_PYTHON3, yes)
-    AC_PATH_PROGS(PYTHON, python3, [Python3 is required])
-    AM_PATH_PYTHON([3], [], AC_MSG_ERROR([Python interpreter 3 required]))
+PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
 
-    if test "x$with_smispy" = "xyes"; then
-        AX_PYTHON_MODULE([pywbem],[Required],[python3])
+if test "x$not_found_py_pkg" == "xyes"; then
+    AC_CHECK_PROG([PY_CONFIG_CHECK], [python3-config], [yes])
+    if test "x${PY_CONFIG_CHECK}" != "xyes"; then
+        AC_MSG_ERROR([Python 3 development libraries required])
     fi
-
-    AX_PYTHON_MODULE([six],[Required],[python3])
-    PKG_CHECK_MODULES([PYTHON], [python3], [], [not_found_py_pkg=yes])
-
-    if test "x$not_found_py_pkg" == "xyes"; then
-        AC_CHECK_PROG([PY_CONFIG_CHECK], [python3-config], [yes])
-        if test "x${PY_CONFIG_CHECK}" != "xyes"; then
-            AC_MSG_ERROR([Python3 development libraries required])
-        fi
-        PYTHON_CFLAGS=`python3-config --cflags`
-        PYTHON_LIBS=`python3-config --libs`
-        AC_SUBST(PYTHON_CFLAGS)
-        AC_SUBST(PYTHON_LIBS)
-    fi
-
-    if test -e "/etc/debian_version"; then
-        new_py_dir=`echo $pythondir| sed -e 's/site-packages$/dist-packages/'`
-        new_pyexec_dir=`echo $pyexecdir| sed -e 's/site-packages$/dist-packages/'`
-        AC_SUBST([pythondir], [$new_py_dir])
-        AC_SUBST([pyexecdir], [$new_pyexec_dir])
-        AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
-    fi
-    AC_SUBST(PY_VERSION, 3)
-    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
-else
-    AC_SUBST(WITH_PYTHON3, no)
-    AC_PATH_PROGS(PYTHON, python2.7 python2.6 python, [Python is required])
-    AC_MSG_CHECKING([Check for Python major version])
-    PYTHON_MAJOR_VERSION=`$PYTHON -c "import sys; print(sys.version_info[[0]])"`
-    case "$PYTHON_MAJOR_VERSION" in
-        2)
-            ;;
-        *)
-            AC_MSG_ERROR([we need Python version 2.x \
-but found $PYTHON_MAJOR_VERSION.x]) ;;
-    esac
-    AC_MSG_RESULT([$PYTHON_MAJOR_VERSION])
-    AM_PATH_PYTHON([2.6], [],
-                   AC_MSG_ERROR([Python interpreter 2.6 or 2.7 required]) )
-
-    if test "x$with_smispy" = "xyes"; then
-        AX_PYTHON_MODULE([pywbem],[Required])
-    fi
-
-    AX_PYTHON_MODULE([argparse],[Required])
-    AX_PYTHON_MODULE([six],[Required])
-    PKG_CHECK_MODULES([PYTHON], [python2], [], [not_found_py_pkg=yes])
-
-    if test "x$not_found_py_pkg" == "xyes"; then
-        AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
-        if test "x${PY_CONFIG_CHECK}" != "xyes"; then
-            AC_MSG_ERROR([Python2 development libraries required])
-        fi
-        PYTHON_CFLAGS=`python-config --cflags`
-        PYTHON_LIBS=`python-config --libs`
-        AC_SUBST(PYTHON_CFLAGS)
-        AC_SUBST(PYTHON_LIBS)
-    else
-        dnl travis 18.04 ubuntu appears to have a bug WRT PKG_CHECK_MODULES
-        HAS_INCLUDE=`echo $PYTHON_CFLAGS | awk '/include/'`
-
-        if test -z "$HAS_INCLUDE"; then
-            AC_MSG_NOTICE([PYTHON_CFLAGS missing include])
-            AC_CHECK_PROG([PY_CONFIG_CHECK], [python-config], [yes])
-            if test "x${PY_CONFIG_CHECK}" != "xyes"; then
-                AC_MSG_ERROR([Python2 development libraries required])
-            fi
-            PYTHON_CFLAGS=`python-config --cflags`
-            PYTHON_LIBS=`python-config --libs`
-            AC_SUBST(PYTHON_CFLAGS)
-            AC_SUBST(PYTHON_LIBS)
-        fi
-    fi
-    AC_SUBST(PY_VERSION, 2)
-    AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
+    PYTHON_CFLAGS=`python3-config --cflags`
+    PYTHON_LIBS=`python3-config --libs`
+    AC_SUBST(PYTHON_CFLAGS)
+    AC_SUBST(PYTHON_LIBS)
 fi
+
+if test -e "/etc/debian_version"; then
+    new_py_dir=`echo $pythondir| sed -e 's/site-packages$/dist-packages/'`
+    new_pyexec_dir=`echo $pyexecdir| sed -e 's/site-packages$/dist-packages/'`
+    AC_SUBST([pythondir], [$new_py_dir])
+    AC_SUBST([pyexecdir], [$new_pyexec_dir])
+    AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
+fi
+
+AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 
 AC_MSG_NOTICE([PYTHON_CFLAGS])
 AC_MSG_NOTICE([$PYTHON_CFLAGS])
 
-AM_CONDITIONAL([WITH_PYTHON3], [test "x$with_python3" = "xyes"])
 
 dnl ==========================================================================
 dnl Add option '--without-megaraid' to exclude megaraid plugin.
