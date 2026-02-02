@@ -5,11 +5,7 @@ pysodir = $(LSM_PYSO_DIR)/nfs_plugin
 
 nfs_PYTHON = __init__.py nfs.py
 
-if WITH_PYTHON3
 _PY_CLIB_INIT_NAME = "PyInit_nfs_clib"
-else
-_PY_CLIB_INIT_NAME = "initnfs_clib"
-endif
 
 pyso_LTLIBRARIES = nfs_clib.la
 

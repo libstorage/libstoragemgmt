@@ -17,8 +17,6 @@ from lsm._common import UDS_PATH as _UDS_PATH
 from lsm._transport import TransPort as _TransPort
 from lsm._data import IData as _IData
 
-import six
-
 
 # Removes self for the hash d
 # @param    d   Hash to remove self from
@@ -195,7 +193,7 @@ class Client(INetworkAttachedStorage):
     # @param    field_sep   Field separator
     # @param    flags:      Reserved for future use
     @staticmethod
-    @_return_requires([six.string_types[0]])
+    @_return_requires([str])
     def available_plugins(field_sep=':', flags=FLAG_RSVD):
         """
         Retrieves all the available plug-ins
@@ -300,7 +298,7 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    flags   Reserved for future use
     # @returns  Tuple (description, version)
-    @_return_requires(six.string_types[0], six.string_types[0])
+    @_return_requires(str, str)
     def plugin_info(self, flags=FLAG_RSVD):
         """
         Returns a description and version of plug-in
@@ -364,14 +362,9 @@ class Client(INetworkAttachedStorage):
             returns None on success, else raises LsmError on errors.
         SpecialExceptions:
         """
-        if sys.version_info[0] == 2:
-            if not isinstance(read_pct, (int, long)):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid read_pct, should be an integer")
-        else:
-            if not isinstance(read_pct, int):
-                raise LsmError(ErrorNumber.INVALID_ARGUMENT,
-                               "Invalid read_pct, should be an integer")
+        if not isinstance(read_pct, int):
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Invalid read_pct, should be an integer")
 
         if read_pct > 100 or read_pct < 0:
             raise LsmError(ErrorNumber.INVALID_ARGUMENT,
@@ -431,7 +424,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new volume), when one is None the other is
     #           valid.
-    @_return_requires(six.string_types[0], Volume)
+    @_return_requires(str, Volume)
     def volume_create(self,
                       pool,
                       volume_name,
@@ -454,7 +447,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags   Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new re-sized volume), when one is
     #           None the other is valid.
-    @_return_requires(six.string_types[0], Volume)
+    @_return_requires(str, Volume)
     def volume_resize(self, volume, new_size_bytes, flags=FLAG_RSVD):
         """
         Re-sizes a volume.
@@ -475,7 +468,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  A tuple (job_id, new replicated volume), when one is
     #           None the other is valid.
-    @_return_requires(six.string_types[0], Volume)
+    @_return_requires(str, Volume)
     def volume_replicate(self,
                          pool,
                          rep_type,
@@ -514,7 +507,7 @@ class Client(INetworkAttachedStorage):
     #                       @see lsm.common.data.BlockRange
     # @param    flags       Reserved for future use, must be zero.
     # @returns Job id or None when completed, else raises LsmError on errors.
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def volume_replicate_range(self,
                                rep_type,
                                volume_src,
@@ -535,7 +528,7 @@ class Client(INetworkAttachedStorage):
     # @param    volume  The volume object which represents the volume to delete
     # @param    flags   Reserved for future use, must be zero.
     # @returns None on success, else job id.  Raises LsmError on errors.
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def volume_delete(self, volume, flags=FLAG_RSVD):
         """
         Deletes a volume.
@@ -758,7 +751,7 @@ class Client(INetworkAttachedStorage):
     # @param    volume  The volume to remove dependencies for
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def volume_child_dependency_rm(self, volume, flags=FLAG_RSVD):
         """
         If this volume has child dependency, this method call will fully
@@ -792,7 +785,7 @@ class Client(INetworkAttachedStorage):
     # @param    fs      The file system to delete
     # @param    flags   Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def fs_delete(self, fs, flags=FLAG_RSVD):
         """
         WARNING: Destructive
@@ -809,7 +802,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, re-sized file system),
     # When one is None the other is valid
-    @_return_requires(six.string_types[0], FileSystem)
+    @_return_requires(str, FileSystem)
     def fs_resize(self, fs, new_size_bytes, flags=FLAG_RSVD):
         """
         Re-size a file system
@@ -828,7 +821,7 @@ class Client(INetworkAttachedStorage):
     # @param    flags       Reserved for future use, must be zero.
     # @returns  tuple (job_id, file system),
     # When one is None the other is valid
-    @_return_requires(six.string_types[0], FileSystem)
+    @_return_requires(str, FileSystem)
     def fs_create(self, pool, name, size_bytes, flags=FLAG_RSVD):
         """
         Creates a file system given a pool, name and size.
@@ -847,7 +840,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot        Optional, create clone from previous snapshot
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, file system)
-    @_return_requires(six.string_types[0], FileSystem)
+    @_return_requires(str, FileSystem)
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=FLAG_RSVD):
         """
         Creates a thin, point in time read/writable copy of src to dest.
@@ -868,7 +861,7 @@ class Client(INetworkAttachedStorage):
     #                                       file from
     # @param    flags           Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def fs_file_clone(self,
                       fs,
                       src_file_name,
@@ -902,7 +895,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot_name   The human readable snapshot name
     # @param    flags           Reserved for future use, must be zero.
     # @returns tuple (job_id, snapshot)
-    @_return_requires(six.string_types[0], FsSnapshot)
+    @_return_requires(str, FsSnapshot)
     def fs_snapshot_create(self, fs, snapshot_name, flags=FLAG_RSVD):
         """
         Snapshot is a point in time read-only copy
@@ -924,7 +917,7 @@ class Client(INetworkAttachedStorage):
     # @param    snapshot    The specific snap shot to delete
     # @param    flags       Reserved for future use, must be zero.
     # @returns  None on success, else job id
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def fs_snapshot_delete(self, fs, snapshot, flags=FLAG_RSVD):
         """
         Frees the re-sources for the given snapshot on the supplied filesystem.
@@ -943,7 +936,7 @@ class Client(INetworkAttachedStorage):
     #                           back
     # @param    flags           Reserved for future use, must be zero.
     # @return None on success, else job id
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def fs_snapshot_restore(self,
                             fs,
                             snapshot,
@@ -987,7 +980,7 @@ class Client(INetworkAttachedStorage):
     # @param    files   The list of files to remove child dependencies (opt.)
     # @param    flags   Reserved for future use, must be zero.
     # @returns None if complete, else job id.
-    @_return_requires(six.string_types[0])
+    @_return_requires(str)
     def fs_child_dependency_rm(self, fs, files, flags=FLAG_RSVD):
         """
         If this filesystem or specified file on this filesystem has child
@@ -1006,7 +999,7 @@ class Client(INetworkAttachedStorage):
     # @param    self    The this pointer
     # @param    flags   Reserved for future use, must be zero.
     # @returns  An array of client authentication types.
-    @_return_requires([six.string_types[0]])
+    @_return_requires([str])
     def export_auth(self, flags=FLAG_RSVD):
         """
         What types of NFS client authentication are supported.
@@ -1193,7 +1186,7 @@ class Client(INetworkAttachedStorage):
     # @param    pool    The pool to query
     # @param    flags   Reserved for future use, must be zero
     # @returns  [raid_type, member_type, [member_ids]], lsmError on error
-    @_return_requires([int, int, [six.string_types[0]]])
+    @_return_requires([int, int, [str]])
     def pool_member_info(self, pool, flags=FLAG_RSVD):
         """
         lsm.Client.pool_member_info(self, pool, flags=lsm.Client.FLAG_RSVD)

@@ -5,8 +5,6 @@
 #
 # Author: Gris Ge <fge@redhat.com>
 
-import six
-
 from lsm import LsmError, ErrorNumber
 
 from lsm._clib import (

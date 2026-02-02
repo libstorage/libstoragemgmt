@@ -12,11 +12,7 @@ lsm_PYTHON = \
 	lsm/_local_disk.py \
 	lsm/_pluginrunner.py
 
-if WITH_PYTHON3
 _PY_CLIB_INIT_NAME = "PyInit__clib"
-else
-_PY_CLIB_INIT_NAME = "init_clib"
-endif
 
 pyso_LTLIBRARIES = lsm/_clib.la
 pysodir = $(LSM_PYSO_DIR)/lsm
