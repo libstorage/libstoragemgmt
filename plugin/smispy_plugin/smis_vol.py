@@ -225,7 +225,9 @@ def volume_create_error_handler(smis_common, method_data, exec_info=None):
                        "Volume with name '%s' already exists!" % method_data)
 
     if exec_info is None:
-        (error_type, error_msg, error_trace) = sys.exc_info()
+        # Re-raise current exception with original traceback
+        raise
     else:
+        # Re-raise exception passed from elsewhere
         (error_type, error_msg, error_trace) = exec_info
-    raise error_msg.with_traceback(error_trace)
+        raise error_msg.with_traceback(error_trace)

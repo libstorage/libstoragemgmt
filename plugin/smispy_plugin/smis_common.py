@@ -572,11 +572,10 @@ class SmisCommon(object):
                     "invoke_method_wait(): Got unexpected rc code "
                     "%d, out: %s" % (rc, list(out.items())))
         except Exception:
-            exc_info = sys.exc_info()
             # Make sure to save off current exception as we could cause
             # another when trying to dump debug data.
             self._dump_wbem_xml(cmd)
-            raise exc_info[1].with_traceback(exc_info[2])
+            raise
 
     def _cim_srv_of_sys_id(self, srv_name, sys_id, raise_error):
         property_list = ['SystemName']

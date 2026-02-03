@@ -56,11 +56,9 @@ class PluginRunner(object):
                 try:
                     self.plugin = plugin()
                 except Exception as e:
-                    ec_info = sys.exc_info()
-
                     self.tp.send_error(0, -32099,
                                        'Error instantiating plug-in ' + str(e))
-                    raise ec_info[1].with_traceback(ec_info[2])
+                    raise
 
             except Exception:
                 error(traceback.format_exc())
