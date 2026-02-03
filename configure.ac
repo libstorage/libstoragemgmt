@@ -214,6 +214,7 @@ if test -e "/etc/debian_version"; then
     AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
 fi
 
+AC_SUBST(PY_VERSION, 3)
 AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 
 AC_MSG_NOTICE([PYTHON_CFLAGS])
