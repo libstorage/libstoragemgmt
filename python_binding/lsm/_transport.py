@@ -84,12 +84,46 @@ class TransPort(object):
         return msg
 
     def __init__(self, socket_descriptor):
+        """
+        TransPort.__init__(socket_descriptor)
+
+        Version:
+            1.0
+        Usage:
+            Initialize transport layer with an existing socket.
+            Used internally by the client/plugin communication infrastructure.
+        Parameters:
+            socket_descriptor (socket.socket)
+                Connected socket for IPC communication.
+        Returns:
+            None
+        """
         self.s = socket_descriptor
 
     @staticmethod
     def get_socket(path):
         """
-        Returns a connected socket from the passed in path.
+        TransPort.get_socket(path)
+
+        Version:
+            1.0
+        Usage:
+            Create and connect a UNIX domain socket to the specified path.
+            Used to establish IPC connection with lsmd daemon.
+        Parameters:
+            path (str)
+                File system path to UNIX domain socket.
+        Returns:
+            socket.socket
+                Connected socket object.
+        Raises:
+            LsmError
+                ErrorNumber.PLUGIN_SOCKET_PERMISSION
+                    When socket file permissions are incorrect.
+                ErrorNumber.PLUGIN_NOT_EXIST
+                    When socket path does not exist.
+                ErrorNumber.PLUGIN_IPC_FAIL
+                    When unable to connect to socket.
         """
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -113,15 +147,40 @@ class TransPort(object):
 
     def close(self):
         """
-        Closes the transport and the underlying socket
+        TransPort.close()
+
+        Version:
+            1.0
+        Usage:
+            Close the transport and underlying socket connection.
+        Parameters:
+            None
+        Returns:
+            None
         """
         self.s.close()
 
     def send_req(self, method, args):
         """
-        Sends a request given a method and arguments.
-        Note: arguments must be in the form that can be automatically
-        serialized to json
+        TransPort.send_req(method, args)
+
+        Version:
+            1.0
+        Usage:
+            Send a JSON-RPC request to the plugin.
+        Parameters:
+            method (str)
+                Method name to invoke on the remote side.
+            args (JSON-serializable)
+                Arguments for the method, must be JSON-serializable.
+        Returns:
+            None
+        Raises:
+            LsmError
+                ErrorNumber.TRANSPORT_COMMUNICATION
+                    When socket communication fails.
+        Note:
+            Arguments must be JSON-serializable types (dict, list, str, int, etc.).
         """
         try:
             msg = {'method': method, 'id': 100, 'params': args}
@@ -134,7 +193,22 @@ class TransPort(object):
 
     def read_req(self):
         """
-        Reads a message and returns the parsed version of it.
+        TransPort.read_req()
+
+        Version:
+            1.0
+        Usage:
+            Read and parse a JSON-RPC request message from the socket.
+        Parameters:
+            None
+        Returns:
+            dict
+                Parsed request dictionary containing method and parameters.
+                None if no data received.
+        Raises:
+            LsmError
+                ErrorNumber.TRANSPORT_COMMUNICATION
+                    When socket read fails.
         """
         data = self._recv_msg()
         if len(data):
@@ -143,7 +217,23 @@ class TransPort(object):
 
     def rpc(self, method, args):
         """
-        Sends a request and waits for a response.
+        TransPort.rpc(method, args)
+
+        Version:
+            1.0
+        Usage:
+            Perform synchronous RPC call - send request and wait for response.
+        Parameters:
+            method (str)
+                Method name to invoke remotely.
+            args (JSON-serializable)
+                Method arguments.
+        Returns:
+            any
+                Result from the remote method invocation.
+        Raises:
+            LsmError
+                Propagates any error from remote side or transport layer.
         """
         self.send_req(method, args)
         (reply, msg_id) = self.read_resp()
@@ -152,7 +242,23 @@ class TransPort(object):
 
     def send_error(self, msg_id, error_code, msg, data=None):
         """
-        Used to transmit an error.
+        TransPort.send_error(msg_id, error_code, msg, data=None)
+
+        Version:
+            1.0
+        Usage:
+            Send an error response in JSON-RPC format.
+        Parameters:
+            msg_id (int)
+                Message ID to include in response.
+            error_code (int)
+                Error code (from ErrorNumber class).
+            msg (str)
+                Error message description.
+            data (any)
+                Optional additional error data.
+        Returns:
+            None
         """
         e = {
             'id': msg_id,
@@ -166,12 +272,43 @@ class TransPort(object):
 
     def send_resp(self, result, msg_id=100):
         """
-        Used to transmit a response
+        TransPort.send_resp(result, msg_id=100)
+
+        Version:
+            1.0
+        Usage:
+            Send a success response in JSON-RPC format.
+        Parameters:
+            result (JSON-serializable)
+                Result data to send.
+            msg_id (int)
+                Message ID (default: 100).
+        Returns:
+            None
         """
         r = {'id': msg_id, 'result': result}
         self._send_msg(json.dumps(r, cls=_DataEncoder))
 
     def read_resp(self):
+        """
+        TransPort.read_resp()
+
+        Version:
+            1.0
+        Usage:
+            Read and parse a JSON-RPC response from the socket.
+        Parameters:
+            None
+        Returns:
+            tuple (result, msg_id)
+                result: Response data from the remote method.
+                msg_id: Message ID from the response.
+        Raises:
+            LsmError
+                Raises LsmError if response contains an error instead of result.
+                ErrorNumber.TRANSPORT_COMMUNICATION
+                    When socket read fails.
+        """
         data = self._recv_msg()
         resp = json.loads(data, cls=_DataDecoder)
 

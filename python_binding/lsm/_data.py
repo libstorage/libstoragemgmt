@@ -247,6 +247,48 @@ class Disk(IData):
                  _location='',
                  _rpm=RPM_NO_SUPPORT,
                  _link_type=LINK_TYPE_NO_SUPPORT):
+        """
+        Disk.__init__(_id, _name, _disk_type, _block_size, _num_of_blocks,
+                      _status, _system_id, _plugin_data=None, _vpd83='',
+                      _location='', _rpm=RPM_NO_SUPPORT,
+                      _link_type=LINK_TYPE_NO_SUPPORT)
+
+        Version:
+            1.0
+        Usage:
+            Initialize a Disk object. Typically created by plugins, not by users.
+        Parameters:
+            _id (str)
+                Unique disk identifier.
+            _name (str)
+                Disk name (vendor name).
+            _disk_type (int)
+                Disk type constant (e.g., Disk.TYPE_SAS, Disk.TYPE_SSD).
+            _block_size (int)
+                Size of each block in bytes.
+            _num_of_blocks (int)
+                Total number of blocks.
+            _status (int)
+                Disk status bitmask (e.g., Disk.STATUS_OK).
+            _system_id (str)
+                System identifier this disk belongs to.
+            _plugin_data (str or None)
+                Plugin private data.
+            _vpd83 (str)
+                SCSI VPD page 0x83 NAA identifier (optional).
+            _location (str)
+                Physical location in storage topology (optional).
+            _rpm (int)
+                Rotation speed in RPM (optional).
+            _link_type (int)
+                Connection link type (optional).
+        Returns:
+            None
+        Raises:
+            LsmError
+                ErrorNumber.INVALID_ARGUMENT
+                    When _vpd83 format is invalid.
+        """
         self._id = _id
         self._name = _name
         self._disk_type = _disk_type
@@ -470,6 +512,40 @@ class Volume(IData):
                  _system_id,
                  _pool_id,
                  _plugin_data=None):
+        """
+        Volume.__init__(_id, _name, _vpd83, _block_size, _num_of_blocks,
+                        _admin_state, _system_id, _pool_id, _plugin_data=None)
+
+        Version:
+            1.0
+        Usage:
+            Initialize a Volume object. Typically created by plugins, not by users.
+        Parameters:
+            _id (str)
+                Unique volume identifier.
+            _name (str)
+                User-assigned volume name.
+            _vpd83 (str)
+                SCSI VPD page 0x83 NAA identifier.
+            _block_size (int)
+                Block size in bytes.
+            _num_of_blocks (int)
+                Total number of blocks.
+            _admin_state (int)
+                Volume administrative state (ADMIN_STATE_ENABLED/DISABLED).
+            _system_id (str)
+                System identifier this volume belongs to.
+            _pool_id (str)
+                Pool identifier this volume belongs to.
+            _plugin_data (str or None)
+                Plugin private data.
+        Returns:
+            None
+        Raises:
+            LsmError
+                ErrorNumber.INVALID_ARGUMENT
+                    When _vpd83 format is invalid.
+        """
         self._id = _id  # Identifier
         self._name = _name  # Human recognisable name
         if _vpd83 and not Volume.vpd83_verify(_vpd83):
@@ -511,6 +587,12 @@ class Volume(IData):
 @default_property('status_info', doc="Detail status information of system")
 @default_property("plugin_data", doc="Private plugin data")
 class System(IData):
+    """
+    Represents a storage system or array.
+
+    Contains information about the storage system including status, firmware
+    version, operating mode, and cache configuration.
+    """
     STATUS_UNKNOWN = 1 << 0
     STATUS_OK = 1 << 1
     STATUS_ERROR = 1 << 2
@@ -535,6 +617,34 @@ class System(IData):
                  _fw_version='',
                  _mode=None,
                  _read_cache_pct=None):
+        """
+        System.__init__(_id, _name, _status, _status_info, _plugin_data=None,
+                        _fw_version='', _mode=None, _read_cache_pct=None)
+
+        Version:
+            1.0
+        Usage:
+            Initialize a System object. Typically created by plugins, not by users.
+        Parameters:
+            _id (str)
+                Unique system identifier.
+            _name (str)
+                User-defined system name.
+            _status (int)
+                System status bitmask (e.g., System.STATUS_OK).
+            _status_info (str)
+                Detailed status information.
+            _plugin_data (str or None)
+                Plugin private data.
+            _fw_version (str)
+                Firmware version string (optional).
+            _mode (int or None)
+                System mode (MODE_HARDWARE_RAID or MODE_HBA).
+            _read_cache_pct (int or None)
+                Read cache percentage (0-100).
+        Returns:
+            None
+        """
         self._id = _id
         self._name = _name
         self._status = _status
@@ -665,6 +775,40 @@ class Pool(IData):
                  _status_info,
                  _system_id,
                  _plugin_data=None):
+        """
+        Pool.__init__(_id, _name, _element_type, _unsupported_actions,
+                      _total_space, _free_space, _status, _status_info,
+                      _system_id, _plugin_data=None)
+
+        Version:
+            1.0
+        Usage:
+            Initialize a Pool object. Typically created by plugins, not by users.
+        Parameters:
+            _id (str)
+                Unique pool identifier.
+            _name (str)
+                User-assigned pool name.
+            _element_type (int)
+                Element type bitmask indicating what can be created
+                (e.g., ELEMENT_TYPE_VOLUME | ELEMENT_TYPE_FS).
+            _unsupported_actions (int)
+                Unsupported operations bitmask.
+            _total_space (int)
+                Total space in bytes.
+            _free_space (int)
+                Free space available in bytes.
+            _status (int)
+                Pool status bitmask (e.g., Pool.STATUS_OK).
+            _status_info (str)
+                Additional status text.
+            _system_id (str)
+                System identifier this pool belongs to.
+            _plugin_data (str or None)
+                Plugin private data.
+        Returns:
+            None
+        """
         self._id = _id  # Identifier
         self._name = _name  # Human recognisable name
         self._element_type = _element_type  # What pool can be used to create
@@ -688,6 +832,12 @@ class Pool(IData):
 @default_property('system_id', doc="System ID")
 @default_property("plugin_data", doc="Private plugin data")
 class FileSystem(IData):
+    """
+    Represents a file system.
+
+    Contains information about NAS file systems including total and available
+    space, parent pool, and system association.
+    """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id', 'pool_id']
 
     def __init__(self,
@@ -712,6 +862,12 @@ class FileSystem(IData):
 @default_property('ts', doc="Time stamp the snapshot was created")
 @default_property("plugin_data", doc="Private plugin data")
 class FsSnapshot(IData):
+    """
+    Represents a file system snapshot.
+
+    Contains information about a point-in-time snapshot of a file system
+    including name and creation timestamp.
+    """
 
     def __init__(self, _id, _name, _ts, _plugin_data=None):
         self._id = _id
@@ -732,6 +888,12 @@ class FsSnapshot(IData):
 @default_property('options', doc="String containing advanced options")
 @default_property('plugin_data', doc="Plugin private data")
 class NfsExport(IData):
+    """
+    Represents an NFS export configuration.
+
+    Contains NFS export settings including export path, authentication,
+    host access control lists, and anonymous user/group mappings.
+    """
     SUPPORTED_SEARCH_KEYS = ['id', 'fs_id']
     ANON_UID_GID_NA = -1
     ANON_UID_GID_ERROR = -2
@@ -768,6 +930,12 @@ class NfsExport(IData):
 @default_property('dest_block', doc="Destination logical block address")
 @default_property('block_count', doc="Number of blocks")
 class BlockRange(IData):
+    """
+    Represents a block range for replication operations.
+
+    Defines a source and destination block address range used in
+    volume copy and replication operations.
+    """
 
     def __init__(self, _src_block, _dest_block, _block_count):
         self._src_block = _src_block
@@ -782,6 +950,13 @@ class BlockRange(IData):
 @default_property('system_id', doc="System identifier")
 @default_property('plugin_data', doc="Plugin private data")
 class AccessGroup(IData):
+    """
+    Represents a host initiator group for volume access control.
+
+    An access group (also known as host group or initiator group) contains
+    a list of initiator IDs (WWPN or iSCSI IQN) that can be granted access
+    to volumes through masking/mapping operations.
+    """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     INIT_TYPE_UNKNOWN = 0
@@ -902,6 +1077,13 @@ class AccessGroup(IData):
 @default_property('system_id', doc="System identifier")
 @default_property('plugin_data', doc="Plugin private data")
 class TargetPort(IData):
+    """
+    Represents a storage target port.
+
+    Contains information about FC/FCoE/iSCSI target ports including
+    service addresses (WWPN/IQN), network addresses, physical addresses,
+    and port identification.
+    """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     TYPE_OTHER = 1
@@ -950,6 +1132,13 @@ class TargetPort(IData):
 
 
 class Capabilities(IData):
+    """
+    Represents storage system capabilities.
+
+    Tracks which operations and features are supported by a storage system.
+    Used to query whether specific operations (volume create, replication, etc.)
+    are available before attempting them.
+    """
     UNSUPPORTED = 0
     SUPPORTED = 1
 
@@ -1063,21 +1252,68 @@ class Capabilities(IData):
     DISK_VPD83_GET = 223
 
     def _to_dict(self):
+        """
+        Convert capabilities to dictionary format for serialization.
+
+        Used internally by JSON encoding.
+        """
         return {
             'class': self.__class__.__name__,
             'cap': ''.join(['%02x' % b for b in self._cap])
         }
 
     def __init__(self, _cap=None):
+        """
+        Capabilities.__init__(_cap=None)
+
+        Version:
+            1.0
+        Usage:
+            Initialize a Capabilities object.
+        Parameters:
+            _cap (str or None)
+                Optional hexadecimal string representation of capabilities.
+                If None, initializes empty capability set.
+        Returns:
+            None
+        """
         if _cap is not None:
             self._cap = bytearray(binascii.unhexlify(_cap))
         else:
             self._cap = bytearray(Capabilities._NUM)
 
     def supported(self, capability):
+        """
+        Capabilities.supported(capability)
+
+        Version:
+            1.0
+        Usage:
+            Check if a specific capability is supported.
+        Parameters:
+            capability (int)
+                Capability constant to check (e.g., Capabilities.VOLUMES).
+        Returns:
+            bool
+                True if capability is supported, False otherwise.
+        """
         return self.get(capability) == Capabilities.SUPPORTED
 
     def get(self, capability):
+        """
+        Capabilities.get(capability)
+
+        Version:
+            1.0
+        Usage:
+            Get the status of a specific capability.
+        Parameters:
+            capability (int)
+                Capability constant to query.
+        Returns:
+            int
+                Capabilities.SUPPORTED (1) or Capabilities.UNSUPPORTED (0).
+        """
         if capability >= len(self._cap):
             return Capabilities.UNSUPPORTED
         return self._cap[capability]
@@ -1114,9 +1350,36 @@ class Capabilities(IData):
         return rc
 
     def set(self, capability, value=SUPPORTED):
+        """
+        Capabilities.set(capability, value=SUPPORTED)
+
+        Version:
+            1.0
+        Usage:
+            Set the status of a specific capability.
+        Parameters:
+            capability (int)
+                Capability constant to set.
+            value (int)
+                Capabilities.SUPPORTED or Capabilities.UNSUPPORTED.
+        Returns:
+            None
+        """
         self._cap[capability] = value
 
     def enable_all(self):
+        """
+        Capabilities.enable_all()
+
+        Version:
+            1.0
+        Usage:
+            Enable all capabilities. Primarily used for testing.
+        Parameters:
+            None
+        Returns:
+            None
+        """
         for i in range(len(self._cap)):
             self._cap[i] = Capabilities.SUPPORTED
 
@@ -1128,6 +1391,12 @@ class Capabilities(IData):
 @default_property('system_id', doc="System identifier")
 @default_property("plugin_data", doc="Private plugin data")
 class Battery(IData):
+    """
+    Represents a battery backup unit.
+
+    Contains information about cache battery/capacitor backup units
+    including type (chemical/capacitor) and operational status.
+    """
     SUPPORTED_SEARCH_KEYS = ['id', 'system_id']
 
     TYPE_UNKNOWN = 1
