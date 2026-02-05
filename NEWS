@@ -1,4 +1,11 @@
 News for libStorageMgmt
+1.10.3: Feb 4 2026
+    * Removed Python 2 support and python-six dependencies
+    * Bug fixes: bit mask correction, sprintf -> snprintf, string concatenation
+    * Added integration.sh test script
+    * Switched to sysusers.d for user/group management
+    * CI configuration updates
+
 1.10.2: Jan 23 2025
     * Fix include guards
     * Fix CI
