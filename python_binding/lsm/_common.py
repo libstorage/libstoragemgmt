@@ -58,6 +58,34 @@ def default_property(name, allow_set=True, doc=None):
 
 
 def common_urllib2_error_handler(exp):
+    """
+    common_urllib2_error_handler(exp)
+
+    Version:
+        1.0
+    Usage:
+        Handle common urllib2/urllib errors and convert them to LsmError.
+        Used by plugins to provide consistent error handling for HTTP/network
+        operations.
+    Parameters:
+        exp (Exception)
+            Exception object from urllib2/urllib or socket operations.
+    Returns:
+        None
+            This function only raises exceptions, never returns normally.
+    Raises:
+        LsmError
+            ErrorNumber.PLUGIN_AUTH_FAILED
+                When HTTP authentication fails.
+            ErrorNumber.NETWORK_CONNREFUSED
+                When connection is refused.
+            ErrorNumber.NETWORK_HOSTDOWN
+                When host is unreachable.
+            ErrorNumber.NETWORK_ERROR
+                For SSL certificate errors or general network errors.
+            ErrorNumber.PLUGIN_BUG
+                For unexpected exceptions.
+    """
 
     if isinstance(exp, HTTPError):
         raise LsmError(ErrorNumber.PLUGIN_AUTH_FAILED, str(exp))
@@ -310,6 +338,23 @@ def uri_parse(uri, requires=None, required_params=None):
 # @param    uri     Full uri
 # @returns  hash of the query string parameters.
 def uri_parameters(uri):
+    """
+    uri_parameters(uri)
+
+    Version:
+        1.0
+    Usage:
+        Extract query string parameters from a parsed URI object.
+    Parameters:
+        uri (ParseResult)
+            Parsed URI object from urlparse().
+    Returns:
+        dict
+            Dictionary of query parameter name/value pairs.
+            Empty dict if no parameters present.
+    Note:
+        Handles Python 2/3 compatibility for query string parsing.
+    """
     # workaround for python bug:
     # http://bugs.python.org/issue9374
     # for URL: smispy+ssl://admin@emc-smi:5989?namespace=root/emc
@@ -333,6 +378,23 @@ def uri_parameters(uri):
 # @param    t   Item to generate signature on.
 # @returns  md5 hex digest.
 def md5(t):
+    """
+    md5(t)
+
+    Version:
+        1.0
+    Usage:
+        Generate MD5 hex digest of a string.
+        Used for non-security purposes (e.g., checksums).
+    Parameters:
+        t (str)
+            String to hash.
+    Returns:
+        str
+            MD5 hex digest string.
+    Note:
+        MD5 is not used for security purposes. FIPS mode compatible.
+    """
     try:
         # The use of md5 is not used for security, indicate
         # this to hashlib so that we can run when fips is enabled
@@ -344,6 +406,22 @@ def md5(t):
 
 
 def int_div(a, b):
+    """
+    int_div(a, b)
+
+    Version:
+        1.0
+    Usage:
+        Perform integer division compatible with Python 2 and 3.
+    Parameters:
+        a (int)
+            Dividend.
+        b (int)
+            Divisor.
+    Returns:
+        int
+            Integer quotient of a divided by b.
+    """
     return a // b
 
 
@@ -351,6 +429,21 @@ def int_div(a, b):
 # @param    args    Args to join
 # @return string of arguments joined together.
 def params_to_string(*args):
+    """
+    params_to_string(*args)
+
+    Version:
+        1.0
+    Usage:
+        Join multiple arguments into a single string.
+        Used for creating log messages.
+    Parameters:
+        *args (variable)
+            Variable number of arguments to join.
+    Returns:
+        str
+            Concatenated string of all arguments.
+    """
     return ''.join([str(e) for e in args])
 
 
@@ -376,11 +469,39 @@ def post_msg(level, prg, msg):
 
 
 def error(*msg):
+    """
+    error(*msg)
+
+    Version:
+        1.0
+    Usage:
+        Log an error message to syslog.
+    Parameters:
+        *msg (variable)
+            Variable number of message components to log.
+    Returns:
+        None
+    """
     post_msg(syslog.LOG_ERR, os.path.basename(sys.argv[0]),
              params_to_string(*msg))
 
 
 def info(*msg):
+    """
+    info(*msg)
+
+    Version:
+        1.0
+    Usage:
+        Log an informational message to syslog if verbose logging is enabled.
+    Parameters:
+        *msg (variable)
+            Variable number of message components to log.
+    Returns:
+        None
+    Note:
+        Only logs when LOG_VERBOSE is True.
+    """
     if LOG_VERBOSE:
         post_msg(syslog.LOG_INFO, os.path.basename(sys.argv[0]),
                  params_to_string(*msg))
@@ -397,6 +518,13 @@ class SocketEOF(Exception):
 @default_property('msg', doc='Error message')
 @default_property('data', doc='Optional error data')
 class LsmError(Exception):
+    """
+    Exception class for libStorageMgmt errors.
+
+    All errors raised by the library are LsmError instances with an error
+    code (from ErrorNumber class), descriptive message, and optional additional
+    data for debugging.
+    """
 
     def __init__(self, code, message, data=None, *args, **kwargs):
         """
@@ -408,6 +536,11 @@ class LsmError(Exception):
         self._data = data
 
     def __str__(self):
+        """
+        Return string representation of the error.
+
+        Formats error as "ERROR_NAME(code): message" with optional data.
+        """
         error_no_str = ErrorNumber.error_number_to_str(self.code)
         if self.data is not None and self.data:
             return "%s: %s Data: %s" % \
@@ -450,6 +583,13 @@ def get_class(class_name):
 # Languages so we will be keeping them consistent even though we won't be
 # using them.
 class ErrorNumber(object):
+    """
+    Error code constants for LsmError exceptions.
+
+    Provides named constants for all error conditions that can be raised
+    by libStorageMgmt operations. Error codes are consistent across all
+    language bindings.
+    """
     OK = 0
     LIB_BUG = 1
     PLUGIN_BUG = 2
@@ -525,6 +665,21 @@ class ErrorNumber(object):
 
     @staticmethod
     def error_number_to_str(error_no):
+        """
+        ErrorNumber.error_number_to_str(error_no)
+
+        Version:
+            1.0
+        Usage:
+            Convert error number to string name.
+        Parameters:
+            error_no (int)
+                Error number constant.
+        Returns:
+            str
+                Error name in format "ERROR_NAME(number)" or
+                "UNKNOWN_ERROR_NUMBER(number)" if not found.
+        """
         for error_str in list(ErrorNumber._LOCALS.keys()):
             if ErrorNumber._LOCALS[error_str] == error_no:
                 return "%s(%d)" % (error_str, error_no)
@@ -532,12 +687,39 @@ class ErrorNumber(object):
 
 
 class JobStatus(object):
+    """
+    Job status constants for asynchronous operations.
+
+    Indicates the current state of long-running operations that return
+    job IDs for status checking.
+    """
     INPROGRESS = 1
     COMPLETE = 2
     ERROR = 3
 
 
 def type_compare(method_name, exp_type, act_val):
+    """
+    type_compare(method_name, exp_type, act_val)
+
+    Version:
+        1.0
+    Usage:
+        Compare expected and actual types for type checking.
+        Used by return_requires decorator to enforce return types.
+    Parameters:
+        method_name (str)
+            Name of the method being checked (for error messages).
+        exp_type (type or Sequence)
+            Expected type or sequence of types.
+        act_val (any)
+            Actual value to check.
+    Returns:
+        None
+    Raises:
+        TypeError
+            When actual value type doesn't match expected type.
+    """
     if isinstance(exp_type, Sequence):
         if not isinstance(act_val, Sequence):
             raise TypeError("%s call is returning a %s, but is "
