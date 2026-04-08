@@ -690,13 +690,15 @@ lsm_system *lsm_system_record_copy(lsm_system *s) {
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
                                      s->plugin_data);
-        rc->mode = s->mode;
-        rc->read_cache_pct = s->read_cache_pct;
+        if (rc != NULL) {
+            rc->mode = s->mode;
+            rc->read_cache_pct = s->read_cache_pct;
 
-        if ((s->fw_version != NULL) &&
-            (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
-            lsm_system_record_free(rc);
-            rc = NULL;
+            if ((s->fw_version != NULL) &&
+                (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
+                lsm_system_record_free(rc);
+                rc = NULL;
+            }
         }
     }
     return rc;
