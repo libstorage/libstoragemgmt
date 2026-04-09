@@ -93,7 +93,8 @@ static lsm_disk *_sim_disk_to_lsm(char *err_msg, lsm_hash *sim_disk) {
                         &total_space) != LSM_ERR_OK))
         return NULL;
 
-    if (strlen(lsm_hash_string_get(sim_disk, "role")) == 0)
+    const char *role = lsm_hash_string_get(sim_disk, "role");
+    if (role == NULL || strlen(role) == 0)
         status |= LSM_DISK_STATUS_FREE;
 
     lsm_d = lsm_disk_record_alloc(lsm_hash_string_get(sim_disk, "lsm_disk_id"),
@@ -101,8 +102,10 @@ static lsm_disk *_sim_disk_to_lsm(char *err_msg, lsm_hash *sim_disk) {
                                   (lsm_disk_type)disk_type_u32, _BLOCK_SIZE,
                                   total_space / _BLOCK_SIZE, status, _SYS_ID);
 
-    if (lsm_d == NULL)
+    if (lsm_d == NULL) {
         _lsm_err_msg_set(err_msg, "No memory");
+        return NULL;
+    }
 
     lsm_disk_rpm_set(lsm_d, rpm);
     lsm_disk_link_type_set(lsm_d, link_type);
