@@ -593,8 +593,9 @@ int _db_init(char *err_msg, sqlite3 **db, const char *db_file,
 out:
     if (rc != LSM_ERR_OK) {
         if (*db != NULL) {
-            sqlite3_close(*db);
             _db_sql_trans_rollback(*db);
+            sqlite3_close(*db);
+            *db = NULL;
         }
     }
 
