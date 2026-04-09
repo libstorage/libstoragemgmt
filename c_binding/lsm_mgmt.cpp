@@ -2356,28 +2356,29 @@ int lsm_volume_raid_create(lsm_connect *c, const char *name,
 
     if (raid_type == LSM_VOLUME_RAID_TYPE_RAID6 && disk_count < 4) {
         return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                             "RAID 5 require 4 or more disks", NULL);
+                             "RAID 6 require 4 or more disks", NULL);
     }
 
-    if (disk_count % 2) {
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID10 && disk_count < 4) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 10 require even disks count and 4 "
-                                 "or more disks",
-                                 NULL);
-        }
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID50 && disk_count < 6) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 50 require even disks count and 6 or "
-                                 "more disks",
-                                 NULL);
-        }
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID60 && disk_count < 8) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 60 require even disks count and 8 or "
-                                 "more disks",
-                                 NULL);
-        }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID10 &&
+        (disk_count % 2 || disk_count < 4)) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 10 require even disks count and 4 "
+                             "or more disks",
+                             NULL);
+    }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID50 &&
+        (disk_count % 2 || disk_count < 6)) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 50 require even disks count and 6 or "
+                             "more disks",
+                             NULL);
+    }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID60 &&
+        (disk_count % 2 || disk_count < 8)) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 60 require even disks count and 8 or "
+                             "more disks",
+                             NULL);
     }
 
     if (CHECK_RP(new_volume)) {
