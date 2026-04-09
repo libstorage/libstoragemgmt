@@ -2302,6 +2302,9 @@ int lsm_volume_raid_create_cap_get(lsm_connect *c, lsm_system *system,
     Value response;
 
     int rc = rpc(c, "volume_raid_create_cap_get", parameters, response);
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
     try {
         std::vector<Value> j = response.asArray();
 
