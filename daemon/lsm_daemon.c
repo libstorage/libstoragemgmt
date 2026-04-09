@@ -644,7 +644,13 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
     info("Exec'ing plug-in = %s\n", plugin);
 
     pid_t process = fork();
-    if (process) {
+    if (process < 0) {
+        /* Fork failed */
+        err = errno;
+        info("Error on fork: %s\n", strerror(err));
+        close(client_fd);
+        return;
+    } else if (process > 0) {
         /* Parent */
         int rc = close(client_fd);
         if (-1 == rc) {
@@ -788,7 +794,12 @@ void _serving(void) {
                     int cfd = accept(fd, NULL, NULL);
                     if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
-                        exec_plugin(p->file_path, cfd, p->require_root);
+                        if (p != NULL) {
+                            exec_plugin(p->file_path, cfd, p->require_root);
+                        } else {
+                            info("plugin_lookup failed for fd %d", fd);
+                            close(cfd);
+                        }
                     } else {
                         err = errno;
                         info("Error on accepting request: %s", strerror(err));
