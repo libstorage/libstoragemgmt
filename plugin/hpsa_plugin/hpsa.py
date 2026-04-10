@@ -1368,7 +1368,7 @@ class SmartArray(IPlugin):
                             Volume.WRITE_CACHE_STATUS_WRITE_BACK
                     else:
                         write_cache_status = \
-                            Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+                            Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
                 else:
                     read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
                     write_cache_status = \
@@ -1376,7 +1376,7 @@ class SmartArray(IPlugin):
         else:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Unknown 'Caching' property of logical volume %d" % ld_num)
+                "Unknown 'Caching' property of logical volume %s" % ld_num)
 
         if ctrl_data['Drive Write Cache'] == 'Disabled':
             phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_DISABLED
@@ -1386,7 +1386,7 @@ class SmartArray(IPlugin):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "Unknown 'Drive Write Cache' property of "
-                "logical volume %d" % ld_num)
+                "logical volume %s" % ld_num)
 
         return [
             write_cache_policy, write_cache_status, read_cache_policy,
