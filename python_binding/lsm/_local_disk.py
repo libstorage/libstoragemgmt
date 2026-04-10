@@ -643,6 +643,7 @@ class LocalDisk(object):
                 else:
                     self.done = True
                     raise StopIteration
+            raise StopIteration
 
         def __enter__(self):
             """
