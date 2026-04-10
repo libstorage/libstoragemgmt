@@ -1500,6 +1500,7 @@ int lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
 
     *handle = (lsm_led_handle *)calloc(1, sizeof(lsm_led_handle));
     if (!(*handle)) {
+        led_free(ctx);
         return LSM_ERR_NO_MEMORY;
     }
     (*handle)->magic = LSM_LED_HANDLE_MAGIC;
@@ -1616,6 +1617,7 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
         case (LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE): {
             translated =
                 (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON);
+            break;
         }
         default:
             break;
