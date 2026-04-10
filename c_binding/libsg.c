@@ -1194,8 +1194,13 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
     sense_dp = (struct _sg_t10_sense_dp *)sense_data;
 
     tmp_p = &(sense_dp->sense_data_dp_list_begin);
-    end_p = tmp_p + sense_dp->len + 7;
-    /* ^ the ADDITIONAL SENSE LENGTH is the 7th byte */;
+    /* sense_dp->len is the ADDITIONAL SENSE LENGTH which is the number
+     * of sense data bytes that follow, starting at sense_data_dp_list_begin */
+    end_p = tmp_p + sense_dp->len;
+    /* Clamp to buffer boundary to avoid over-read from malformed data */
+    if (end_p > sense_data + _T10_SPC_SENSE_DATA_MAX_LENGTH) {
+        end_p = sense_data + _T10_SPC_SENSE_DATA_MAX_LENGTH;
+    }
     while (tmp_p < end_p) {
         cur_dp = (struct _sg_t10_sense_data_dp_hdr *)tmp_p;
 
