@@ -1554,6 +1554,8 @@ void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
         slot_itr->entry.slot = NULL;
         slot_itr->entry.magic = 0;
         led_slot_list_free(slot_itr->sl);
+        slot_itr->magic = 0;
+        free(slot_itr);
     }
 }
 
