@@ -93,11 +93,15 @@ static bool py_in_list(const char *needle, PyObject *haystack) {
         if (bytes == NULL)
             continue;
         const char *value = PyBytes_AS_STRING(bytes);
-        Py_DECREF(bytes);
-        if (value == NULL)
+        if (value == NULL) {
+            Py_DECREF(bytes);
             continue;
-        if (strcmp(needle, value) == 0)
+        }
+        if (strcmp(needle, value) == 0) {
+            Py_DECREF(bytes);
             return true;
+        }
+        Py_DECREF(bytes);
     }
     return false;
 }
@@ -149,18 +153,20 @@ static PyObject *list_mount_paths(PyObject *self, PyObject *args) {
         }
 
         if (PyList_Append(result, str_obj) == -1) {
+            Py_DECREF(str_obj);
             // flag that an exception was thrown from below
             err = PyExc_Exception;
             goto out;
         }
+        Py_DECREF(str_obj);
     }
 
 out:
+    if (f) {
+        endmntent(f);
+    }
     if (err) {
         Py_XDECREF(result);
-        if (f) {
-            endmntent(f);
-        }
         return NULL;
     }
 
