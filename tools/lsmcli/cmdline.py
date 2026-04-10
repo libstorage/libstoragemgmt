@@ -2294,9 +2294,9 @@ class CmdLine(object):
     def volume_phy_disk_cache_update(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
         if args.policy == "ENABLE":
-            policy = Volume.READ_CACHE_POLICY_ENABLED
+            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
         else:
-            policy = Volume.READ_CACHE_POLICY_DISABLED
+            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
         self.c.volume_physical_disk_cache_update(lsm_vol, policy)
         self.display_data([
             VolumeRAMCacheInfo(lsm_vol.id, *self.c.volume_cache_info(lsm_vol))
@@ -2305,9 +2305,9 @@ class CmdLine(object):
     def volume_read_cache_policy_update(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
         if args.policy == "ENABLE":
-            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
+            policy = Volume.READ_CACHE_POLICY_ENABLED
         else:
-            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
+            policy = Volume.READ_CACHE_POLICY_DISABLED
         self.c.volume_read_cache_policy_update(lsm_vol, policy)
         self.display_data([
             VolumeRAMCacheInfo(lsm_vol.id, *self.c.volume_cache_info(lsm_vol))
