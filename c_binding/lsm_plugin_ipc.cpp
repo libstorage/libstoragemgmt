@@ -1842,11 +1842,11 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response) {
                     }
                     response = Value(result);
 
-                    lsm_fs_record_free(fs);
-                    fs = NULL;
                     lsm_fs_ss_record_array_free(ss, count);
                     ss = NULL;
                 }
+                lsm_fs_record_free(fs);
+                fs = NULL;
             }
 
         } else {
@@ -2295,10 +2295,13 @@ static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value &params,
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_on(p, volume,
-                                           LSM_FLAG_GET_VALUE(params));
-
-            lsm_volume_record_free(volume);
+            if (volume) {
+                rc = p->ops_v1_3->vol_ident_on(p, volume,
+                                               LSM_FLAG_GET_VALUE(params));
+                lsm_volume_record_free(volume);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -2319,10 +2322,13 @@ static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value &params,
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_off(p, volume,
-                                            LSM_FLAG_GET_VALUE(params));
-
-            lsm_volume_record_free(volume);
+            if (volume) {
+                rc = p->ops_v1_3->vol_ident_off(p, volume,
+                                                LSM_FLAG_GET_VALUE(params));
+                lsm_volume_record_free(volume);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -2346,10 +2352,13 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value &params,
             lsm_system *system = value_to_system(v_sys);
             uint32_t read_pct = v_read_pct.asUint32_t();
 
-            rc = p->ops_v1_3->sys_read_cache_pct_update(
-                p, system, read_pct, LSM_FLAG_GET_VALUE(params));
-
-            lsm_system_record_free(system);
+            if (system) {
+                rc = p->ops_v1_3->sys_read_cache_pct_update(
+                    p, system, read_pct, LSM_FLAG_GET_VALUE(params));
+                lsm_system_record_free(system);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
