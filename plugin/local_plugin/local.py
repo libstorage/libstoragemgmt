@@ -85,7 +85,8 @@ class LocalPlugin(IPlugin):
                 "This plugin requires root privilege both daemon and client")
         uri_parsed = uri_parse(uri)
         uri_vars = uri_parsed.get("parameters", {})
-        ignore_init_error = bool(uri_vars.get("ignore_init_error", "false"))
+        ignore_init_error = uri_vars.get("ignore_init_error",
+                                         "false").lower() == "true"
 
         sub_uri_paras = {}
         for plugin_name in supported_plugins:
