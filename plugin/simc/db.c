@@ -680,7 +680,7 @@ void _db_sql_trans_rollback(sqlite3 *db) {
 }
 
 static void remove_trail_sep(int items_printed, char *s) {
-    int nul_pos = items_printed - strlen(", ") + 1;
+    int nul_pos = items_printed - (int)strlen(", ");
     if (nul_pos >= 0 && nul_pos < _BUFF_SIZE) {
         s[nul_pos] = '\0';
     } else {
@@ -710,12 +710,10 @@ int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...) {
 
     while ((key_str != NULL) && (value_str != NULL)) {
         keys_printed += snprintf(keys_str + keys_printed,
-                                 _BUFF_SIZE - keys_printed, "'%s', ", key_str) -
-                        1;
+                                 _BUFF_SIZE - keys_printed, "'%s', ", key_str);
         values_printed +=
             snprintf(values_str + values_printed, _BUFF_SIZE - values_printed,
-                     "'%s', ", value_str) -
-            1;
+                     "'%s', ", value_str);
         if ((_BUFF_SIZE == keys_printed) || (_BUFF_SIZE == values_printed)) {
             va_end(arg);
             rc = LSM_ERR_PLUGIN_BUG;

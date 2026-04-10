@@ -57,6 +57,8 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
                              lsm_hash_string_get(sim_p, "parent_pool_id"),
                              &sim_p_id),
               rc, out);
+        lsm_hash_free(sim_p);
+        sim_p = NULL;
         _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
     } else if (member_type != LSM_POOL_MEMBER_TYPE_DISK) {
         rc = LSM_ERR_PLUGIN_BUG;

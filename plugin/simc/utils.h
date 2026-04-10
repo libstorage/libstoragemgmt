@@ -105,7 +105,8 @@ struct _simc_private_data {
         char err_msg[_LSM_ERR_MSG_LEN];                                        \
         _UNUSED(flags);                                                        \
         _lsm_err_msg_clear(err_msg);                                           \
-        _check_null_ptr(err_msg, 2 /* argument count */, array, count);        \
+        _good(_check_null_ptr(err_msg, 2 /* argument count */, array, count),  \
+              rc, out);                                                        \
         _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);              \
         _good(_db_sql_trans_begin(err_msg, db), rc, out);                      \
         _good(_db_sql_exec(err_msg, db, "SELECT * from " table ";", &vec), rc, \
