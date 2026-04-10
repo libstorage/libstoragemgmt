@@ -91,6 +91,7 @@ class TransPort(object):
         """
         Returns a connected socket from the passed in path.
         """
+        s = None
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
@@ -106,9 +107,15 @@ class TransPort(object):
                 raise LsmError(ErrorNumber.PLUGIN_NOT_EXIST,
                                "Plug-in appears to not exist")
         except socket.error:
+            if s is not None:
+                s.close()
             # self, code, message, data=None, *args, **kwargs
             raise LsmError(ErrorNumber.PLUGIN_IPC_FAIL,
                            "Unable to connect to lsmd, daemon started?")
+        except LsmError:
+            if s is not None:
+                s.close()
+            raise
         return s
 
     def close(self):
