@@ -173,7 +173,9 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
     }
 
     /* Remove the trailing \n */
-    buff[file_size - 1] = '\0';
+    if (file_size > 0) {
+        buff[file_size - 1] = '\0';
+    }
 
     if (strcmp((char *)buff, "Unknown") == 0)
         goto out;
