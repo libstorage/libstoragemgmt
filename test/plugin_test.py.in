@@ -269,7 +269,7 @@ class TestProxy(object):
 
 def check_type(value, *expected):
     assert type(value) in expected, "type expected (%s), type actual (%s)" % \
-                                    (str(type(value)), str(expected))
+                                    (str(expected), str(type(value)))
 
 
 class TestPlugin(unittest.TestCase):
@@ -317,7 +317,7 @@ class TestPlugin(unittest.TestCase):
             # testing and one that support volume expansion
             if p.element_type & element_type and \
                     p.free_space > mb_in_bytes(MIN_POOL_SIZE) and \
-                    (not p.unsupported_actions & unsupported_features):
+                    not (p.unsupported_actions & unsupported_features):
                 if p.free_space > largest_free:
                     largest_free = p.free_space
                     rc = p
