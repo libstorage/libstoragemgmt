@@ -713,7 +713,7 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
         char *p_copy = strdup(plugin);
 
         empty_plugin_list(&head);
-        sprintf(fd_str, "%d", client_fd);
+        snprintf(fd_str, sizeof(fd_str), "%d", client_fd);
 
         if (plugin_mem_debug) {
             char debug_out[64];
