@@ -692,7 +692,8 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
 int lsm_job_free(lsm_connect *c, char **job, lsm_flag flags) {
     CONN_SETUP(c);
 
-    if (job == NULL || strlen(*job) < 1 || LSM_FLAG_UNUSED_CHECK(flags)) {
+    if (job == NULL || *job == NULL || strlen(*job) < 1 ||
+        LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1077,6 +1078,9 @@ int lsm_volume_resize(lsm_connect *c, lsm_volume *volume, uint64_t newSize,
 
     if (!LSM_IS_VOL(volume) || !newSize || CHECK_RP(resizedVolume) ||
         CHECK_RP(job) || newSize == 0 || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+    if (volume->block_size == 0) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
     // If you try to resize to same size, we will return error.
