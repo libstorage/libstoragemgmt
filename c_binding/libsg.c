@@ -840,6 +840,9 @@ static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
      *  SPC-5 rev 07 Table 49 - ASC and ASCQ assignments
      */
 
+    if (len > _T10_SPC_SENSE_DATA_MAX_LENGTH)
+        len = _T10_SPC_SENSE_DATA_MAX_LENGTH;
+
     for (; i < len; ++i)
         snprintf(&sense_data_str[i * 2],
                  _T10_SPC_SENSE_DATA_STR_MAX_LENGTH - (i * 2), "%02x",
