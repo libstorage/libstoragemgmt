@@ -63,7 +63,7 @@ char plugin_extension[] = "_lsmplugin";
 char plugin_conf_extension[] = ".conf";
 
 typedef enum { RUNNING, RESTART, EXIT } serve_type;
-serve_type serve_state = RUNNING;
+volatile serve_type serve_state = RUNNING;
 
 int plugin_mem_debug = 0;
 
