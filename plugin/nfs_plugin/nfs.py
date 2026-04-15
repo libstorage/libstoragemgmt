@@ -109,7 +109,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
 
         if len(parts) > 1:
             host = parts[1]
-        if '(' and ')' in host:
+        if '(' in host and ')' in host:
             if host[0] != '(':
                 host, optionstring = host[:-1].split('(')
             else:
