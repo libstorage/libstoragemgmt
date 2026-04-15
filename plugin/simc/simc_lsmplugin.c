@@ -177,7 +177,9 @@ out:
         lsm_hash_free(uri_params);
 
     if (rc != LSM_ERR_OK) {
-        _db_close(db);
+        if (db != NULL)
+            _db_close(db);
+        free(pri_data);
         lsm_log_error_basic(c, rc, err_msg);
     }
 
