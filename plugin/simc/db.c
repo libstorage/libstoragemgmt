@@ -714,7 +714,7 @@ int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...) {
         values_printed +=
             snprintf(values_str + values_printed, _BUFF_SIZE - values_printed,
                      "'%s', ", value_str);
-        if ((_BUFF_SIZE == keys_printed) || (_BUFF_SIZE == values_printed)) {
+        if ((_BUFF_SIZE <= keys_printed) || (_BUFF_SIZE <= values_printed)) {
             va_end(arg);
             rc = LSM_ERR_PLUGIN_BUG;
             _lsm_err_msg_set(err_msg, "Buff too small");
@@ -750,13 +750,13 @@ int _db_data_update(char *err_msg, sqlite3 *db, const char *table_name,
         if (snprintf(sql_cmd, _BUFF_SIZE,
                      "UPDATE %s SET %s=NULL "
                      "WHERE id='%" PRIu64 "';",
-                     table_name, key, data_id) == _BUFF_SIZE)
+                     table_name, key, data_id) >= _BUFF_SIZE)
             goto buff_too_small;
     } else {
         if (snprintf(sql_cmd, _BUFF_SIZE,
                      "UPDATE %s SET %s='%s' "
                      "WHERE id='%" PRIu64 "';",
-                     table_name, key, value, data_id) == _BUFF_SIZE)
+                     table_name, key, value, data_id) >= _BUFF_SIZE)
             goto buff_too_small;
     }
 
@@ -772,7 +772,7 @@ int _db_data_delete(char *err_msg, sqlite3 *db, const char *table_name,
     char sql_cmd[_BUFF_SIZE];
 
     if (snprintf(sql_cmd, _BUFF_SIZE, "DELETE FROM %s WHERE id=%" PRIu64 ";",
-                 table_name, data_id) == _BUFF_SIZE) {
+                 table_name, data_id) >= _BUFF_SIZE) {
         _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
         return LSM_ERR_PLUGIN_BUG;
     }
@@ -786,7 +786,7 @@ int _db_data_delete_condition(char *err_msg, sqlite3 *db,
     char sql_cmd[_BUFF_SIZE];
 
     if (snprintf(sql_cmd, _BUFF_SIZE, "DELETE FROM %s WHERE %s;", table_name,
-                 condition) == _BUFF_SIZE) {
+                 condition) >= _BUFF_SIZE) {
         _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
         return LSM_ERR_PLUGIN_BUG;
     }
