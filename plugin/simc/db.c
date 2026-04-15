@@ -114,11 +114,9 @@ static int _db_version_check(sqlite3 *db) {
     const char *version = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
 
-    /* We ignore the failure of below command, assigning to rc just to pass
-     * convscan */
     rc = _db_sql_exec(err_msg, db, "SELECT * from systems;", &vec);
 
-    if (_vector_size(vec) == 0) {
+    if (vec == NULL || _vector_size(vec) == 0) {
         rc = _DB_VERSION_CHECK_EMPTY;
         goto out;
     }
