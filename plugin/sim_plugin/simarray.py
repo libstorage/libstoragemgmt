@@ -1369,7 +1369,7 @@ class BackStore(object):
 
         elif sim_pool['unsupported_actions'] & Pool.UNSUPPORTED_VOLUME_SHRINK:
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Requested pool does not allow volume size grow")
+                           "Requested pool does not allow volume size shrink")
 
         # TODO(Gris Ge): If a volume is in a replication relationship, resize
         #                should be handled properly.
