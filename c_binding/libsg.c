@@ -1113,6 +1113,18 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                              block_dp_len);
             goto out;
         }
+        if (mode_data_len < sizeof(struct _sg_t10_mode_para_hdr) -
+                                sizeof(mode_hdr->mode_data_len_be) +
+                                block_dp_len) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg,
+                             "BUG: Got illegal SCSI mode page return: "
+                             "MODE DATA LENGTH %" PRIu16
+                             " too small for BLOCK DESCRIPTOR LENGTH %" PRIu16
+                             "\n",
+                             mode_data_len, block_dp_len);
+            goto out;
+        }
         memcpy(data,
                tmp_data + sizeof(struct _sg_t10_mode_para_hdr) + block_dp_len,
                sizeof(mode_hdr->mode_data_len_be) + mode_data_len -
