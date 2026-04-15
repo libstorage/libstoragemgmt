@@ -192,8 +192,10 @@ out:
             *raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
         if (member_type != NULL)
             *member_type = LSM_POOL_MEMBER_TYPE_UNKNOWN;
-        if (member_ids != NULL)
+        if (member_ids != NULL) {
+            lsm_string_list_free(*member_ids);
             *member_ids = NULL;
+        }
         lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;
