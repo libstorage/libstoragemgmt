@@ -117,7 +117,7 @@ def _pool_status_of(arcconf_array):
         return Pool.STATUS_OK, ''
 
     # TODO(Raghavendra): Try degrade a RAID or fail a RAID.
-    return Pool.STATUS_OTHER, arcconf_array['Status']
+    return Pool.STATUS_OTHER, arcconf_array[0]['Status']
 
 
 def _pool_id_of(sys_id, array_name):
