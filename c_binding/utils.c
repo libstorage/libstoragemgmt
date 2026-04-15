@@ -111,7 +111,6 @@ int _read_file(const char *path, uint8_t *buff, ssize_t *size,
 
 char *_trim_spaces(char *beginning) {
     size_t len = 0;
-    unsigned int leading_space_count = 0;
     char *end;
 
     assert(beginning != NULL);
@@ -121,16 +120,15 @@ char *_trim_spaces(char *beginning) {
     if (!len)
         return NULL;
 
+    end = beginning + len - 1;
+
     while (*beginning == ' ') {
         beginning++;
-        leading_space_count++;
     }
 
     /* The string is composed entirely of spaces */
-    if (leading_space_count >= len)
+    if (*beginning == '\0')
         return NULL;
-
-    end = beginning + len - 1;
 
     while (*end == ' ') {
         *end = '\0';
