@@ -63,8 +63,9 @@
         rc_obj = py_rt_conv_func(c_rt);                                        \
         _alloc_check(rc_obj, flag_no_mem, out);                                \
         if (rc != LSM_ERR_OK) {                                                \
-            err_msg_obj =                                                      \
-                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            const char *_msg =                                                 \
+                lsm_err ? lsm_error_message_get(lsm_err) : NULL;               \
+            err_msg_obj = PyUnicode_FromString(_msg ? _msg : "");              \
             lsm_error_free(lsm_err);                                           \
             lsm_err = NULL;                                                    \
             _alloc_check(err_msg_obj, flag_no_mem, out);                       \
@@ -105,19 +106,20 @@
         PyObject *err_no_obj = NULL;                                           \
         bool flag_no_mem = false;                                              \
         _UNUSED(self);                                                         \
-        Py_INCREF(Py_None);                                                    \
-        rc_obj = Py_None;                                                      \
         if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **)kwlist,   \
                                          &arg))                                \
             return NULL;                                                       \
+        Py_INCREF(Py_None);                                                    \
+        rc_obj = Py_None;                                                      \
         rc = c_func_name(arg, &lsm_err);                                       \
         err_no_obj = PyInt_FromLong(rc);                                       \
         _alloc_check(err_no_obj, flag_no_mem, out);                            \
         rc_list = PyList_New(3 /* rc_obj, errno, err_str*/);                   \
         _alloc_check(rc_list, flag_no_mem, out);                               \
         if (rc != LSM_ERR_OK) {                                                \
-            err_msg_obj =                                                      \
-                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            const char *_msg =                                                 \
+                lsm_err ? lsm_error_message_get(lsm_err) : NULL;               \
+            err_msg_obj = PyUnicode_FromString(_msg ? _msg : "");              \
             lsm_error_free(lsm_err);                                           \
             lsm_err = NULL;                                                    \
             _alloc_check(err_msg_obj, flag_no_mem, out);                       \
