@@ -769,6 +769,10 @@ void _serving(void) {
         tmo.tv_usec = 0;
 
         LIST_FOREACH(plug, &head, pointers) {
+            if (plug->fd >= FD_SETSIZE) {
+                log_and_exit("File descriptor %d exceeds FD_SETSIZE (%d)\n",
+                             plug->fd, FD_SETSIZE);
+            }
             nfds = max(plug->fd, nfds);
             FD_SET(plug->fd, &readfds);
         }
