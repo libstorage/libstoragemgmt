@@ -854,10 +854,11 @@ lsm_string_list *_db_str_to_list(const char *list_str) {
 
     assert(list_str != NULL);
 
-    if (strlen(list_str) > _BUFF_SIZE)
+    if (strlen(list_str) >= _BUFF_SIZE)
         return NULL;
 
     strncpy(tmp_str, list_str, _BUFF_SIZE - 1);
+    tmp_str[_BUFF_SIZE - 1] = '\0';
 
     rc_list = lsm_string_list_alloc(0 /* no preallocation */);
     if (rc_list == NULL)
