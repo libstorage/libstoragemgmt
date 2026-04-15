@@ -627,6 +627,7 @@ out:
         lsm_hash_free(sim_fs);
 
     if (rc != LSM_ERR_OK) {
+        _db_sql_trans_rollback(db);
         lsm_log_error_basic(c, rc, err_msg);
     } else {
         rc = LSM_ERR_JOB_STARTED;
