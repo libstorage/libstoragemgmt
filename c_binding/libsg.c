@@ -612,7 +612,7 @@ int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
     }
 
     serial_num_len = be16toh(vpd80_header->page_len_be);
-    vpd80_len = serial_num_len + sizeof(struct _sg_t10_vpd83_header);
+    vpd80_len = serial_num_len + sizeof(struct _sg_t10_vpd80_header);
 
     end_p = vpd_data + vpd80_len - 1;
 
@@ -625,7 +625,7 @@ int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
         goto out;
     }
 
-    p = vpd_data + sizeof(struct _sg_t10_vpd83_header);
+    p = vpd_data + sizeof(struct _sg_t10_vpd80_header);
 
     // add extra character to allow for terminating NULL
     serial_num_len += 1;
