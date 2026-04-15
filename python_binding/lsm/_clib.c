@@ -579,8 +579,6 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, led_slot_status_get_docstring},
     {"_local_led_slot_status_set", (PyCFunction)led_slot_status_set,
      METH_VARARGS | METH_KEYWORDS, led_slot_status_set_docstring},
-    {"_local_led_slot_status_get", (PyCFunction)led_slot_status_get,
-     METH_VARARGS | METH_KEYWORDS, led_slot_iterator_next_docstring},
     {"_local_led_slot_id", (PyCFunction)led_slot_id,
      METH_VARARGS | METH_KEYWORDS, led_slot_id_docstring},
     {"_local_led_slot_device", (PyCFunction)led_slot_device,
