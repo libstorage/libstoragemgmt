@@ -1343,7 +1343,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data) {
         goto out;
     }
 
-    memcpy(returned_sense_data, sense_data, _T10_SPC_SENSE_DATA_MAX_LENGTH);
+    memcpy(returned_sense_data, request_sense, _T10_SPC_SENSE_DATA_MAX_LENGTH);
 
 out:
 
