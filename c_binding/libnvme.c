@@ -27,6 +27,7 @@ struct smart_data {
 };
 
 int _nvme_health_status(char *err_msg, int fd, int32_t *health_status) {
+    *health_status = LSM_DISK_HEALTH_STATUS_UNKNOWN;
 
     /*
      * Code based on NVMe Revision 1.4 June 10, 2019
