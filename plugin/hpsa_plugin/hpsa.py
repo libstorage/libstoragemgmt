@@ -732,11 +732,9 @@ class SmartArray(IPlugin):
         disk_name = "%s %s" % (hp_disk.get('Model',
                                            NOT_AVAILABLE_MESSAGE), disk_num)
         disk_type = _disk_type_of(hp_disk)
-        try:
-            blk_size_str = hp_disk.get('Native Block Size', '0')
-        except KeyError:
-            blk_size_str = hp_disk.get('Logical/Physical Block Size',
-                                       '0/0').split("/")[0]
+        blk_size_str = hp_disk.get(
+            'Native Block Size',
+            hp_disk.get('Logical/Physical Block Size', '0/0').split("/")[0])
         blk_size = int(blk_size_str)
         disk_size = hp_disk.get('Size', None)
 
