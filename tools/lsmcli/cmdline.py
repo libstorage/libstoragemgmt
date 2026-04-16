@@ -184,7 +184,8 @@ def _valid_ip4_address(address):
             return False
 
         try:
-            if int(i, 10) > 255:
+            val = int(i, 10)
+            if val < 0 or val > 255:
                 return False
         except ValueError:
             return False
