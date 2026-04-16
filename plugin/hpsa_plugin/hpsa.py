@@ -884,7 +884,7 @@ class SmartArray(IPlugin):
         if not pool.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input volume argument: missing plugin_data property")
+                "Illegal input pool argument: missing plugin_data property")
 
         (ctrl_num, array_num) = pool.plugin_data.split(":")
         ctrl_data = next(
