@@ -629,6 +629,8 @@ int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
 
     // add extra character to allow for terminating NULL
     serial_num_len += 1;
+    if (serial_num_len > serial_num_max_len)
+        serial_num_len = serial_num_max_len;
     len = snprintf((char *)serial_num, serial_num_len, "%s", (char *)p);
 
     if ((uint16_t)len >= serial_num_len) {
