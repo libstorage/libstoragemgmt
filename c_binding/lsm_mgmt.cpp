@@ -635,6 +635,8 @@ int lsm_job_status_fs_get(lsm_connect *c, const char *job,
     int rc = LSM_ERR_OK;
     Value rv;
 
+    CONN_SETUP(c);
+
     if (CHECK_RP(fs) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -664,6 +666,8 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
                           lsm_fs_ss **ss, lsm_flag flags) {
     int rc = LSM_ERR_OK;
     Value rv;
+
+    CONN_SETUP(c);
 
     if (CHECK_RP(ss) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
