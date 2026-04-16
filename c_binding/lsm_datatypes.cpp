@@ -1264,10 +1264,10 @@ lsm_nfs_export *lsm_nfs_export_record_alloc(
                 rc->plugin_data = strdup(plugin_data);
             }
 
-            if (!rc->id || !rc->fs_id || (export_path && !rc->export_path) ||
-                (auth && !rc->auth_type) || (root && !rc->root) ||
-                (rw && !rc->read_write) || (ro && !rc->read_only) ||
-                (options && !rc->options) ||
+            if ((id && !rc->id) || !rc->fs_id ||
+                (export_path && !rc->export_path) || (auth && !rc->auth_type) ||
+                (root && !rc->root) || (rw && !rc->read_write) ||
+                (ro && !rc->read_only) || (options && !rc->options) ||
                 (plugin_data && !rc->plugin_data)) {
                 lsm_nfs_export_record_free(rc);
                 rc = NULL;
