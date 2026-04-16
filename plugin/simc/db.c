@@ -900,6 +900,11 @@ static int _db_sim_xxx_of_sim_id(char *err_msg, sqlite3 *db,
     if (_vector_size(vec) == 1) {
         *sim_xxx = _vector_get(vec, 0);
         *sim_xxx = lsm_hash_copy(*sim_xxx);
+        if (*sim_xxx == NULL) {
+            rc = LSM_ERR_NO_MEMORY;
+            _lsm_err_msg_set(err_msg, "No memory for lsm_hash_copy");
+            goto out;
+        }
     } else if (_vector_size(vec) == 0) {
         rc = not_found_err;
         _lsm_err_msg_set(err_msg, "%s", not_found_err_str);
