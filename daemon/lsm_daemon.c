@@ -787,6 +787,8 @@ void _serving(void) {
         if (-1 == ready) {
             if (serve_state != RUNNING) {
                 return;
+            } else if (errno == EINTR) {
+                continue;
             } else {
                 err = errno;
                 log_and_exit("Error on selecting Plugin: %s", strerror(err));
