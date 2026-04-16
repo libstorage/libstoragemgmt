@@ -167,7 +167,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
             result = NfsExport(export_id, fsid, path, sec, root_list, rw_list,
                                ro_list, anonuid, anongid, optionstring)
             return result
-        except:
+        except Exception:
             pass
         return None
 
@@ -180,7 +180,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                 fsid = get_fsid(prt)
                 if fsid == fs_id:
                     return prt
-            except:
+            except Exception:
                 pass
         return None
 
@@ -326,7 +326,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                    exp._anonuid != NfsExport.ANON_UID_GID_NA:
                     common_opts['anonuid'] = exp._anonuid
 
-                if exp.anongid is not None and \
+                if exp._anongid is not None and \
                    exp._anongid != NfsExport.ANON_UID_GID_NA:
                     common_opts['anongid'] = exp._anongid
 
