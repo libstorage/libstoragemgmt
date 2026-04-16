@@ -240,7 +240,7 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
         *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_ENABLED;
         break;
     case LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN:
-        *read_cache_status = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+        *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
         break;
     default:
         rc = LSM_ERR_PLUGIN_BUG;
