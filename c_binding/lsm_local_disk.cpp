@@ -49,17 +49,17 @@
  */
 
 #define _SD_PATH_FORMAT      "/dev/%s"
-#define _MAX_SD_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SD_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_VPD80_PATH_FORMAT      "/sys/block/%s/device/vpd_pg80"
-#define _MAX_SYSFS_VPD80_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SYSFS_VPD80_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_VPD83_PATH_FORMAT      "/sys/block/%s/device/vpd_pg83"
-#define _MAX_SYSFS_VPD83_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SYSFS_VPD83_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_BLK_PATH_FORMAT      "/sys/block/%s"
-#define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
-#define _SYSFS_SAS_ADDR_LEN         _SG_T10_SPL_SAS_ADDR_LEN + 2
+#define _MAX_SYSFS_BLK_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
+#define _SYSFS_SAS_ADDR_LEN         (_SG_T10_SPL_SAS_ADDR_LEN + 2)
 /* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
  *   format is '0x<hex_addr>\0'
  */

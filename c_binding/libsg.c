@@ -58,7 +58,7 @@
 
 /* The max length of char[] required to hold hex dump of sense data */
 #define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH                                     \
-    _T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1
+    (_T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1)
 
 /* SPC-5 rev 07 Table 300 - Summary of log page codes */
 #define _T10_SPC_INFO_EXCEP_PAGE_CODE 0x2f
