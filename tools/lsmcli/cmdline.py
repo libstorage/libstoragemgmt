@@ -75,7 +75,7 @@ def cmd_line_wrapper(c=None):
     except SystemExit as se:
         # argparse raises a SystemExit
         err_exit = se.code
-    except:
+    except Exception:
         import traceback
         traceback.print_exc(file=sys.stdout)
         # We get *any* other exception don't return a successful error code
