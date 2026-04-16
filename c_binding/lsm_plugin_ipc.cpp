@@ -263,13 +263,16 @@ static int get_search_params(Value &params, char **k, char **v) {
  * @return true if sn is an integer, else false
  */
 static bool get_num(char *sn, int &num) {
+    char *endptr = NULL;
     errno = 0;
 
-    num = strtol(sn, NULL, 10);
-    if (!errno) {
-        return true;
+    long val = strtol(sn, &endptr, 10);
+    if (errno || endptr == sn || *endptr != '\0' || val < INT_MIN ||
+        val > INT_MAX) {
+        return false;
     }
-    return false;
+    num = (int)val;
+    return true;
 }
 
 int lsm_plugin_init_v1(int argc, char *argv[], lsm_plugin_register reg,
