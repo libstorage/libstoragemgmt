@@ -700,10 +700,19 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
                                       "got partial designation descriptor.");
             goto out;
         }
-        ++i;
 
         dp_header = (struct _sg_t10_vpd83_dp_header *)p;
 
+        if (p + sizeof(struct _sg_t10_vpd83_dp_header) +
+                dp_header->designator_len >
+            end_p + 1) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Illegal VPD 0x83 page data, "
+                                      "designator length exceeds page data.");
+            goto out;
+        }
+
+        ++i;
         p += dp_header->designator_len + sizeof(struct _sg_t10_vpd83_dp_header);
         continue;
     }
