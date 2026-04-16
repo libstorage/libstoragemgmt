@@ -124,8 +124,9 @@ int lsm_volume_vpd83_verify(const char *vpd83) {
             (vpd83_len == 16 && vpd83[0] == '5')) {
             for (i = 0; i < vpd83_len; ++i) {
                 char v = vpd83[i];
-                //  0-9 || a-f is OK
-                if (!((v >= 48 && v <= 57) || (v >= 97 && v <= 102))) {
+                //  0-9 || a-f || A-F is OK
+                if (!((v >= 48 && v <= 57) || (v >= 97 && v <= 102) ||
+                      (v >= 65 && v <= 70))) {
                     return rc;
                 }
             }
