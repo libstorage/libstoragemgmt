@@ -170,7 +170,8 @@ int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags) {
 
 out:
     if (rc != LSM_ERR_OK) {
-        *timeout = 0;
+        if (timeout != NULL)
+            *timeout = 0;
         lsm_log_error_basic(c, rc, err_msg);
     }
 
@@ -376,10 +377,14 @@ out:
         lsm_hash_free(sim_data);
 
     if (rc != LSM_ERR_OK) {
-        *status = LSM_JOB_ERROR;
-        *value = NULL;
-        *percent_complete = 0;
-        *type = LSM_DATA_TYPE_UNKNOWN;
+        if (status != NULL)
+            *status = LSM_JOB_ERROR;
+        if (value != NULL)
+            *value = NULL;
+        if (percent_complete != NULL)
+            *percent_complete = 0;
+        if (type != NULL)
+            *type = LSM_DATA_TYPE_UNKNOWN;
         lsm_log_error_basic(c, rc, err_msg);
     }
 
