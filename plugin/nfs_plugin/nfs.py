@@ -28,14 +28,11 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
 
     @staticmethod
     def _run_cmd(cmd):
-        try:
-            if sys.version_info[0] > 3 or \
-               (sys.version_info[0] == 3 and sys.version_info[1] >= 3):
-                subprocess.check_call(cmd, timeout=3)
-            else:
-                subprocess.check_call(cmd)
-        except:
-            raise
+        if sys.version_info[0] > 3 or \
+           (sys.version_info[0] == 3 and sys.version_info[1] >= 3):
+            subprocess.check_call(cmd, timeout=3)
+        else:
+            subprocess.check_call(cmd)
 
     @staticmethod
     def _export_id(path, auth_type, anon_uid, anon_gid, options):
@@ -258,12 +255,9 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
             else:
                 mode = "w+"
 
-        try:
-            efile = open(filename, mode)
-            if not readonly:
-                fcntl.flock(efile, fcntl.LOCK_EX)
-        except:
-            raise
+        efile = open(filename, mode)
+        if not readonly:
+            fcntl.flock(efile, fcntl.LOCK_EX)
         return efile
 
     @staticmethod
@@ -339,14 +333,10 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
                                        'Export path does not exist')
 
                 if exp._fs_id is not None and exp._export_path is not None:
-                    try:
-                        export_id = get_fsid(exp._export_path)
-                        if export_id != exp._fs_id:
-                            raise LsmError(
-                                ErrorNumber.INVALID_ARGUMENT,
-                                'FS ID and Path\'s FS ID do not match')
-                    except:
-                        raise
+                    export_id = get_fsid(exp._export_path)
+                    if export_id != exp._fs_id:
+                        raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                                       'FS ID and Path\'s FS ID do not match')
 
                 for host in exp._rw:
                     opts = copy.copy(common_opts)
@@ -495,7 +485,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         if fs_id is None:
             try:
                 fs_id = get_fsid(export_path)
-            except:
+            except Exception:
                 raise LsmError(ErrorNumber.NOT_FOUND_FS,
                                'FileSystem not found')
         else:
@@ -511,7 +501,7 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         else:
             try:
                 get_fsid(export_path)
-            except:
+            except Exception:
                 raise LsmError(ErrorNumber.NOT_FOUND_FS,
                                'Export path not found')
 
@@ -551,15 +541,12 @@ class NFSPlugin(INfs, IStorageAreaNetwork):
         return result
 
     def export_remove(self, export, flags=0):
-        try:
-            efile = NFSPlugin._open_exports(readonly=False)
-            exports = NFSPlugin._read_exports(efile)
-            filtered = NFSPlugin._filter_export_byid(exports, export.id)
-            NFSPlugin._write_exports(efile, filtered)
-            NFSPlugin._close_exports(efile)
-            NFSPlugin._update_exports()
-        except:
-            raise
+        efile = NFSPlugin._open_exports(readonly=False)
+        exports = NFSPlugin._read_exports(efile)
+        filtered = NFSPlugin._filter_export_byid(exports, export.id)
+        NFSPlugin._write_exports(efile, filtered)
+        NFSPlugin._close_exports(efile)
+        NFSPlugin._update_exports()
 
     def plugin_unregister(self, flags=0):
         return
