@@ -203,7 +203,7 @@ def _lsm_raid_type_to_arcconf(raid_type):
         return _LSM_RAID_TYPE_CONV[raid_type]
     except KeyError:
         raise LsmError(ErrorNumber.PLUGIN_BUG,
-                       "Not supported raid type %d" % raid_type)
+                       "Not supported raid type %s" % raid_type)
 
 
 class Arcconf(IPlugin):
