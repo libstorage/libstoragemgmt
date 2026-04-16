@@ -222,7 +222,7 @@ static int _db_data_init(char *err_msg, sqlite3 *db) {
             ssd_pool_disks[i] = _db_last_rowid(db);
         }
     }
-    /* Add 7 SAS SSD disks(2TiB) */
+    /* Add 5 SAS SSD disks(2TiB) */
     _snprintf_buff(err_msg, rc, out, disk_type_str, "%d", LSM_DISK_TYPE_SSD);
     _snprintf_buff(err_msg, rc, out, disk_link_type_str, "%d",
                    LSM_DISK_LINK_TYPE_SAS);
