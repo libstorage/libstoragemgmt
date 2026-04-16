@@ -48,6 +48,10 @@ static const char *const TARGET_PORT_SEARCH_KEYS[] = {"id", "system_id"};
 
 #define TARGET_PORT_SEARCH_KEYS_COUNT COUNT_OF(TARGET_PORT_SEARCH_KEYS)
 
+static const char *const BATTERY_SEARCH_KEYS[] = {"id", "system_id"};
+
+#define BATTERY_SEARCH_KEYS_COUNT COUNT_OF(BATTERY_SEARCH_KEYS)
+
 static int get_battery_array(lsm_connect *c, int rc, Value &response,
                              lsm_battery **bs[], uint32_t *count);
 
@@ -2514,8 +2518,8 @@ int lsm_battery_list(lsm_connect *c, const char *search_key,
     std::map<std::string, Value> p;
     p["flags"] = Value(flags);
 
-    int rc = add_search_params(p, search_key, search_value, DISK_SEARCH_KEYS,
-                               DISK_SEARCH_KEYS_COUNT);
+    int rc = add_search_params(p, search_key, search_value, BATTERY_SEARCH_KEYS,
+                               BATTERY_SEARCH_KEYS_COUNT);
     if (LSM_ERR_OK != rc) {
         return rc;
     }
