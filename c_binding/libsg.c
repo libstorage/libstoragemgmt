@@ -795,7 +795,7 @@ static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
     struct _sg_t10_sense_header *sense_hdr = NULL;
     struct _sg_t10_sense_fixed *sense_fixed = NULL;
     struct _sg_t10_sense_dp *sense_dp = NULL;
-    uint8_t len = 0;
+    uint16_t len = 0;
     char sense_data_str[_T10_SPC_SENSE_DATA_STR_MAX_LENGTH];
     uint8_t i = 0;
     uint8_t asc = 0;
