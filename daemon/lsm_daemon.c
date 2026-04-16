@@ -606,6 +606,7 @@ void clean_up(void) {
  */
 int process_plugins(void) {
     clean_up();
+    has_root_plugin = 0;
     info("Scanning plug-in directory %s\n", plugin_dir);
     process_directory(plugin_dir, &head, process_plugin);
     if (allow_root_plugin == 1 && has_root_plugin == 0) {
