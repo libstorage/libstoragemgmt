@@ -193,8 +193,10 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
         goto out;
     }
 
-    speed_raw = strtol(num_str, NULL /* end ptr */, 10 /* Base 10 */);
-    if ((speed_raw < 0) || (speed_raw >= INT_MAX)) {
+    char *endptr = NULL;
+    speed_raw = strtol(num_str, &endptr, 10 /* Base 10 */);
+    if ((speed_raw < 0) || (speed_raw >= INT_MAX) || endptr == num_str ||
+        *endptr != '\0') {
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg,
                          "BUG: _sysfs_host_speed_get(): Invalid "
