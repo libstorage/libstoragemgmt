@@ -394,10 +394,8 @@ static int handle_job_status(lsm_plugin_ptr p, Value &params, Value &response) {
 
     if (p && p->mgmt_ops && p->mgmt_ops->job_status) {
 
-        if (Value::string_t != params["job_id"].valueType() &&
-            !LSM_FLAG_EXPECTED_TYPE(params)) {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        } else {
+        if (Value::string_t == params["job_id"].valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
 
             job_id = params["job_id"].asString();
 
@@ -436,6 +434,8 @@ static int handle_job_status(lsm_plugin_ptr p, Value &params, Value &response) {
                 }
                 response = Value(result);
             }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
     }
     return rc;
