@@ -103,7 +103,7 @@ def _lsm_size_bytes_to_arcconf_mb(lsm_size):
     """
     Arcconf normally follows the size to be in MB
     """
-    return lsm_size / (1024 * 1024)
+    return lsm_size // (1024 * 1024)
 
 
 def _pool_status_of(arcconf_array):
