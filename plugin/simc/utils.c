@@ -100,10 +100,15 @@ int _str_to_uint32(char *err_msg, const char *str, uint32_t *val) {
 
     rc = _str_to_ll(err_msg, str, &tmp_val);
 
-    if (rc != LSM_ERR_OK)
+    if (rc != LSM_ERR_OK) {
         *val = UINT32_MAX;
-    else
-        *val = tmp_val & UINT32_MAX;
+    } else if (tmp_val < 0 || tmp_val > UINT32_MAX) {
+        _lsm_err_msg_set(err_msg, "Value '%s' out of range for uint32", str);
+        *val = UINT32_MAX;
+        rc = LSM_ERR_PLUGIN_BUG;
+    } else {
+        *val = (uint32_t)tmp_val;
+    }
 
     return rc;
 }
@@ -114,10 +119,15 @@ int _str_to_uint64(char *err_msg, const char *str, uint64_t *val) {
 
     rc = _str_to_ll(err_msg, str, &tmp_val);
 
-    if (rc != LSM_ERR_OK)
+    if (rc != LSM_ERR_OK) {
         *val = UINT64_MAX;
-    else
-        *val = tmp_val & UINT64_MAX;
+    } else if (tmp_val < 0) {
+        _lsm_err_msg_set(err_msg, "Value '%s' out of range for uint64", str);
+        *val = UINT64_MAX;
+        rc = LSM_ERR_PLUGIN_BUG;
+    } else {
+        *val = (uint64_t)tmp_val;
+    }
 
     return rc;
 }
@@ -128,10 +138,15 @@ int _str_to_int(char *err_msg, const char *str, int *val) {
 
     rc = _str_to_ll(err_msg, str, &tmp_val);
 
-    if (rc != LSM_ERR_OK)
+    if (rc != LSM_ERR_OK) {
         *val = INT_MAX;
-    else
-        *val = tmp_val & INT_MAX;
+    } else if (tmp_val < INT_MIN || tmp_val > INT_MAX) {
+        _lsm_err_msg_set(err_msg, "Value '%s' out of range for int", str);
+        *val = INT_MAX;
+        rc = LSM_ERR_PLUGIN_BUG;
+    } else {
+        *val = (int)tmp_val;
+    }
 
     return rc;
 }
