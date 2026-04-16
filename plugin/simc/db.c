@@ -907,7 +907,7 @@ static int _db_sim_xxx_of_sim_id(char *err_msg, sqlite3 *db,
     } else {
         rc = LSM_ERR_PLUGIN_BUG;
         _lsm_err_msg_set(err_msg,
-                         "Got more than 1 data with id %" PRIu64 "in table %s",
+                         "Got more than 1 data with id %" PRIu64 " in table %s",
                          sim_id, table_name);
         goto out;
     }
