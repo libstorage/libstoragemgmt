@@ -101,11 +101,7 @@ void logger(int severity, const char *fmt, ...) {
         va_end(arg);
 
         if (!systemd) {
-            if (verbose_flag) {
-                syslog(LOG_ERR, "%s", buf);
-            } else {
-                syslog(severity, "%s", buf);
-            }
+            syslog(severity, "%s", buf);
         } else {
             fprintf(stdout, "%s", buf);
             fflush(stdout);
