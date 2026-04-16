@@ -726,7 +726,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             "fs_create",
             dict(pool_name=pool.id, name=name, size_bytes=size_bytes))
 
-        return None, self._get_fs(pool.name, name)
+        return None, self._get_fs(pool.id, name)
 
     @handle_errors
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
