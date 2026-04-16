@@ -83,8 +83,10 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     if ((*raid_type == LSM_VOLUME_RAID_TYPE_RAID1) ||
         (*raid_type == LSM_VOLUME_RAID_TYPE_JBOD))
         *opt_io_size = _BLOCK_SIZE;
-    else
-        *opt_io_size = *strip_size * data_disk_count;
+    else {
+        uint64_t opt = (uint64_t)*strip_size * data_disk_count;
+        *opt_io_size = opt > UINT32_MAX ? UINT32_MAX : (uint32_t)opt;
+    }
 
 out:
     _db_sql_trans_rollback(db);
