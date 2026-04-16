@@ -50,10 +50,12 @@ struct _simc_private_data {
 
 #define _snprintf_buff(err_msg, rc, out, buff, format, ...)                    \
     do {                                                                       \
-        if (buff != NULL)                                                      \
-            snprintf(buff, sizeof(buff) / sizeof(char), format,                \
-                     ##__VA_ARGS__);                                           \
-        if (strlen(buff) == sizeof(buff) / sizeof(char) - 1) {                 \
+        _Static_assert(                                                        \
+            !__builtin_types_compatible_p(typeof(buff), typeof(&(buff)[0])),    \
+            "buff must be an array, not a pointer");                            \
+        int _snprintf_rc =                                                     \
+            snprintf(buff, sizeof(buff), format, ##__VA_ARGS__);               \
+        if (_snprintf_rc < 0 || (size_t)_snprintf_rc >= sizeof(buff)) {        \
             rc = LSM_ERR_PLUGIN_BUG;                                           \
             _lsm_err_msg_set(err_msg, "Buff too small");                       \
             goto out;                                                          \
