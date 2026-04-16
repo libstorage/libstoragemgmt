@@ -293,6 +293,7 @@ int fs_child_dependency(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, yes), rc, out);
+    *yes = 0;
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
