@@ -78,13 +78,14 @@ out:
 
 static int _str_to_ll(char *err_msg, const char *str, long long int *val) {
     int tmp_errno = 0;
+    char *endptr = NULL;
     assert(str != NULL);
     assert(val != NULL);
 
     errno = 0;
-    *val = strtoll(str, NULL, 10 /* base */);
+    *val = strtoll(str, &endptr, 10 /* base */);
     tmp_errno = errno;
-    if ((tmp_errno != 0) && (*val == LLONG_MAX || *val == LLONG_MIN)) {
+    if (tmp_errno != 0 || endptr == str || *endptr != '\0') {
         _lsm_err_msg_set(err_msg,
                          "BUG: Failed to convert string to number: "
                          "'%s', error %d",
