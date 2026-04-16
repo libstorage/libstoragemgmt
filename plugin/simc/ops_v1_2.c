@@ -335,9 +335,6 @@ out:
         if (new_volume != NULL)
             *new_volume = NULL;
         _db_sql_trans_rollback(db);
-        if (new_volume != NULL)
-            *new_volume = NULL;
-
         lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;
