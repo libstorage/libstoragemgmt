@@ -51,7 +51,7 @@ def _sysfs_file_read(path):
     try:
         with open(path) as f:
             return f.read().strip()
-    except:
+    except Exception:
         return None
 
 
