@@ -250,6 +250,9 @@ def size_human_2_size_bytes(size_human):
         units = units.replace('IB', 'iB')
         if units in SIZE_CONS:
             size_bytes = SIZE_CONS[units] * float(number)
+        else:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Invalid size unit: %s" % regex_match.group(2))
     return int(size_bytes)
 
 
