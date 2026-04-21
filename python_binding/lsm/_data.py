@@ -259,7 +259,7 @@ class Disk(IData):
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
                 "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                "expecting 32 or 16 lower case hex characters" % _vpd83)
+                "expecting 32 or 16 hex characters" % _vpd83)
         self._vpd83 = _vpd83
         self._location = _location
         self._rpm = _rpm
@@ -362,7 +362,7 @@ class Disk(IData):
 
 # Lets do this once outside of the class to minimize the number of
 # times it needs to be compiled.
-_vol_regex_vpd83 = re.compile('(?:^6[0-9a-f]{31}$)|(?:^[235][0-9a-f]{15}$)')
+_vol_regex_vpd83 = re.compile('(?:^6[0-9a-fA-F]{31}\\Z)|(?:^[235][0-9a-fA-F]{15}\\Z)')
 
 
 @default_property('id', doc="Unique identifier")
@@ -476,7 +476,7 @@ class Volume(IData):
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
                 "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                "expecting 32 or 16 lower case hex characters" % _vpd83)
+                "expecting 32 or 16 hex characters" % _vpd83)
         self._vpd83 = _vpd83  # SCSI page 83 unique ID
         self._block_size = _block_size  # Block size
         self._num_of_blocks = _num_of_blocks  # Number of blocks

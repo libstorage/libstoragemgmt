@@ -62,8 +62,8 @@ char plugin_extension[] = "_lsmplugin";
 
 char plugin_conf_extension[] = ".conf";
 
-typedef enum { RUNNING, RESTART, EXIT } serve_type;
-volatile serve_type serve_state = RUNNING;
+enum { SERVE_RUNNING, SERVE_RESTART, SERVE_EXIT };
+volatile sig_atomic_t serve_state = SERVE_RUNNING;
 
 int plugin_mem_debug = 0;
 
@@ -123,9 +123,9 @@ void logger(int severity, const char *fmt, ...) {
  */
 void signal_handler(int s) {
     if (SIGTERM == s) {
-        serve_state = EXIT;
+        serve_state = SERVE_EXIT;
     } else if (SIGHUP == s) {
-        serve_state = RESTART;
+        serve_state = SERVE_RESTART;
     }
 }
 
@@ -758,7 +758,7 @@ void _serving(void) {
 
     process_plugins();
 
-    while (serve_state == RUNNING) {
+    while (serve_state == SERVE_RUNNING) {
         FD_ZERO(&readfds);
         nfds = 0;
 
@@ -782,7 +782,7 @@ void _serving(void) {
         int ready = select(nfds, &readfds, NULL, NULL, &tmo);
 
         if (-1 == ready) {
-            if (serve_state != RUNNING) {
+            if (serve_state != SERVE_RUNNING) {
                 return;
             } else if (errno == EINTR) {
                 continue;
@@ -819,10 +819,10 @@ void _serving(void) {
  * Main entry for daemon to work
  */
 void serve(void) {
-    while (serve_state != EXIT) {
-        if (serve_state == RESTART) {
+    while (serve_state != SERVE_EXIT) {
+        if (serve_state == SERVE_RESTART) {
             info("Reloading plug-ins\n");
-            serve_state = RUNNING;
+            serve_state = SERVE_RUNNING;
         }
         _serving();
     }

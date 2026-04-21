@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -324,7 +325,19 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
         _lsm_err_msg_set(err_msg, "BUG: Got NULL or empty duration");
         goto out;
     }
-    duration = strtod(duration_str, NULL);
+    {
+        char *endptr = NULL;
+        errno = 0;
+        duration = strtod(duration_str, &endptr);
+        if (endptr == duration_str || *endptr != '\0' || errno == ERANGE ||
+            !isfinite(duration)) {
+            rc = LSM_ERR_PLUGIN_BUG;
+            _lsm_err_msg_set(err_msg,
+                             "BUG: Failed to parse duration '%s'",
+                             duration_str);
+            goto out;
+        }
+    }
 
     if (duration <= 0) {
         *percent_complete = 100;

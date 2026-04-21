@@ -180,14 +180,14 @@ def _valid_ip4_address(address):
         if not 0 < len(i) <= 3:
             return False
 
+        if not i.isdigit():
+            return False
+
         if len(i) > 1 and i[0] == '0':
             return False
 
-        try:
-            val = int(i, 10)
-            if val < 0 or val > 255:
-                return False
-        except ValueError:
+        val = int(i, 10)
+        if val < 0 or val > 255:
             return False
 
     return True

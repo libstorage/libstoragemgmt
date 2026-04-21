@@ -124,8 +124,10 @@ struct _simc_private_data {
         _db_sql_trans_rollback(db);                                            \
         _db_sql_exec_vec_free(vec);                                            \
         if (rc != LSM_ERR_OK) {                                                \
-            if (*array != NULL) {                                              \
-                lsm_xxx_array_free_func(*array, *count);                       \
+            if (array != NULL && count != NULL) {                              \
+                if (*array != NULL) {                                          \
+                    lsm_xxx_array_free_func(*array, *count);                   \
+                }                                                              \
                 *array = NULL;                                                 \
                 *count = 0;                                                    \
             }                                                                  \

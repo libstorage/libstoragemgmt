@@ -24,6 +24,8 @@
 #include "lsm_ipc.hpp"
 #include "uri_parser.hpp"
 #include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -2293,8 +2295,7 @@ static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value &params,
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_on) {
         Value v_vol = params["volume"];
 
-        if (Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_volume *volume = value_to_volume(v_vol);
 
@@ -2320,8 +2321,7 @@ static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value &params,
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_off) {
         Value v_vol = params["volume"];
 
-        if (Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_volume *volume = value_to_volume(v_vol);
 

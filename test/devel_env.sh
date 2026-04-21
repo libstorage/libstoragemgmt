@@ -65,7 +65,11 @@ fi
 # ---------------------------------------------------------------------------
 # Create a temporary runtime directory tree
 # ---------------------------------------------------------------------------
-DEVEL_BASE="/tmp/lsm_devel_$$"
+DEVEL_BASE="$(mktemp -d /tmp/lsm_devel_XXXXXXXXXX)" || {
+    echo "ERROR: Failed to create temporary directory"
+    unset _devel_err _devel_clib_so _DEVEL_SCRIPT_DIR _DEVEL_SRC_DIR _DEVEL_BUILD_DIR _DEVEL_LIBTOOL
+    return 1 2>/dev/null || exit 1
+}
 mkdir -p "$DEVEL_BASE"/{bin,plugins,python_modules/lsm/plugin,python_modules/lsm/lsmcli,c_libs,logs,ipc,plugin_data,config/pluginconf.d}
 
 chmod 0777 "$DEVEL_BASE/ipc"
@@ -80,9 +84,10 @@ $_DEVEL_LIBTOOL --mode install \
     "$DEVEL_BASE/c_libs/" > /dev/null 2>&1
 
 # ---------------------------------------------------------------------------
-# Install the daemon (plain binary, no libtool needed)
+# Install the daemon (via libtool for consistent autotools handling)
 # ---------------------------------------------------------------------------
-install "$_DEVEL_BUILD_DIR/daemon/lsmd" "$DEVEL_BASE/bin/lsmd"
+$_DEVEL_LIBTOOL --mode install \
+    install "$_DEVEL_BUILD_DIR/daemon/lsmd" "$DEVEL_BASE/bin/lsmd" > /dev/null 2>&1
 
 # ---------------------------------------------------------------------------
 # Install the Python C extension
@@ -198,10 +203,13 @@ export PATH="$DEVEL_BASE/bin:$PATH"
     --socketdir="$LSM_UDS_PATH" \
     --confdir="$DEVEL_BASE/config" \
     -d -v > "$DEVEL_BASE/logs/lsmd.log" 2>&1 &
+DEVEL_LSMD_PID="$!"
 
 sleep 2
 
-DEVEL_LSMD_PID="$(ps aux | grep "[l]smd.*$LSM_UDS_PATH" | awk '{print $2}')"
+if ! kill -0 "$DEVEL_LSMD_PID" 2>/dev/null; then
+    DEVEL_LSMD_PID=""
+fi
 if [ -z "$DEVEL_LSMD_PID" ]; then
     echo "ERROR: Failed to start lsmd daemon."
     echo "       Check $DEVEL_BASE/logs/lsmd.log"

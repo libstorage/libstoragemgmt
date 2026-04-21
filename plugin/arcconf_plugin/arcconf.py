@@ -106,19 +106,6 @@ def _lsm_size_bytes_to_arcconf_mb(lsm_size):
     return lsm_size // (1024 * 1024)
 
 
-def _pool_status_of(arcconf_array):
-    """
-    Return (status, status_info)
-    """
-    if arcconf_array[0]['Status'] == 'OK' or \
-       arcconf_array[0]['Status'] == 'Optimal' or \
-       arcconf_array[0]['Status'] == 'Ready' or \
-       arcconf_array[0]['Status'] == 'Online':
-        return Pool.STATUS_OK, ''
-
-    # TODO(Raghavendra): Try degrade a RAID or fail a RAID.
-    return Pool.STATUS_OTHER, arcconf_array[0]['Status']
-
 
 def _pool_id_of(sys_id, array_name):
     return "%s:%s" % (sys_id, array_name.replace(' ', ''))
@@ -201,9 +188,9 @@ def _lsm_raid_type_to_arcconf(raid_type):
         if raid_type == "simple_volume":
             return Volume.RAID_TYPE_RAID0
         return _LSM_RAID_TYPE_CONV[raid_type]
-    except KeyError:
+    except KeyError as e:
         raise LsmError(ErrorNumber.PLUGIN_BUG,
-                       "Not supported raid type %s" % raid_type)
+                       "Not supported raid type %s" % raid_type) from e
 
 
 class Arcconf(IPlugin):

@@ -6,7 +6,7 @@ Basic Installation
 
    The following shell commands:
 
-     test -f configure || ./bootstrap
+     test -f configure || ./autogen.sh
      ./configure
      make
      make install
@@ -15,8 +15,8 @@ should configure, build, and install this package.  The first line,
 which bootstraps, is intended for developers; when building from
 distribution tarballs it does nothing and can be skipped.  A package
 might name the bootstrapping script differently; if the name is
-‘autogen.sh’, for example, the first line should say ‘./autogen.sh’
-instead of ‘./bootstrap’.
+‘bootstrap’, for example, the first line should say ‘./bootstrap’
+instead of ‘./autogen.sh’.
 
    The following more-detailed instructions are generic; see the
 ‘README’ file for instructions specific to this package.  Some packages
@@ -66,8 +66,8 @@ editing ‘configure’ directly.
   1. ‘cd’ to the directory containing the package’s source code.
 
   2. If this is a developer checkout and file ‘configure’ does not yet
-     exist, run the bootstrapping script (typically ‘./bootstrap’ or
-     ‘./autogen.sh’) to bootstrap and create the file.  You may need
+     exist, run the bootstrapping script (typically ‘./autogen.sh’ or
+     ‘./bootstrap’) to bootstrap and create the file.  You may need
      special developer tools and network access to bootstrap, and the
      network access may have privacy implications.
 
@@ -258,7 +258,7 @@ canonicalize and validate a system type, you can run the command
 You can look at the ‘config.sub’ file to see which types are recognized.
 If the file is absent, this package does not need the system type.
 
-   If ‘configure’ fails with the diagnostic “cannot guess build type”.
+   If ‘configure’ fails with the diagnostic “cannot guess build type”,
 ‘config.sub’ did not recognize your system’s type.  In this case, first
 fetch the newest versions of these files from the GNU config package
 (https://savannah.gnu.org/projects/config).  If that fixes things,

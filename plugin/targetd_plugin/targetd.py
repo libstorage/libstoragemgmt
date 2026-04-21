@@ -1023,7 +1023,9 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             else:
                 # Positive error code - async support was removed from targetd in 2013
                 # This should never happen with current targetd versions
+                err_code = response.get("error", {}).get("code", "unknown")
+                err_msg = response.get("error", {}).get("message", "unknown")
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
                     "Unexpected positive error code from targetd (async no longer supported). "
-                    "Response: %s" % json.dumps(response))
+                    "code: %s, message: %s" % (err_code, err_msg))
