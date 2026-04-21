@@ -266,7 +266,8 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
     char cur_time_stamp_str[_BUFF_SIZE];
     double job_start_time = 0;
     double cur_time = 0;
-    uint64_t duration = 0;
+    double duration = 0;
+    const char *duration_str = NULL;
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
@@ -317,11 +318,15 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
         goto out;
     }
 
-    _good(_str_to_uint64(err_msg, lsm_hash_string_get(sim_job, "duration"),
-                         &duration),
-          rc, out);
+    duration_str = lsm_hash_string_get(sim_job, "duration");
+    if (duration_str == NULL || *duration_str == '\0') {
+        rc = LSM_ERR_PLUGIN_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Got NULL or empty duration");
+        goto out;
+    }
+    duration = strtod(duration_str, NULL);
 
-    if (duration == 0) {
+    if (duration <= 0) {
         *percent_complete = 100;
         *status = LSM_JOB_COMPLETE;
     } else if (cur_time <= job_start_time) {

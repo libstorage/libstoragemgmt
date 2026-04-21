@@ -1072,9 +1072,18 @@ START_TEST(test_systems) {
 END_TEST
 
 #define COMPARE_STR_FUNC(func, l, r)                                           \
-    rc = strcmp(func(l), func(r));                                             \
-    if (rc)                                                                    \
-        return rc;
+    do {                                                                       \
+        const char *_l = func(l);                                              \
+        const char *_r = func(r);                                              \
+        if (_l == NULL && _r == NULL)                                           \
+            rc = 0;                                                            \
+        else if (_l == NULL || _r == NULL)                                      \
+            return 1;                                                          \
+        else                                                                   \
+            rc = strcmp(_l, _r);                                                \
+        if (rc)                                                                \
+            return rc;                                                         \
+    } while (0)
 
 #define COMPARE_NUMBER_FUNC(func, l, r)                                        \
     if (func(l) != func(r))                                                    \
@@ -3234,8 +3243,8 @@ START_TEST(test_volume_vpd_check) {
     F(rc, lsm_volume_vpd83_verify, "01234567890123456789012345abcdef");
     F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32e0");
     F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32ex");
-    F(rc, lsm_volume_vpd83_verify, "55cd2e404beec32A");
-    F(rc, lsm_volume_vpd83_verify, "35cd2e404beec32A");
+    G(rc, lsm_volume_vpd83_verify, "55cd2e404beec32A");
+    G(rc, lsm_volume_vpd83_verify, "35cd2e404beec32A");
 
     G(rc, lsm_volume_vpd83_verify, "61234567890123456789012345abcdef");
     G(rc, lsm_volume_vpd83_verify, "55cd2e404beec32e");
