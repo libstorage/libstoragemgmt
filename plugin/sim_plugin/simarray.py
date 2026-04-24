@@ -73,8 +73,8 @@ class PoolRAID(object):
         Volume.RAID_TYPE_RAID10: lambda x: x >= 4 and x % 2 == 0,
         Volume.RAID_TYPE_RAID15: lambda x: x >= 6 and x % 2 == 0,
         Volume.RAID_TYPE_RAID16: lambda x: x >= 8 and x % 2 == 0,
-        Volume.RAID_TYPE_RAID50: lambda x: x >= 6 and x % 2 == 0,
-        Volume.RAID_TYPE_RAID60: lambda x: x >= 8 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID50: lambda x: x >= 6,
+        Volume.RAID_TYPE_RAID60: lambda x: x >= 8,
         Volume.RAID_TYPE_RAID51: lambda x: x >= 6 and x % 2 == 0,
         Volume.RAID_TYPE_RAID61: lambda x: x >= 8 and x % 2 == 0,
     }

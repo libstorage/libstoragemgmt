@@ -1473,18 +1473,18 @@ class Client(INetworkAttachedStorage):
                     "RAID 10 require even disks count and 4 or more disks")
 
         if raid_type == Volume.RAID_TYPE_RAID50:
-            if len(disks) % 2 or len(disks) < 6:
+            if len(disks) < 6:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: "
-                    "RAID 50 require even disks count and 6 or more disks")
+                    "RAID 50 requires 6 or more disks")
 
         if raid_type == Volume.RAID_TYPE_RAID60:
-            if len(disks) % 2 or len(disks) < 8:
+            if len(disks) < 8:
                 raise LsmError(
                     ErrorNumber.INVALID_ARGUMENT,
                     "Illegal input disks argument: "
-                    "RAID 60 require even disks count and 8 or more disks")
+                    "RAID 60 requires 8 or more disks")
 
         return self._tp.rpc('volume_raid_create', _del_self(locals()))
 
