@@ -13,6 +13,15 @@
 #   devel_env_stop               # tear down when done
 
 # ---------------------------------------------------------------------------
+# Guard: must be sourced, not executed
+# ---------------------------------------------------------------------------
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    echo "ERROR: This script must be sourced, not executed directly."
+    echo "       Run: source ${BASH_SOURCE[0]}"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # Guard: skip re-initialization if a daemon is already running
 # ---------------------------------------------------------------------------
 if [ -n "$DEVEL_BASE" ] && [ -n "$DEVEL_LSMD_PID" ] && \
