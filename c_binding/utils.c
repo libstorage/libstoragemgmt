@@ -154,6 +154,7 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
 
     *link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
 
+    /* Note: _read_file ensures the buffer is nul terminated */
     file_rc = _read_file(sysfs_path, buff, &file_size,
                          _SYSFS_HOST_SPEED_PATH_STR_MAX_LEN);
     if (file_rc == ENOENT) {
@@ -170,8 +171,8 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
         goto out;
     }
 
-    /* Remove the trailing \n */
-    if (file_size > 0) {
+    /* Remove the trailing \n if it exists! */
+    if (file_size > 0 && buff[file_size - 1] == '\n') {
         buff[file_size - 1] = '\0';
     }
 
