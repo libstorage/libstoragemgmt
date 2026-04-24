@@ -2306,6 +2306,9 @@ int lsm_volume_raid_create_cap_get(lsm_connect *c, lsm_system *system,
     }
 
     *supported_raid_types = NULL;
+    *supported_raid_type_count = 0;
+    *supported_strip_sizes = NULL;
+    *supported_strip_size_count = 0;
 
     std::map<std::string, Value> p;
     p["system"] = system_to_value(system);
