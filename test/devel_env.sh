@@ -185,6 +185,27 @@ find "$_DEVEL_SRC_DIR/config/pluginconf.d" -maxdepth 1 -type f -name '*.conf' \
     -exec install {} "$DEVEL_BASE/config/pluginconf.d/" \; 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
+# Save original environment so devel_env_stop can restore them
+# ---------------------------------------------------------------------------
+_DEVEL_ORIG_PATH="$PATH"
+_DEVEL_HAD_PYTHONPATH="${PYTHONPATH+yes}"
+_DEVEL_ORIG_PYTHONPATH="${PYTHONPATH-}"
+_DEVEL_HAD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH+yes}"
+_DEVEL_ORIG_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
+_DEVEL_HAD_LSM_UDS_PATH="${LSM_UDS_PATH+yes}"
+_DEVEL_ORIG_LSM_UDS_PATH="${LSM_UDS_PATH-}"
+_DEVEL_HAD_LSM_SIM_DATA="${LSM_SIM_DATA+yes}"
+_DEVEL_ORIG_LSM_SIM_DATA="${LSM_SIM_DATA-}"
+_DEVEL_HAD_LSM_TEST_RUNDIR="${LSM_TEST_RUNDIR+yes}"
+_DEVEL_ORIG_LSM_TEST_RUNDIR="${LSM_TEST_RUNDIR-}"
+_DEVEL_HAD_LSM_TEST_CFG_DIR="${LSM_TEST_CFG_DIR+yes}"
+_DEVEL_ORIG_LSM_TEST_CFG_DIR="${LSM_TEST_CFG_DIR-}"
+_DEVEL_HAD_LSM_SIM_TIME="${LSM_SIM_TIME+yes}"
+_DEVEL_ORIG_LSM_SIM_TIME="${LSM_SIM_TIME-}"
+_DEVEL_HAD_LSMCLI_URI="${LSMCLI_URI+yes}"
+_DEVEL_ORIG_LSMCLI_URI="${LSMCLI_URI-}"
+
+# ---------------------------------------------------------------------------
 # Export environment variables
 # ---------------------------------------------------------------------------
 export PYTHONPATH="$DEVEL_BASE/python_modules:$DEVEL_BASE/python_modules/lsm/plugin"
@@ -244,6 +265,15 @@ unset _devel_clib_so _DEVEL_SCRIPT_DIR _DEVEL_SRC_DIR _DEVEL_BUILD_DIR _DEVEL_LI
 devel_env_stop() {
     if [ -n "$DEVEL_LSMD_PID" ]; then
         kill "$DEVEL_LSMD_PID" 2>/dev/null || true
+        local _wait=0
+        while kill -0 "$DEVEL_LSMD_PID" 2>/dev/null; do
+            sleep 0.1
+            _wait=$((_wait + 1))
+            if [ "$_wait" -ge 50 ]; then
+                kill -9 "$DEVEL_LSMD_PID" 2>/dev/null || true
+                break
+            fi
+        done
         echo "Stopped lsmd (PID $DEVEL_LSMD_PID)"
         DEVEL_LSMD_PID=""
     fi
@@ -251,6 +281,59 @@ devel_env_stop() {
         chmod +w -R "$DEVEL_BASE" 2>/dev/null || true
         rm -rf "$DEVEL_BASE"
         echo "Removed $DEVEL_BASE"
+    fi
+    unset DEVEL_BASE
+    if [ -n "${_DEVEL_ORIG_PATH+set}" ]; then
+        export PATH="$_DEVEL_ORIG_PATH"
+        if [ "$_DEVEL_HAD_PYTHONPATH" = "yes" ]; then
+            export PYTHONPATH="$_DEVEL_ORIG_PYTHONPATH"
+        else
+            unset PYTHONPATH
+        fi
+        if [ "$_DEVEL_HAD_LD_LIBRARY_PATH" = "yes" ]; then
+            export LD_LIBRARY_PATH="$_DEVEL_ORIG_LD_LIBRARY_PATH"
+        else
+            unset LD_LIBRARY_PATH
+        fi
+        if [ "$_DEVEL_HAD_LSM_UDS_PATH" = "yes" ]; then
+            export LSM_UDS_PATH="$_DEVEL_ORIG_LSM_UDS_PATH"
+        else
+            unset LSM_UDS_PATH
+        fi
+        if [ "$_DEVEL_HAD_LSM_SIM_DATA" = "yes" ]; then
+            export LSM_SIM_DATA="$_DEVEL_ORIG_LSM_SIM_DATA"
+        else
+            unset LSM_SIM_DATA
+        fi
+        if [ "$_DEVEL_HAD_LSM_TEST_RUNDIR" = "yes" ]; then
+            export LSM_TEST_RUNDIR="$_DEVEL_ORIG_LSM_TEST_RUNDIR"
+        else
+            unset LSM_TEST_RUNDIR
+        fi
+        if [ "$_DEVEL_HAD_LSM_TEST_CFG_DIR" = "yes" ]; then
+            export LSM_TEST_CFG_DIR="$_DEVEL_ORIG_LSM_TEST_CFG_DIR"
+        else
+            unset LSM_TEST_CFG_DIR
+        fi
+        if [ "$_DEVEL_HAD_LSM_SIM_TIME" = "yes" ]; then
+            export LSM_SIM_TIME="$_DEVEL_ORIG_LSM_SIM_TIME"
+        else
+            unset LSM_SIM_TIME
+        fi
+        if [ "$_DEVEL_HAD_LSMCLI_URI" = "yes" ]; then
+            export LSMCLI_URI="$_DEVEL_ORIG_LSMCLI_URI"
+        else
+            unset LSMCLI_URI
+        fi
+        unset _DEVEL_ORIG_PATH \
+              _DEVEL_HAD_PYTHONPATH _DEVEL_ORIG_PYTHONPATH \
+              _DEVEL_HAD_LD_LIBRARY_PATH _DEVEL_ORIG_LD_LIBRARY_PATH \
+              _DEVEL_HAD_LSM_UDS_PATH _DEVEL_ORIG_LSM_UDS_PATH \
+              _DEVEL_HAD_LSM_SIM_DATA _DEVEL_ORIG_LSM_SIM_DATA \
+              _DEVEL_HAD_LSM_TEST_RUNDIR _DEVEL_ORIG_LSM_TEST_RUNDIR \
+              _DEVEL_HAD_LSM_TEST_CFG_DIR _DEVEL_ORIG_LSM_TEST_CFG_DIR \
+              _DEVEL_HAD_LSM_SIM_TIME _DEVEL_ORIG_LSM_SIM_TIME \
+              _DEVEL_HAD_LSMCLI_URI _DEVEL_ORIG_LSMCLI_URI
     fi
 }
 
