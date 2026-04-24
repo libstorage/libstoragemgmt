@@ -362,7 +362,8 @@ class Disk(IData):
 
 # Lets do this once outside of the class to minimize the number of
 # times it needs to be compiled.
-_vol_regex_vpd83 = re.compile('(?:^6[0-9a-fA-F]{31}\\Z)|(?:^[235][0-9a-fA-F]{15}\\Z)')
+_vol_regex_vpd83 = re.compile(
+    '(?:^6[0-9a-fA-F]{31}\\Z)|(?:^[235][0-9a-fA-F]{15}\\Z)')
 
 
 @default_property('id', doc="Unique identifier")

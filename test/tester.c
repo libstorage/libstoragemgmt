@@ -1075,12 +1075,12 @@ END_TEST
     do {                                                                       \
         const char *_l = func(l);                                              \
         const char *_r = func(r);                                              \
-        if (_l == NULL && _r == NULL)                                           \
+        if (_l == NULL && _r == NULL)                                          \
             rc = 0;                                                            \
-        else if (_l == NULL || _r == NULL)                                      \
+        else if (_l == NULL || _r == NULL)                                     \
             return 1;                                                          \
         else                                                                   \
-            rc = strcmp(_l, _r);                                                \
+            rc = strcmp(_l, _r);                                               \
         if (rc)                                                                \
             return rc;                                                         \
     } while (0)

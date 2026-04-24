@@ -332,8 +332,7 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
         if (endptr == duration_str || *endptr != '\0' || errno == ERANGE ||
             !isfinite(duration)) {
             rc = LSM_ERR_PLUGIN_BUG;
-            _lsm_err_msg_set(err_msg,
-                             "BUG: Failed to parse duration '%s'",
+            _lsm_err_msg_set(err_msg, "BUG: Failed to parse duration '%s'",
                              duration_str);
             goto out;
         }

@@ -1230,8 +1230,7 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
 
         if (cur_dp->len == 0) {
             rc = LSM_ERR_INVALID_ARGUMENT;
-            _lsm_err_msg_set(err_msg,
-                             "Got zero-length SCSI SENSE descriptor");
+            _lsm_err_msg_set(err_msg, "Got zero-length SCSI SENSE descriptor");
             goto out;
         }
 
