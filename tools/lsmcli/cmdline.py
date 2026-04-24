@@ -6,6 +6,7 @@
 # Author: Tony Asleson <tasleson@redhat.com>
 #         Gris Ge <fge@redhat.com>
 import argparse
+import ipaddress
 import os
 import socket
 import subprocess
@@ -166,31 +167,11 @@ def _valid_ip4_address(address):
     :param address: String representing address
     :return: True if valid address, else false
     """
-    if not address:
+    try:
+        ipaddress.IPv4Address(address)
+        return True
+    except ipaddress.AddressValueError:
         return False
-
-    parts = address.split('.')
-    if len(parts) != 4:
-        return False
-
-    if '/' in address:
-        return False
-
-    for i in parts:
-        if not 0 < len(i) <= 3:
-            return False
-
-        if not i.isdigit():
-            return False
-
-        if len(i) > 1 and i[0] == '0':
-            return False
-
-        val = int(i, 10)
-        if val < 0 or val > 255:
-            return False
-
-    return True
 
 
 def _valid_ip6_address(address):
@@ -199,40 +180,11 @@ def _valid_ip6_address(address):
     :param address: String representing address
     :return: True if valid address, else false
     """
-    allowed = 'ABCDEFabcdef0123456789:'
-    has_zeros = False
-
-    if not address:
+    try:
+        ipaddress.IPv6Address(address)
+        return True
+    except ipaddress.AddressValueError:
         return False
-
-    if '/' in address:
-        return False
-
-    if len(address.split("::")) > 2:
-        return False
-
-    parts = address.split(':')
-    if len(parts) < 3 or len(parts) > 9:
-        return False
-
-    # Check for ipv4 suffix, validate and remove while adding padding for
-    # addl. checks.
-    if '.' in parts[-1]:
-        if not _valid_ip4_address(parts.pop()):
-            print("Not valid ipv suffix")
-            return False
-        parts.extend(['0', '0'])
-
-    if '::' in address:
-        parts = [p for p in parts if p != '']
-        # Add one segment of zero to catch full address with extra ':'
-        parts.append('0')
-        has_zeros = True
-
-    if (has_zeros and len(parts) <= 8) or len(parts) == 8:
-        return all(len(x) <= 4 for x in parts) and \
-               all(x in allowed for x in "".join(parts))
-    return False
 
 
 def _check_led_state(state):
