@@ -13,6 +13,16 @@
 #   devel_env_stop               # tear down when done
 
 # ---------------------------------------------------------------------------
+# Guard: skip re-initialization if a daemon is already running
+# ---------------------------------------------------------------------------
+if [ -n "$DEVEL_BASE" ] && [ -n "$DEVEL_LSMD_PID" ] && \
+        kill -0 "$DEVEL_LSMD_PID" 2>/dev/null; then
+    echo "libstoragemgmt development environment already active (PID $DEVEL_LSMD_PID)."
+    echo "Run 'devel_env_stop' first to tear it down."
+    return 0 2>/dev/null || exit 0
+fi
+
+# ---------------------------------------------------------------------------
 # Locate the source and build trees (script lives in test/)
 # ---------------------------------------------------------------------------
 _DEVEL_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -214,7 +224,12 @@ if [ -z "$DEVEL_LSMD_PID" ]; then
     echo "ERROR: Failed to start lsmd daemon."
     echo "       Check $DEVEL_BASE/logs/lsmd.log"
     cat "$DEVEL_BASE/logs/lsmd.log" 2>/dev/null
-    unset _devel_clib_so _DEVEL_SCRIPT_DIR _DEVEL_SRC_DIR _DEVEL_BUILD_DIR _DEVEL_LIBTOOL
+    if declare -f devel_env_stop > /dev/null 2>&1; then
+        devel_env_stop
+    else
+        [ -d "$DEVEL_BASE" ] && { chmod +w -R "$DEVEL_BASE" 2>/dev/null || true; rm -rf "$DEVEL_BASE"; }
+    fi
+    unset DEVEL_BASE _devel_clib_so _DEVEL_SCRIPT_DIR _DEVEL_SRC_DIR _DEVEL_BUILD_DIR _DEVEL_LIBTOOL
     return 1 2>/dev/null || exit 1
 fi
 
