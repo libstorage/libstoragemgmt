@@ -73,8 +73,8 @@ class PoolRAID(object):
         Volume.RAID_TYPE_RAID10: lambda x: x >= 4 and x % 2 == 0,
         Volume.RAID_TYPE_RAID15: lambda x: x >= 6 and x % 2 == 0,
         Volume.RAID_TYPE_RAID16: lambda x: x >= 8 and x % 2 == 0,
-        Volume.RAID_TYPE_RAID50: lambda x: x >= 6 and x % 2 == 0,
-        Volume.RAID_TYPE_RAID60: lambda x: x >= 8 and x % 2 == 0,
+        Volume.RAID_TYPE_RAID50: lambda x: x >= 6,
+        Volume.RAID_TYPE_RAID60: lambda x: x >= 8,
         Volume.RAID_TYPE_RAID51: lambda x: x >= 6 and x % 2 == 0,
         Volume.RAID_TYPE_RAID61: lambda x: x >= 8 and x % 2 == 0,
     }
@@ -1369,7 +1369,7 @@ class BackStore(object):
 
         elif sim_pool['unsupported_actions'] & Pool.UNSUPPORTED_VOLUME_SHRINK:
             raise LsmError(ErrorNumber.NO_SUPPORT,
-                           "Requested pool does not allow volume size grow")
+                           "Requested pool does not allow volume size shrink")
 
         # TODO(Gris Ge): If a volume is in a replication relationship, resize
         #                should be handled properly.
@@ -1816,8 +1816,8 @@ class SimArray(object):
     def _sim_ag_id_of(ag_id):
         return SimArray._lsm_id_to_sim_id(
             ag_id,
-            LsmError(ErrorNumber.NOT_FOUND_NFS_EXPORT,
-                     "File system export not found"))
+            LsmError(ErrorNumber.NOT_FOUND_ACCESS_GROUP,
+                     "Access group not found"))
 
     @_handle_errors
     def __init__(self, statefile, timeout):
@@ -2015,7 +2015,7 @@ class SimArray(object):
                          flags=0):
         self.bs_obj.trans_begin()
 
-        src_sim_vol_id = SimArray._sim_pool_id_of(src_vol_id)
+        src_sim_vol_id = SimArray._sim_vol_id_of(src_vol_id)
         # Verify the existence of source volume
         src_sim_vol = self.bs_obj.sim_vol_of_id(src_sim_vol_id)
 
@@ -2051,8 +2051,8 @@ class SimArray(object):
         #                boundary
         # TODO(Gris Ge): Should check block overlap.
 
-        self.bs_obj.sim_vol_replica(SimArray._sim_pool_id_of(src_vol_id),
-                                    SimArray._sim_pool_id_of(dst_vol_id),
+        self.bs_obj.sim_vol_replica(SimArray._sim_vol_id_of(src_vol_id),
+                                    SimArray._sim_vol_id_of(dst_vol_id),
                                     rep_type, ranges)
 
         job_id = self._job_create()

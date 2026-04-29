@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -170,7 +171,8 @@ int tmo_get(lsm_plugin_ptr c, uint32_t *timeout, lsm_flag flags) {
 
 out:
     if (rc != LSM_ERR_OK) {
-        *timeout = 0;
+        if (timeout != NULL)
+            *timeout = 0;
         lsm_log_error_basic(c, rc, err_msg);
     }
 
@@ -265,7 +267,8 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
     char cur_time_stamp_str[_BUFF_SIZE];
     double job_start_time = 0;
     double cur_time = 0;
-    uint64_t duration = 0;
+    double duration = 0;
+    const char *duration_str = NULL;
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
@@ -316,11 +319,26 @@ int job_status(lsm_plugin_ptr c, const char *job, lsm_job_status *status,
         goto out;
     }
 
-    _good(_str_to_uint64(err_msg, lsm_hash_string_get(sim_job, "duration"),
-                         &duration),
-          rc, out);
+    duration_str = lsm_hash_string_get(sim_job, "duration");
+    if (duration_str == NULL || *duration_str == '\0') {
+        rc = LSM_ERR_PLUGIN_BUG;
+        _lsm_err_msg_set(err_msg, "BUG: Got NULL or empty duration");
+        goto out;
+    }
+    {
+        char *endptr = NULL;
+        errno = 0;
+        duration = strtod(duration_str, &endptr);
+        if (endptr == duration_str || *endptr != '\0' || errno == ERANGE ||
+            !isfinite(duration)) {
+            rc = LSM_ERR_PLUGIN_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Failed to parse duration '%s'",
+                             duration_str);
+            goto out;
+        }
+    }
 
-    if (duration == 0) {
+    if (duration <= 0) {
         *percent_complete = 100;
         *status = LSM_JOB_COMPLETE;
     } else if (cur_time <= job_start_time) {
@@ -376,10 +394,14 @@ out:
         lsm_hash_free(sim_data);
 
     if (rc != LSM_ERR_OK) {
-        *status = LSM_JOB_ERROR;
-        *value = NULL;
-        *percent_complete = 0;
-        *type = LSM_DATA_TYPE_UNKNOWN;
+        if (status != NULL)
+            *status = LSM_JOB_ERROR;
+        if (value != NULL)
+            *value = NULL;
+        if (percent_complete != NULL)
+            *percent_complete = 0;
+        if (type != NULL)
+            *type = LSM_DATA_TYPE_UNKNOWN;
         lsm_log_error_basic(c, rc, err_msg);
     }
 

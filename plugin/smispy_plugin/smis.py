@@ -183,11 +183,9 @@ class Smis(IStorageAreaNetwork):
         Given a job id returns the current status as a tuple
         (status (enum), percent_complete(integer), volume (None or Volume))
         """
-        status = JobStatus.INPROGRESS
-        percent_complete = 0
-        completed_item = None
         status = JobStatus.ERROR
         percent_complete = 0
+        completed_item = None
         error_handler = None
 
         (ignore, retrieve_data, method_data) = SmisCommon.parse_job_id(job_id)

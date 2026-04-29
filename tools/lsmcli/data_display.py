@@ -269,6 +269,7 @@ def disk_health_status_to_str(health_status):
         return "Warning"
     if health_status == Disk.HEALTH_STATUS_GOOD:
         return "Good"
+    return "Unknown(%s)" % str(health_status)
 
 
 _BATTERY_TYPE_CONV = {
@@ -888,7 +889,7 @@ class DisplayData(object):
         'type': battery_type_to_str,
         'status': battery_status_to_str,
     }
-    BATTERY_VALUE_CONV_HUMAN = ['']
+    BATTERY_VALUE_CONV_HUMAN = []
 
     VALUE_CONVERT[Battery] = {
         'headers': BATTERY_HEADER,

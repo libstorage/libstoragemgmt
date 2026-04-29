@@ -250,6 +250,9 @@ def size_human_2_size_bytes(size_human):
         units = units.replace('IB', 'iB')
         if units in SIZE_CONS:
             size_bytes = SIZE_CONS[units] * float(number)
+        else:
+            raise LsmError(ErrorNumber.INVALID_ARGUMENT,
+                           "Invalid size unit: %s" % regex_match.group(2))
     return int(size_bytes)
 
 
@@ -557,8 +560,7 @@ def type_compare(method_name, exp_type, act_val):
         # A number of times a method will return None or some valid type,
         # only check on the type if the value is not None
         if exp_type != type(act_val) and act_val is not None:
-            if (isinstance(exp_type, str)
-                    and isinstance(act_val, str)):
+            if (isinstance(exp_type, str) and isinstance(act_val, str)):
                 return
             if not inspect.isclass(exp_type) or \
                     not issubclass(type(act_val), exp_type):

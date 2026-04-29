@@ -385,12 +385,12 @@ def get_systems():
 
 def system_read_cache_pct_update_test(cap):
     if cap['SYS_READ_CACHE_PCT_UPDATE']:
-        out = call([cmd, '-t' + sep, '--type', 'SYSTEMS'])[1]
+        out = call([cmd, '-t' + sep, 'list', '--type', 'SYSTEMS'])[1]
         system_list = parse(out)
         for specific_system in system_list:
             call([
-                cmd, '-t' + sep, 'system-read-cache-pct-update', '--system',
-                specific_system[0], 50
+                cmd, '-t' + sep, 'system-read-cache-pct-update', '--sys',
+                specific_system[0], '--read-pct', '50'
             ])
 
     return
@@ -858,9 +858,7 @@ def volume_ident_led_on_test(cap):
         out = call([cmd, '-t' + sep, 'list', '--type', 'volumes'])[1]
         volume_list = parse(out)
         for volume in volume_list:
-            call([
-                cmd, '-t' + sep, 'volume-ident-led-on', '--volume', volume[0]
-            ])
+            call([cmd, '-t' + sep, 'volume-ident-led-on', '--vol', volume[0]])
 
     return
 
@@ -870,9 +868,7 @@ def volume_ident_led_off_test(cap):
         out = call([cmd, '-t' + sep, 'list', '--type', 'volumes'])[1]
         volume_list = parse(out)
         for volume in volume_list:
-            call([
-                cmd, '-t' + sep, 'volume-ident-led-off', '--volume', volume[0]
-            ])
+            call([cmd, '-t' + sep, 'volume-ident-led-off', '--vol', volume[0]])
 
     return
 
@@ -937,8 +933,9 @@ def test_volume_wcp_update():
                   "should has 6 or more items")
             exit(10)
         if cache_info[0][1] != result:
-            print("Got unexpected return from volume-write-cache-policy-update"
-                  "should be %s, but got %s" % (result, cache_info[0][1]))
+            print(
+                "Got unexpected return from volume-write-cache-policy-update "
+                "should be %s, but got %s" % (result, cache_info[0][1]))
             exit(10)
     volume_delete(vol_id)
 
@@ -957,8 +954,8 @@ def test_volume_rcp_update():
                   "should has 6 or more items")
             exit(10)
         if cache_info[0][3] != result:
-            print("Got unexpected return from volume-read-cache-policy-update"
-                  "should be %s, but got %s" % (result, cache_info[0][4]))
+            print("Got unexpected return from volume-read-cache-policy-update "
+                  "should be %s, but got %s" % (result, cache_info[0][3]))
             exit(10)
     volume_delete(vol_id)
 
@@ -966,7 +963,7 @@ def test_volume_rcp_update():
 def verify_no_daemon_needed(cmd, expected_rcs):
 
     env = copy.deepcopy(os.environ)
-    env['LSM_UDS_PATH'] = '/tmp/%s' + rs(12)
+    env['LSM_UDS_PATH'] = '/tmp/' + rs(12)
 
     ec, out, err = call(cmd, env=env, expected_rcs=expected_rcs)
 

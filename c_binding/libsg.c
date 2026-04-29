@@ -58,7 +58,7 @@
 
 /* The max length of char[] required to hold hex dump of sense data */
 #define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH                                     \
-    _T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1
+    (_T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1)
 
 /* SPC-5 rev 07 Table 300 - Summary of log page codes */
 #define _T10_SPC_INFO_EXCEP_PAGE_CODE 0x2f
@@ -582,12 +582,8 @@ bool _sg_is_vpd_page_supported(uint8_t *vpd_0_data, uint8_t page_code) {
 int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
                      uint16_t serial_num_max_len) {
     int rc = LSM_ERR_OK;
-    int len = 0;
     struct _sg_t10_vpd80_header *vpd80_header = NULL;
     uint8_t *p = NULL;
-    uint8_t *end_p = NULL;
-    uint16_t vpd80_len = 0;
-    uint16_t serial_num_len = 0;
 
     assert(err_msg != NULL);
     assert(vpd_data != NULL);
@@ -611,31 +607,28 @@ int _sg_parse_vpd_80(char *err_msg, uint8_t *vpd_data, uint8_t *serial_num,
         goto out;
     }
 
-    serial_num_len = be16toh(vpd80_header->page_len_be);
-    vpd80_len = serial_num_len + sizeof(struct _sg_t10_vpd83_header);
+    {
+        size_t parsed_serial_len = be16toh(vpd80_header->page_len_be);
+        size_t vpd80_total_len =
+            parsed_serial_len + sizeof(struct _sg_t10_vpd80_header);
 
-    end_p = vpd_data + vpd80_len - 1;
+        if (vpd80_total_len > _SG_T10_SPC_VPD_MAX_LEN) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(
+                err_msg,
+                "BUG: Got invalid VPD UNIT SN page response, "
+                "data length exceeded the maximum size of a legal VPD page");
+            goto out;
+        }
 
-    if (end_p >= vpd_data + _SG_T10_SPC_VPD_MAX_LEN) {
-        rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg,
-                         "BUG: Got invalid VPD UNIT SN page response, "
-                         "data length exceeded the maximum size of a legal VPD "
-                         "page");
-        goto out;
-    }
+        p = vpd_data + sizeof(struct _sg_t10_vpd80_header);
 
-    p = vpd_data + sizeof(struct _sg_t10_vpd83_header);
+        size_t copy_len = parsed_serial_len;
+        if (copy_len >= serial_num_max_len)
+            copy_len = serial_num_max_len - 1;
 
-    // add extra character to allow for terminating NULL
-    serial_num_len += 1;
-    len = snprintf((char *)serial_num, serial_num_len, "%s", (char *)p);
-
-    if ((uint16_t)len >= serial_num_len) {
-        memset(serial_num, 0, serial_num_max_len);
-        rc = LSM_ERR_LIB_BUG;
-        _lsm_err_msg_set(err_msg,
-                         "BUG: VPD UNIT SN was truncated when copied.");
+        memcpy(serial_num, p, copy_len);
+        serial_num[copy_len] = '\0';
     }
 
 out:
@@ -692,16 +685,25 @@ int _sg_parse_vpd_83(char *err_msg, uint8_t *vpd_data,
 
     /* First loop finds out how many IDs we have */
     while (p <= end_p) {
-        if (p + sizeof(struct _sg_t10_vpd83_dp_header) > end_p) {
+        size_t rem = (size_t)(end_p - p) + 1;
+        if (rem < sizeof(struct _sg_t10_vpd83_dp_header)) {
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg, "BUG: Illegal VPD 0x83 page data, "
                                       "got partial designation descriptor.");
             goto out;
         }
-        ++i;
 
         dp_header = (struct _sg_t10_vpd83_dp_header *)p;
 
+        if (rem < sizeof(struct _sg_t10_vpd83_dp_header) +
+                      dp_header->designator_len) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg, "BUG: Illegal VPD 0x83 page data, "
+                                      "designator length exceeds page data.");
+            goto out;
+        }
+
+        ++i;
         p += dp_header->designator_len + sizeof(struct _sg_t10_vpd83_dp_header);
         continue;
     }
@@ -793,7 +795,7 @@ static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
     struct _sg_t10_sense_header *sense_hdr = NULL;
     struct _sg_t10_sense_fixed *sense_fixed = NULL;
     struct _sg_t10_sense_dp *sense_dp = NULL;
-    uint8_t len = 0;
+    uint16_t len = 0;
     char sense_data_str[_T10_SPC_SENSE_DATA_STR_MAX_LENGTH];
     uint8_t i = 0;
     uint8_t asc = 0;
@@ -839,6 +841,9 @@ static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
      * CODE QUALIFIER which is quit a large work(19 pages of PDF):
      *  SPC-5 rev 07 Table 49 - ASC and ASCQ assignments
      */
+
+    if (len > _T10_SPC_SENSE_DATA_MAX_LENGTH)
+        len = _T10_SPC_SENSE_DATA_MAX_LENGTH;
 
     for (; i < len; ++i)
         snprintf(&sense_data_str[i * 2],
@@ -1113,6 +1118,18 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
                              block_dp_len);
             goto out;
         }
+        if (mode_data_len < sizeof(struct _sg_t10_mode_para_hdr) -
+                                sizeof(mode_hdr->mode_data_len_be) +
+                                block_dp_len) {
+            rc = LSM_ERR_LIB_BUG;
+            _lsm_err_msg_set(err_msg,
+                             "BUG: Got illegal SCSI mode page return: "
+                             "MODE DATA LENGTH %" PRIu16
+                             " too small for BLOCK DESCRIPTOR LENGTH %" PRIu16
+                             "\n",
+                             mode_data_len, block_dp_len);
+            goto out;
+        }
         memcpy(data,
                tmp_data + sizeof(struct _sg_t10_mode_para_hdr) + block_dp_len,
                sizeof(mode_hdr->mode_data_len_be) + mode_data_len -
@@ -1194,10 +1211,28 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
     sense_dp = (struct _sg_t10_sense_dp *)sense_data;
 
     tmp_p = &(sense_dp->sense_data_dp_list_begin);
-    end_p = tmp_p + sense_dp->len + 7;
-    /* ^ the ADDITIONAL SENSE LENGTH is the 7th byte */;
+    /* sense_dp->len is the ADDITIONAL SENSE LENGTH which is the number
+     * of sense data bytes that follow, starting at sense_data_dp_list_begin */
+    end_p = tmp_p + sense_dp->len;
+    /* Clamp to buffer boundary to avoid over-read from malformed data */
+    if (end_p > sense_data + _T10_SPC_SENSE_DATA_MAX_LENGTH) {
+        end_p = sense_data + _T10_SPC_SENSE_DATA_MAX_LENGTH;
+    }
     while (tmp_p < end_p) {
+        if ((size_t)(end_p - tmp_p) <
+            sizeof(struct _sg_t10_sense_data_dp_hdr)) {
+            rc = LSM_ERR_INVALID_ARGUMENT;
+            _lsm_err_msg_set(err_msg,
+                             "Got truncated SCSI SENSE descriptor header");
+            goto out;
+        }
         cur_dp = (struct _sg_t10_sense_data_dp_hdr *)tmp_p;
+
+        if (cur_dp->len == 0) {
+            rc = LSM_ERR_INVALID_ARGUMENT;
+            _lsm_err_msg_set(err_msg, "Got zero-length SCSI SENSE descriptor");
+            goto out;
+        }
 
         if (cur_dp->descriptor_code ==
             _T10_SAT_ATA_STATUS_RETURN_SENSE_DP_CODE) {
@@ -1210,6 +1245,13 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
                                  "but got %" PRIu8,
                                  _T10_SAT_ATA_STATUS_RETURN_SENSE_LEN,
                                  cur_dp->len);
+                goto out;
+            }
+            if ((size_t)(end_p - tmp_p) <
+                sizeof(struct _sg_t10_ata_status_sense_dp)) {
+                rc = LSM_ERR_INVALID_ARGUMENT;
+                _lsm_err_msg_set(err_msg,
+                                 "Got truncated ATA status SENSE descriptor");
                 goto out;
             }
             ata_dp = (struct _sg_t10_ata_status_sense_dp *)tmp_p;
@@ -1338,7 +1380,7 @@ int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data) {
         goto out;
     }
 
-    memcpy(returned_sense_data, sense_data, _T10_SPC_SENSE_DATA_MAX_LENGTH);
+    memcpy(returned_sense_data, request_sense, _T10_SPC_SENSE_DATA_MAX_LENGTH);
 
 out:
 

@@ -57,6 +57,8 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
                              lsm_hash_string_get(sim_p, "parent_pool_id"),
                              &sim_p_id),
               rc, out);
+        lsm_hash_free(sim_p);
+        sim_p = NULL;
         _good(_db_sim_pool_of_sim_id(err_msg, db, sim_p_id, &sim_p), rc, out);
     } else if (member_type != LSM_POOL_MEMBER_TYPE_DISK) {
         rc = LSM_ERR_PLUGIN_BUG;
@@ -81,8 +83,10 @@ int volume_raid_info(lsm_plugin_ptr c, lsm_volume *volume,
     if ((*raid_type == LSM_VOLUME_RAID_TYPE_RAID1) ||
         (*raid_type == LSM_VOLUME_RAID_TYPE_JBOD))
         *opt_io_size = _BLOCK_SIZE;
-    else
-        *opt_io_size = *strip_size * data_disk_count;
+    else {
+        uint64_t opt = (uint64_t)*strip_size * data_disk_count;
+        *opt_io_size = opt > UINT32_MAX ? UINT32_MAX : (uint32_t)opt;
+    }
 
 out:
     _db_sql_trans_rollback(db);
@@ -190,8 +194,10 @@ out:
             *raid_type = LSM_VOLUME_RAID_TYPE_UNKNOWN;
         if (member_type != NULL)
             *member_type = LSM_POOL_MEMBER_TYPE_UNKNOWN;
-        if (member_ids != NULL)
+        if (member_ids != NULL) {
+            lsm_string_list_free(*member_ids);
             *member_ids = NULL;
+        }
         lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;
@@ -331,9 +337,6 @@ out:
         if (new_volume != NULL)
             *new_volume = NULL;
         _db_sql_trans_rollback(db);
-        if (new_volume != NULL)
-            *new_volume = NULL;
-
         lsm_log_error_basic(c, rc, err_msg);
     }
     return rc;

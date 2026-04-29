@@ -49,17 +49,17 @@
  */
 
 #define _SD_PATH_FORMAT      "/dev/%s"
-#define _MAX_SD_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SD_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_VPD80_PATH_FORMAT      "/sys/block/%s/device/vpd_pg80"
-#define _MAX_SYSFS_VPD80_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SYSFS_VPD80_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_VPD83_PATH_FORMAT      "/sys/block/%s/device/vpd_pg83"
-#define _MAX_SYSFS_VPD83_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
+#define _MAX_SYSFS_VPD83_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
 
 #define _SYSFS_BLK_PATH_FORMAT      "/sys/block/%s"
-#define _MAX_SYSFS_BLK_PATH_STR_LEN 128 + _MAX_SD_NAME_STR_LEN
-#define _SYSFS_SAS_ADDR_LEN         _SG_T10_SPL_SAS_ADDR_LEN + 2
+#define _MAX_SYSFS_BLK_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
+#define _SYSFS_SAS_ADDR_LEN         (_SG_T10_SPL_SAS_ADDR_LEN + 2)
 /* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
  *   format is '0x<hex_addr>\0'
  */
@@ -1500,6 +1500,7 @@ int lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
 
     *handle = (lsm_led_handle *)calloc(1, sizeof(lsm_led_handle));
     if (!(*handle)) {
+        led_free(ctx);
         return LSM_ERR_NO_MEMORY;
     }
     (*handle)->magic = LSM_LED_HANDLE_MAGIC;
@@ -1554,6 +1555,8 @@ void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
         slot_itr->entry.slot = NULL;
         slot_itr->entry.magic = 0;
         led_slot_list_free(slot_itr->sl);
+        slot_itr->magic = 0;
+        free(slot_itr);
     }
 }
 
@@ -1614,6 +1617,7 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
         case (LED_IBPI_PATTERN_LOCATE_AND_FAILED_DRIVE): {
             translated =
                 (LSM_DISK_LED_STATUS_IDENT_ON | LSM_DISK_LED_STATUS_FAULT_ON);
+            break;
         }
         default:
             break;

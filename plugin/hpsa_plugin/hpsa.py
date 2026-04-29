@@ -51,7 +51,7 @@ def _sysfs_file_read(path):
     try:
         with open(path) as f:
             return f.read().strip()
-    except:
+    except Exception:
         return None
 
 
@@ -732,11 +732,9 @@ class SmartArray(IPlugin):
         disk_name = "%s %s" % (hp_disk.get('Model',
                                            NOT_AVAILABLE_MESSAGE), disk_num)
         disk_type = _disk_type_of(hp_disk)
-        try:
-            blk_size_str = hp_disk.get('Native Block Size', '0')
-        except KeyError:
-            blk_size_str = hp_disk.get('Logical/Physical Block Size',
-                                       '0/0').split("/")[0]
+        blk_size_str = hp_disk.get(
+            'Native Block Size',
+            hp_disk.get('Logical/Physical Block Size', '0/0').split("/")[0])
         blk_size = int(blk_size_str)
         disk_size = hp_disk.get('Size', None)
 
@@ -886,7 +884,7 @@ class SmartArray(IPlugin):
         if not pool.plugin_data:
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Illegal input volume argument: missing plugin_data property")
+                "Illegal input pool argument: missing plugin_data property")
 
         (ctrl_num, array_num) = pool.plugin_data.split(":")
         ctrl_data = next(
@@ -1368,7 +1366,7 @@ class SmartArray(IPlugin):
                             Volume.WRITE_CACHE_STATUS_WRITE_BACK
                     else:
                         write_cache_status = \
-                            Volume.WRITE_CACHE_POLICY_WRITE_THROUGH
+                            Volume.WRITE_CACHE_STATUS_WRITE_THROUGH
                 else:
                     read_cache_status = Volume.READ_CACHE_STATUS_DISABLED
                     write_cache_status = \
@@ -1376,7 +1374,7 @@ class SmartArray(IPlugin):
         else:
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
-                "Unknown 'Caching' property of logical volume %d" % ld_num)
+                "Unknown 'Caching' property of logical volume %s" % ld_num)
 
         if ctrl_data['Drive Write Cache'] == 'Disabled':
             phy_disk_cache = Volume.PHYSICAL_DISK_CACHE_DISABLED
@@ -1386,7 +1384,7 @@ class SmartArray(IPlugin):
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
                 "Unknown 'Drive Write Cache' property of "
-                "logical volume %d" % ld_num)
+                "logical volume %s" % ld_num)
 
         return [
             write_cache_policy, write_cache_status, read_cache_policy,

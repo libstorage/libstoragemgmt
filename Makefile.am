@@ -16,8 +16,8 @@ SUBDIRS= c_binding python_binding plugin doc tools daemon packaging config test
 EXTRA_DIST = \
 	libstoragemgmt.pc.in \
 	libstoragemgmt.pc \
-	autogen.sh
-	test/runtest.sh
+	autogen.sh \
+	test/runtests.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libstoragemgmt.pc

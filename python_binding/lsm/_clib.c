@@ -63,8 +63,9 @@
         rc_obj = py_rt_conv_func(c_rt);                                        \
         _alloc_check(rc_obj, flag_no_mem, out);                                \
         if (rc != LSM_ERR_OK) {                                                \
-            err_msg_obj =                                                      \
-                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            const char *_msg =                                                 \
+                lsm_err ? lsm_error_message_get(lsm_err) : NULL;               \
+            err_msg_obj = PyUnicode_FromString(_msg ? _msg : "");              \
             lsm_error_free(lsm_err);                                           \
             lsm_err = NULL;                                                    \
             _alloc_check(err_msg_obj, flag_no_mem, out);                       \
@@ -100,23 +101,25 @@
         lsm_error *lsm_err = NULL;                                             \
         int rc = LSM_ERR_OK;                                                   \
         PyObject *rc_list = NULL;                                              \
-        PyObject *rc_obj = Py_None;                                            \
+        PyObject *rc_obj = NULL;                                               \
         PyObject *err_msg_obj = NULL;                                          \
         PyObject *err_no_obj = NULL;                                           \
         bool flag_no_mem = false;                                              \
         _UNUSED(self);                                                         \
-        _alloc_check(rc_obj, flag_no_mem, out);                                \
         if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", (char **)kwlist,   \
-                                         &disk_path))                          \
+                                         &arg))                                \
             return NULL;                                                       \
+        Py_INCREF(Py_None);                                                    \
+        rc_obj = Py_None;                                                      \
         rc = c_func_name(arg, &lsm_err);                                       \
         err_no_obj = PyInt_FromLong(rc);                                       \
         _alloc_check(err_no_obj, flag_no_mem, out);                            \
         rc_list = PyList_New(3 /* rc_obj, errno, err_str*/);                   \
         _alloc_check(rc_list, flag_no_mem, out);                               \
         if (rc != LSM_ERR_OK) {                                                \
-            err_msg_obj =                                                      \
-                PyUnicode_FromString(lsm_error_message_get(lsm_err));          \
+            const char *_msg =                                                 \
+                lsm_err ? lsm_error_message_get(lsm_err) : NULL;               \
+            err_msg_obj = PyUnicode_FromString(_msg ? _msg : "");              \
             lsm_error_free(lsm_err);                                           \
             lsm_err = NULL;                                                    \
             _alloc_check(err_msg_obj, flag_no_mem, out);                       \
@@ -578,8 +581,6 @@ static PyMethodDef _methods[] = {
      METH_VARARGS | METH_KEYWORDS, led_slot_status_get_docstring},
     {"_local_led_slot_status_set", (PyCFunction)led_slot_status_set,
      METH_VARARGS | METH_KEYWORDS, led_slot_status_set_docstring},
-    {"_local_led_slot_status_get", (PyCFunction)led_slot_status_get,
-     METH_VARARGS | METH_KEYWORDS, led_slot_iterator_next_docstring},
     {"_local_led_slot_id", (PyCFunction)led_slot_id,
      METH_VARARGS | METH_KEYWORDS, led_slot_id_docstring},
     {"_local_led_slot_device", (PyCFunction)led_slot_device,
@@ -672,7 +673,8 @@ static PyObject *local_disk_list(PyObject *self, PyObject *args,
     rc_obj = _lsm_string_list_to_pylist(disk_paths);
     _alloc_check(rc_obj, flag_no_mem, out);
     if (rc != LSM_ERR_OK) {
-        err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
+        const char *_msg = lsm_err ? lsm_error_message_get(lsm_err) : NULL;
+        err_msg_obj = PyUnicode_FromString(_msg ? _msg : "");
         lsm_error_free(lsm_err);
         lsm_err = NULL;
         _alloc_check(err_msg_obj, flag_no_mem, out);
@@ -730,7 +732,7 @@ static bool get_handle_and_itr(PyObject *args, lsm_led_handle **handle,
     }
 
     t_itr = PyLong_AsVoidPtr(itr_addr);
-    if (!itr || PyErr_Occurred()) {
+    if (!t_itr || PyErr_Occurred()) {
         return false;
     }
 
@@ -827,6 +829,8 @@ static PyObject *led_slot_iterator_get(PyObject *self, PyObject *args,
     _alloc_check(rc_list, flag_no_mem, out);
 
     if (rc != LSM_ERR_OK) {
+        Py_INCREF(Py_None);
+        rc_obj = Py_None;
         if (lsm_err) {
             err_msg_obj = PyUnicode_FromString(lsm_error_message_get(lsm_err));
             lsm_error_free(lsm_err);
@@ -1012,6 +1016,7 @@ out:
         return PyErr_NoMemory();
     }
 
+    Py_INCREF(Py_None);
     PyList_SET_ITEM(rc_list, 0, Py_None);
     PyList_SET_ITEM(rc_list, 1, err_no_obj);
     PyList_SET_ITEM(rc_list, 2, err_msg_obj);
@@ -1053,7 +1058,7 @@ out:
 static PyObject *led_slot_device(PyObject *self, PyObject *args,
                                  PyObject *kwargs) {
 
-    PyObject *rc_obj = Py_None;
+    PyObject *rc_obj = NULL;
     lsm_led_slot *slot = NULL;
     bool flag_no_mem = false;
     const char *device_node = NULL;
@@ -1068,6 +1073,9 @@ static PyObject *led_slot_device(PyObject *self, PyObject *args,
     device_node = lsm_led_slot_device(slot);
     if (device_node) {
         rc_obj = PyUnicode_FromString(device_node);
+    } else {
+        Py_INCREF(Py_None);
+        rc_obj = Py_None;
     }
 
     _alloc_check(rc_obj, flag_no_mem, out);

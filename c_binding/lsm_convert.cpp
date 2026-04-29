@@ -774,8 +774,7 @@ lsm_battery *value_to_battery(Value &battery) {
         rc = lsm_battery_record_alloc(
             b["id"].asString().c_str(), b["name"].asString().c_str(),
             (lsm_battery_type)b["type"].asInt32_t(), b["status"].asUint64_t(),
-            b["system_id"].asString().c_str(),
-            b["plugin_data"].asString().c_str());
+            b["system_id"].asString().c_str(), b["plugin_data"].asC_str());
     } else {
         throw ValueException("value_to_battery: Not correct type");
     }

@@ -176,7 +176,7 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
 
     _UNUSED(flags);
     _lsm_err_msg_clear(err_msg);
-    _good(_check_null_ptr(err_msg, 5 /* argument count */, volume,
+    _good(_check_null_ptr(err_msg, 6 /* argument count */, volume,
                           write_cache_policy, write_cache_status,
                           read_cache_policy, read_cache_status,
                           physical_disk_cache),
@@ -240,7 +240,7 @@ int volume_cache_info(lsm_plugin_ptr c, lsm_volume *volume,
         *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_ENABLED;
         break;
     case LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN:
-        *read_cache_status = LSM_VOLUME_READ_CACHE_POLICY_UNKNOWN;
+        *read_cache_status = LSM_VOLUME_READ_CACHE_STATUS_UNKNOWN;
         break;
     default:
         rc = LSM_ERR_PLUGIN_BUG;

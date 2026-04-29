@@ -62,8 +62,8 @@ char plugin_extension[] = "_lsmplugin";
 
 char plugin_conf_extension[] = ".conf";
 
-typedef enum { RUNNING, RESTART, EXIT } serve_type;
-serve_type serve_state = RUNNING;
+enum { SERVE_RUNNING, SERVE_RESTART, SERVE_EXIT };
+volatile sig_atomic_t serve_state = SERVE_RUNNING;
 
 int plugin_mem_debug = 0;
 
@@ -101,11 +101,7 @@ void logger(int severity, const char *fmt, ...) {
         va_end(arg);
 
         if (!systemd) {
-            if (verbose_flag) {
-                syslog(LOG_ERR, "%s", buf);
-            } else {
-                syslog(severity, "%s", buf);
-            }
+            syslog(severity, "%s", buf);
         } else {
             fprintf(stdout, "%s", buf);
             fflush(stdout);
@@ -127,9 +123,9 @@ void logger(int severity, const char *fmt, ...) {
  */
 void signal_handler(int s) {
     if (SIGTERM == s) {
-        serve_state = EXIT;
+        serve_state = SERVE_EXIT;
     } else if (SIGHUP == s) {
-        serve_state = RESTART;
+        serve_state = SERVE_RESTART;
     }
 }
 
@@ -606,6 +602,7 @@ void clean_up(void) {
  */
 int process_plugins(void) {
     clean_up();
+    has_root_plugin = 0;
     info("Scanning plug-in directory %s\n", plugin_dir);
     process_directory(plugin_dir, &head, process_plugin);
     if (allow_root_plugin == 1 && has_root_plugin == 0) {
@@ -644,7 +641,13 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
     info("Exec'ing plug-in = %s\n", plugin);
 
     pid_t process = fork();
-    if (process) {
+    if (process < 0) {
+        /* Fork failed */
+        err = errno;
+        info("Error on fork: %s\n", strerror(err));
+        close(client_fd);
+        return;
+    } else if (process > 0) {
         /* Parent */
         int rc = close(client_fd);
         if (-1 == rc) {
@@ -707,7 +710,7 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
         char *p_copy = strdup(plugin);
 
         empty_plugin_list(&head);
-        sprintf(fd_str, "%d", client_fd);
+        snprintf(fd_str, sizeof(fd_str), "%d", client_fd);
 
         if (plugin_mem_debug) {
             char debug_out[64];
@@ -755,7 +758,7 @@ void _serving(void) {
 
     process_plugins();
 
-    while (serve_state == RUNNING) {
+    while (serve_state == SERVE_RUNNING) {
         FD_ZERO(&readfds);
         nfds = 0;
 
@@ -763,6 +766,10 @@ void _serving(void) {
         tmo.tv_usec = 0;
 
         LIST_FOREACH(plug, &head, pointers) {
+            if (plug->fd >= FD_SETSIZE) {
+                log_and_exit("File descriptor %d exceeds FD_SETSIZE (%d)\n",
+                             plug->fd, FD_SETSIZE);
+            }
             nfds = max(plug->fd, nfds);
             FD_SET(plug->fd, &readfds);
         }
@@ -775,8 +782,10 @@ void _serving(void) {
         int ready = select(nfds, &readfds, NULL, NULL, &tmo);
 
         if (-1 == ready) {
-            if (serve_state != RUNNING) {
+            if (serve_state != SERVE_RUNNING) {
                 return;
+            } else if (errno == EINTR) {
+                continue;
             } else {
                 err = errno;
                 log_and_exit("Error on selecting Plugin: %s", strerror(err));
@@ -788,7 +797,12 @@ void _serving(void) {
                     int cfd = accept(fd, NULL, NULL);
                     if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
-                        exec_plugin(p->file_path, cfd, p->require_root);
+                        if (p != NULL) {
+                            exec_plugin(p->file_path, cfd, p->require_root);
+                        } else {
+                            info("plugin_lookup failed for fd %d", fd);
+                            close(cfd);
+                        }
                     } else {
                         err = errno;
                         info("Error on accepting request: %s", strerror(err));
@@ -805,10 +819,10 @@ void _serving(void) {
  * Main entry for daemon to work
  */
 void serve(void) {
-    while (serve_state != EXIT) {
-        if (serve_state == RESTART) {
+    while (serve_state != SERVE_EXIT) {
+        if (serve_state == SERVE_RESTART) {
             info("Reloading plug-ins\n");
-            serve_state = RUNNING;
+            serve_state = SERVE_RUNNING;
         }
         _serving();
     }

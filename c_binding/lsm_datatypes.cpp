@@ -690,13 +690,15 @@ lsm_system *lsm_system_record_copy(lsm_system *s) {
     if (LSM_IS_SYSTEM(s)) {
         rc = lsm_system_record_alloc(s->id, s->name, s->status, s->status_info,
                                      s->plugin_data);
-        rc->mode = s->mode;
-        rc->read_cache_pct = s->read_cache_pct;
+        if (rc != NULL) {
+            rc->mode = s->mode;
+            rc->read_cache_pct = s->read_cache_pct;
 
-        if ((s->fw_version != NULL) &&
-            (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
-            lsm_system_record_free(rc);
-            rc = NULL;
+            if ((s->fw_version != NULL) &&
+                (lsm_system_fw_version_set(rc, s->fw_version) != LSM_ERR_OK)) {
+                lsm_system_record_free(rc);
+                rc = NULL;
+            }
         }
     }
     return rc;
@@ -1262,10 +1264,10 @@ lsm_nfs_export *lsm_nfs_export_record_alloc(
                 rc->plugin_data = strdup(plugin_data);
             }
 
-            if (!rc->id || !rc->fs_id || (export_path && !rc->export_path) ||
-                (auth && !rc->auth_type) || (root && !rc->root) ||
-                (rw && !rc->read_write) || (ro && !rc->read_only) ||
-                (options && !rc->options) ||
+            if ((id && !rc->id) || !rc->fs_id ||
+                (export_path && !rc->export_path) || (auth && !rc->auth_type) ||
+                (root && !rc->root) || (rw && !rc->read_write) ||
+                (ro && !rc->read_only) || (options && !rc->options) ||
                 (plugin_data && !rc->plugin_data)) {
                 lsm_nfs_export_record_free(rc);
                 rc = NULL;

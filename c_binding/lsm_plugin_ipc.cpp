@@ -24,6 +24,8 @@
 #include "lsm_ipc.hpp"
 #include "uri_parser.hpp"
 #include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
 
@@ -263,13 +265,16 @@ static int get_search_params(Value &params, char **k, char **v) {
  * @return true if sn is an integer, else false
  */
 static bool get_num(char *sn, int &num) {
+    char *endptr = NULL;
     errno = 0;
 
-    num = strtol(sn, NULL, 10);
-    if (!errno) {
-        return true;
+    long val = strtol(sn, &endptr, 10);
+    if (errno || endptr == sn || *endptr != '\0' || val < INT_MIN ||
+        val > INT_MAX) {
+        return false;
     }
-    return false;
+    num = (int)val;
+    return true;
 }
 
 int lsm_plugin_init_v1(int argc, char *argv[], lsm_plugin_register reg,
@@ -394,10 +399,8 @@ static int handle_job_status(lsm_plugin_ptr p, Value &params, Value &response) {
 
     if (p && p->mgmt_ops && p->mgmt_ops->job_status) {
 
-        if (Value::string_t != params["job_id"].valueType() &&
-            !LSM_FLAG_EXPECTED_TYPE(params)) {
-            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
-        } else {
+        if (Value::string_t == params["job_id"].valueType() &&
+            LSM_FLAG_EXPECTED_TYPE(params)) {
 
             job_id = params["job_id"].asString();
 
@@ -436,6 +439,8 @@ static int handle_job_status(lsm_plugin_ptr p, Value &params, Value &response) {
                 }
                 response = Value(result);
             }
+        } else {
+            rc = LSM_ERR_TRANSPORT_INVALID_ARG;
         }
     }
     return rc;
@@ -1842,11 +1847,11 @@ static int ss_list(lsm_plugin_ptr p, Value &params, Value &response) {
                     }
                     response = Value(result);
 
-                    lsm_fs_record_free(fs);
-                    fs = NULL;
                     lsm_fs_ss_record_array_free(ss, count);
                     ss = NULL;
                 }
+                lsm_fs_record_free(fs);
+                fs = NULL;
             }
 
         } else {
@@ -2290,15 +2295,17 @@ static int handle_volume_ident_led_on(lsm_plugin_ptr p, Value &params,
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_on) {
         Value v_vol = params["volume"];
 
-        if (Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_on(p, volume,
-                                           LSM_FLAG_GET_VALUE(params));
-
-            lsm_volume_record_free(volume);
+            if (volume) {
+                rc = p->ops_v1_3->vol_ident_on(p, volume,
+                                               LSM_FLAG_GET_VALUE(params));
+                lsm_volume_record_free(volume);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -2314,15 +2321,17 @@ static int handle_volume_ident_led_off(lsm_plugin_ptr p, Value &params,
     if (p && p->ops_v1_3 && p->ops_v1_3->vol_ident_off) {
         Value v_vol = params["volume"];
 
-        if (Value::object_t == v_vol.valueType() &&
-            LSM_FLAG_EXPECTED_TYPE(params)) {
+        if (IS_CLASS_VOLUME(v_vol) && LSM_FLAG_EXPECTED_TYPE(params)) {
 
             lsm_volume *volume = value_to_volume(v_vol);
 
-            rc = p->ops_v1_3->vol_ident_off(p, volume,
-                                            LSM_FLAG_GET_VALUE(params));
-
-            lsm_volume_record_free(volume);
+            if (volume) {
+                rc = p->ops_v1_3->vol_ident_off(p, volume,
+                                                LSM_FLAG_GET_VALUE(params));
+                lsm_volume_record_free(volume);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;
@@ -2346,10 +2355,13 @@ static int handle_system_read_cache_pct_update(lsm_plugin_ptr p, Value &params,
             lsm_system *system = value_to_system(v_sys);
             uint32_t read_pct = v_read_pct.asUint32_t();
 
-            rc = p->ops_v1_3->sys_read_cache_pct_update(
-                p, system, read_pct, LSM_FLAG_GET_VALUE(params));
-
-            lsm_system_record_free(system);
+            if (system) {
+                rc = p->ops_v1_3->sys_read_cache_pct_update(
+                    p, system, read_pct, LSM_FLAG_GET_VALUE(params));
+                lsm_system_record_free(system);
+            } else {
+                rc = LSM_ERR_NO_MEMORY;
+            }
 
         } else {
             rc = LSM_ERR_TRANSPORT_INVALID_ARG;

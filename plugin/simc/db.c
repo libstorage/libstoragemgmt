@@ -114,11 +114,9 @@ static int _db_version_check(sqlite3 *db) {
     const char *version = NULL;
     char err_msg[_LSM_ERR_MSG_LEN];
 
-    /* We ignore the failure of below command, assigning to rc just to pass
-     * convscan */
     rc = _db_sql_exec(err_msg, db, "SELECT * from systems;", &vec);
 
-    if (_vector_size(vec) == 0) {
+    if (vec == NULL || _vector_size(vec) == 0) {
         rc = _DB_VERSION_CHECK_EMPTY;
         goto out;
     }
@@ -224,7 +222,7 @@ static int _db_data_init(char *err_msg, sqlite3 *db) {
             ssd_pool_disks[i] = _db_last_rowid(db);
         }
     }
-    /* Add 7 SAS SSD disks(2TiB) */
+    /* Add 5 SAS SSD disks(2TiB) */
     _snprintf_buff(err_msg, rc, out, disk_type_str, "%d", LSM_DISK_TYPE_SSD);
     _snprintf_buff(err_msg, rc, out, disk_link_type_str, "%d",
                    LSM_DISK_LINK_TYPE_SAS);
@@ -593,8 +591,9 @@ int _db_init(char *err_msg, sqlite3 **db, const char *db_file,
 out:
     if (rc != LSM_ERR_OK) {
         if (*db != NULL) {
-            sqlite3_close(*db);
             _db_sql_trans_rollback(*db);
+            sqlite3_close(*db);
+            *db = NULL;
         }
     }
 
@@ -679,7 +678,7 @@ void _db_sql_trans_rollback(sqlite3 *db) {
 }
 
 static void remove_trail_sep(int items_printed, char *s) {
-    int nul_pos = items_printed - strlen(", ") + 1;
+    int nul_pos = items_printed - (int)strlen(", ");
     if (nul_pos >= 0 && nul_pos < _BUFF_SIZE) {
         s[nul_pos] = '\0';
     } else {
@@ -709,13 +708,11 @@ int _db_data_add(char *err_msg, sqlite3 *db, const char *table_name, ...) {
 
     while ((key_str != NULL) && (value_str != NULL)) {
         keys_printed += snprintf(keys_str + keys_printed,
-                                 _BUFF_SIZE - keys_printed, "'%s', ", key_str) -
-                        1;
+                                 _BUFF_SIZE - keys_printed, "'%s', ", key_str);
         values_printed +=
             snprintf(values_str + values_printed, _BUFF_SIZE - values_printed,
-                     "'%s', ", value_str) -
-            1;
-        if ((_BUFF_SIZE == keys_printed) || (_BUFF_SIZE == values_printed)) {
+                     "'%s', ", value_str);
+        if ((_BUFF_SIZE <= keys_printed) || (_BUFF_SIZE <= values_printed)) {
             va_end(arg);
             rc = LSM_ERR_PLUGIN_BUG;
             _lsm_err_msg_set(err_msg, "Buff too small");
@@ -751,13 +748,13 @@ int _db_data_update(char *err_msg, sqlite3 *db, const char *table_name,
         if (snprintf(sql_cmd, _BUFF_SIZE,
                      "UPDATE %s SET %s=NULL "
                      "WHERE id='%" PRIu64 "';",
-                     table_name, key, data_id) == _BUFF_SIZE)
+                     table_name, key, data_id) >= _BUFF_SIZE)
             goto buff_too_small;
     } else {
         if (snprintf(sql_cmd, _BUFF_SIZE,
                      "UPDATE %s SET %s='%s' "
                      "WHERE id='%" PRIu64 "';",
-                     table_name, key, value, data_id) == _BUFF_SIZE)
+                     table_name, key, value, data_id) >= _BUFF_SIZE)
             goto buff_too_small;
     }
 
@@ -773,7 +770,7 @@ int _db_data_delete(char *err_msg, sqlite3 *db, const char *table_name,
     char sql_cmd[_BUFF_SIZE];
 
     if (snprintf(sql_cmd, _BUFF_SIZE, "DELETE FROM %s WHERE id=%" PRIu64 ";",
-                 table_name, data_id) == _BUFF_SIZE) {
+                 table_name, data_id) >= _BUFF_SIZE) {
         _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
         return LSM_ERR_PLUGIN_BUG;
     }
@@ -787,7 +784,7 @@ int _db_data_delete_condition(char *err_msg, sqlite3 *db,
     char sql_cmd[_BUFF_SIZE];
 
     if (snprintf(sql_cmd, _BUFF_SIZE, "DELETE FROM %s WHERE %s;", table_name,
-                 condition) == _BUFF_SIZE) {
+                 condition) >= _BUFF_SIZE) {
         _lsm_err_msg_set(err_msg, "BUG: _db_data_add(): Buff too small");
         return LSM_ERR_PLUGIN_BUG;
     }
@@ -855,10 +852,11 @@ lsm_string_list *_db_str_to_list(const char *list_str) {
 
     assert(list_str != NULL);
 
-    if (strlen(list_str) > _BUFF_SIZE)
+    if (strlen(list_str) >= _BUFF_SIZE)
         return NULL;
 
     strncpy(tmp_str, list_str, _BUFF_SIZE - 1);
+    tmp_str[_BUFF_SIZE - 1] = '\0';
 
     rc_list = lsm_string_list_alloc(0 /* no preallocation */);
     if (rc_list == NULL)
@@ -902,6 +900,11 @@ static int _db_sim_xxx_of_sim_id(char *err_msg, sqlite3 *db,
     if (_vector_size(vec) == 1) {
         *sim_xxx = _vector_get(vec, 0);
         *sim_xxx = lsm_hash_copy(*sim_xxx);
+        if (*sim_xxx == NULL) {
+            rc = LSM_ERR_NO_MEMORY;
+            _lsm_err_msg_set(err_msg, "No memory for lsm_hash_copy");
+            goto out;
+        }
     } else if (_vector_size(vec) == 0) {
         rc = not_found_err;
         _lsm_err_msg_set(err_msg, "%s", not_found_err_str);
@@ -909,7 +912,7 @@ static int _db_sim_xxx_of_sim_id(char *err_msg, sqlite3 *db,
     } else {
         rc = LSM_ERR_PLUGIN_BUG;
         _lsm_err_msg_set(err_msg,
-                         "Got more than 1 data with id %" PRIu64 "in table %s",
+                         "Got more than 1 data with id %" PRIu64 " in table %s",
                          sim_id, table_name);
         goto out;
     }

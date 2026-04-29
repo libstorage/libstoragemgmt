@@ -48,6 +48,10 @@ static const char *const TARGET_PORT_SEARCH_KEYS[] = {"id", "system_id"};
 
 #define TARGET_PORT_SEARCH_KEYS_COUNT COUNT_OF(TARGET_PORT_SEARCH_KEYS)
 
+static const char *const BATTERY_SEARCH_KEYS[] = {"id", "system_id"};
+
+#define BATTERY_SEARCH_KEYS_COUNT COUNT_OF(BATTERY_SEARCH_KEYS)
+
 static int get_battery_array(lsm_connect *c, int rc, Value &response,
                              lsm_battery **bs[], uint32_t *count);
 
@@ -124,8 +128,9 @@ int lsm_volume_vpd83_verify(const char *vpd83) {
             (vpd83_len == 16 && vpd83[0] == '5')) {
             for (i = 0; i < vpd83_len; ++i) {
                 char v = vpd83[i];
-                //  0-9 || a-f is OK
-                if (!((v >= 48 && v <= 57) || (v >= 97 && v <= 102))) {
+                //  0-9 || a-f || A-F is OK
+                if (!((v >= 48 && v <= 57) || (v >= 97 && v <= 102) ||
+                      (v >= 65 && v <= 70))) {
                     return rc;
                 }
             }
@@ -635,6 +640,8 @@ int lsm_job_status_fs_get(lsm_connect *c, const char *job,
     int rc = LSM_ERR_OK;
     Value rv;
 
+    CONN_SETUP(c);
+
     if (CHECK_RP(fs) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -665,6 +672,8 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
     int rc = LSM_ERR_OK;
     Value rv;
 
+    CONN_SETUP(c);
+
     if (CHECK_RP(ss) || LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
@@ -692,7 +701,8 @@ int lsm_job_status_ss_get(lsm_connect *c, const char *job,
 int lsm_job_free(lsm_connect *c, char **job, lsm_flag flags) {
     CONN_SETUP(c);
 
-    if (job == NULL || strlen(*job) < 1 || LSM_FLAG_UNUSED_CHECK(flags)) {
+    if (job == NULL || *job == NULL || strlen(*job) < 1 ||
+        LSM_FLAG_UNUSED_CHECK(flags)) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
 
@@ -1077,6 +1087,9 @@ int lsm_volume_resize(lsm_connect *c, lsm_volume *volume, uint64_t newSize,
 
     if (!LSM_IS_VOL(volume) || !newSize || CHECK_RP(resizedVolume) ||
         CHECK_RP(job) || newSize == 0 || LSM_FLAG_UNUSED_CHECK(flags)) {
+        return LSM_ERR_INVALID_ARGUMENT;
+    }
+    if (volume->block_size == 0) {
         return LSM_ERR_INVALID_ARGUMENT;
     }
     // If you try to resize to same size, we will return error.
@@ -2293,6 +2306,9 @@ int lsm_volume_raid_create_cap_get(lsm_connect *c, lsm_system *system,
     }
 
     *supported_raid_types = NULL;
+    *supported_raid_type_count = 0;
+    *supported_strip_sizes = NULL;
+    *supported_strip_size_count = 0;
 
     std::map<std::string, Value> p;
     p["system"] = system_to_value(system);
@@ -2302,6 +2318,9 @@ int lsm_volume_raid_create_cap_get(lsm_connect *c, lsm_system *system,
     Value response;
 
     int rc = rpc(c, "volume_raid_create_cap_get", parameters, response);
+    if (rc != LSM_ERR_OK) {
+        return rc;
+    }
     try {
         std::vector<Value> j = response.asArray();
 
@@ -2356,28 +2375,25 @@ int lsm_volume_raid_create(lsm_connect *c, const char *name,
 
     if (raid_type == LSM_VOLUME_RAID_TYPE_RAID6 && disk_count < 4) {
         return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                             "RAID 5 require 4 or more disks", NULL);
+                             "RAID 6 require 4 or more disks", NULL);
     }
 
-    if (disk_count % 2) {
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID10 && disk_count < 4) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 10 require even disks count and 4 "
-                                 "or more disks",
-                                 NULL);
-        }
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID50 && disk_count < 6) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 50 require even disks count and 6 or "
-                                 "more disks",
-                                 NULL);
-        }
-        if (raid_type == LSM_VOLUME_RAID_TYPE_RAID60 && disk_count < 8) {
-            return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
-                                 "RAID 60 require even disks count and 8 or "
-                                 "more disks",
-                                 NULL);
-        }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID10 &&
+        (disk_count % 2 || disk_count < 4)) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 10 require even disks count and 4 "
+                             "or more disks",
+                             NULL);
+    }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID50 && disk_count < 6) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 50 requires 6 or more disks",
+                             NULL);
+    }
+    if (raid_type == LSM_VOLUME_RAID_TYPE_RAID60 && disk_count < 8) {
+        return log_exception(c, LSM_ERR_INVALID_ARGUMENT,
+                             "RAID 60 requires 8 or more disks",
+                             NULL);
     }
 
     if (CHECK_RP(new_volume)) {
@@ -2501,8 +2517,8 @@ int lsm_battery_list(lsm_connect *c, const char *search_key,
     std::map<std::string, Value> p;
     p["flags"] = Value(flags);
 
-    int rc = add_search_params(p, search_key, search_value, DISK_SEARCH_KEYS,
-                               DISK_SEARCH_KEYS_COUNT);
+    int rc = add_search_params(p, search_key, search_value, BATTERY_SEARCH_KEYS,
+                               BATTERY_SEARCH_KEYS_COUNT);
     if (LSM_ERR_OK != rc) {
         return rc;
     }

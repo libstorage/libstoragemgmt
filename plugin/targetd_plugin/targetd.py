@@ -7,7 +7,6 @@
 
 import copy
 import json
-import time
 import socket
 import re
 import base64
@@ -727,7 +726,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
             "fs_create",
             dict(pool_name=pool.id, name=name, size_bytes=size_bytes))
 
-        return None, self._get_fs(pool.name, name)
+        return None, self._get_fs(pool.id, name)
 
     @handle_errors
     def fs_clone(self, src_fs, dest_fs_name, snapshot=None, flags=0):
@@ -1021,15 +1020,12 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     self._default_error_handler(rc, msg)
 
                 raise TargetdError(rc, msg)
-            else:  # +code is async execution id
-                # Async completion, polling for results
-                async_code = response['error']['code']
-                while True:
-                    time.sleep(1)
-                    results = self._jsonrequest('async_list')
-                    status = results.get(str(async_code), None)
-                    if status:
-                        if status[0]:
-                            raise LsmError(
-                                ErrorNumber.PLUGIN_BUG,
-                                "%d has error %d" % (async_code, status[0]))
+            else:
+                # Positive error code - async support was removed from targetd in 2013
+                # This should never happen with current targetd versions
+                err_code = response.get("error", {}).get("code", "unknown")
+                err_msg = response.get("error", {}).get("message", "unknown")
+                raise LsmError(
+                    ErrorNumber.PLUGIN_BUG,
+                    "Unexpected positive error code from targetd (async no longer supported). "
+                    "code: %s, message: %s" % (err_code, err_msg))

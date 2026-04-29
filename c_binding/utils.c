@@ -111,7 +111,6 @@ int _read_file(const char *path, uint8_t *buff, ssize_t *size,
 
 char *_trim_spaces(char *beginning) {
     size_t len = 0;
-    unsigned int leading_space_count = 0;
     char *end;
 
     assert(beginning != NULL);
@@ -121,16 +120,15 @@ char *_trim_spaces(char *beginning) {
     if (!len)
         return NULL;
 
+    end = beginning + len - 1;
+
     while (*beginning == ' ') {
         beginning++;
-        leading_space_count++;
     }
 
     /* The string is composed entirely of spaces */
-    if (leading_space_count >= len)
+    if (*beginning == '\0')
         return NULL;
-
-    end = beginning + len - 1;
 
     while (*end == ' ') {
         *end = '\0';
@@ -156,6 +154,7 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
 
     *link_speed = LSM_DISK_LINK_SPEED_UNKNOWN;
 
+    /* Note: _read_file ensures the buffer is nul terminated */
     file_rc = _read_file(sysfs_path, buff, &file_size,
                          _SYSFS_HOST_SPEED_PATH_STR_MAX_LEN);
     if (file_rc == ENOENT) {
@@ -172,8 +171,10 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
         goto out;
     }
 
-    /* Remove the trailing \n */
-    buff[file_size - 1] = '\0';
+    /* Remove the trailing \n if it exists! */
+    if (file_size > 0 && buff[file_size - 1] == '\n') {
+        buff[file_size - 1] = '\0';
+    }
 
     if (strcmp((char *)buff, "Unknown") == 0)
         goto out;
@@ -193,8 +194,10 @@ int _sysfs_host_speed_get(char *err_msg, const char *sysfs_path,
         goto out;
     }
 
-    speed_raw = strtol(num_str, NULL /* end ptr */, 10 /* Base 10 */);
-    if ((speed_raw < 0) || (speed_raw >= INT_MAX)) {
+    char *endptr = NULL;
+    speed_raw = strtol(num_str, &endptr, 10 /* Base 10 */);
+    if ((speed_raw < 0) || (speed_raw >= INT_MAX) || endptr == num_str ||
+        *endptr != '\0') {
         rc = LSM_ERR_LIB_BUG;
         _lsm_err_msg_set(err_msg,
                          "BUG: _sysfs_host_speed_get(): Invalid "

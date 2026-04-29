@@ -293,6 +293,7 @@ int fs_child_dependency(lsm_plugin_ptr c, lsm_fs *fs, lsm_string_list *files,
     _lsm_err_msg_clear(err_msg);
 
     _good(_check_null_ptr(err_msg, 2 /* argument count */, fs, yes), rc, out);
+    *yes = 0;
 
     _good(_get_db_from_plugin_ptr(err_msg, c, &db), rc, out);
 
@@ -627,6 +628,7 @@ out:
         lsm_hash_free(sim_fs);
 
     if (rc != LSM_ERR_OK) {
+        _db_sql_trans_rollback(db);
         lsm_log_error_basic(c, rc, err_msg);
     } else {
         rc = LSM_ERR_JOB_STARTED;

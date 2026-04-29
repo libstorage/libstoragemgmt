@@ -6,6 +6,7 @@
 # Author: Tony Asleson <tasleson@redhat.com>
 #         Gris Ge <fge@redhat.com>
 import argparse
+import ipaddress
 import os
 import socket
 import subprocess
@@ -75,7 +76,7 @@ def cmd_line_wrapper(c=None):
     except SystemExit as se:
         # argparse raises a SystemExit
         err_exit = se.code
-    except:
+    except Exception:
         import traceback
         traceback.print_exc(file=sys.stdout)
         # We get *any* other exception don't return a successful error code
@@ -166,30 +167,11 @@ def _valid_ip4_address(address):
     :param address: String representing address
     :return: True if valid address, else false
     """
-    if not address:
+    try:
+        ipaddress.IPv4Address(address)
+        return True
+    except ipaddress.AddressValueError:
         return False
-
-    parts = address.split('.')
-    if len(parts) != 4:
-        return False
-
-    if '/' in address:
-        return False
-
-    for i in parts:
-        if not 0 < len(i) <= 3:
-            return False
-
-        if len(i) > 1 and i[0] == '0':
-            return False
-
-        try:
-            if int(i, 10) > 255:
-                return False
-        except ValueError:
-            return False
-
-    return True
 
 
 def _valid_ip6_address(address):
@@ -198,40 +180,11 @@ def _valid_ip6_address(address):
     :param address: String representing address
     :return: True if valid address, else false
     """
-    allowed = 'ABCDEFabcdef0123456789:'
-    has_zeros = False
-
-    if not address:
+    try:
+        ipaddress.IPv6Address(address)
+        return True
+    except ipaddress.AddressValueError:
         return False
-
-    if '/' in address:
-        return False
-
-    if len(address.split("::")) > 2:
-        return False
-
-    parts = address.split(':')
-    if len(parts) < 3 or len(parts) > 9:
-        return False
-
-    # Check for ipv4 suffix, validate and remove while adding padding for
-    # addl. checks.
-    if '.' in parts[-1]:
-        if not _valid_ip4_address(parts.pop()):
-            print("Not valid ipv suffix")
-            return False
-        parts.extend(['0', '0'])
-
-    if '::' in address:
-        parts = [p for p in parts if p != '']
-        # Add one segment of zero to catch full address with extra ':'
-        parts.append('0')
-        has_zeros = True
-
-    if (has_zeros and len(parts) <= 8) or len(parts) == 8:
-        return all(len(x) <= 4 for x in parts) and \
-               all(x in allowed for x in "".join(parts))
-    return False
 
 
 def _check_led_state(state):
@@ -2294,9 +2247,9 @@ class CmdLine(object):
     def volume_phy_disk_cache_update(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
         if args.policy == "ENABLE":
-            policy = Volume.READ_CACHE_POLICY_ENABLED
+            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
         else:
-            policy = Volume.READ_CACHE_POLICY_DISABLED
+            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
         self.c.volume_physical_disk_cache_update(lsm_vol, policy)
         self.display_data([
             VolumeRAMCacheInfo(lsm_vol.id, *self.c.volume_cache_info(lsm_vol))
@@ -2305,9 +2258,9 @@ class CmdLine(object):
     def volume_read_cache_policy_update(self, args):
         lsm_vol = _get_item(self.c.volumes(), args.vol, "Volume")
         if args.policy == "ENABLE":
-            policy = Volume.PHYSICAL_DISK_CACHE_ENABLED
+            policy = Volume.READ_CACHE_POLICY_ENABLED
         else:
-            policy = Volume.PHYSICAL_DISK_CACHE_DISABLED
+            policy = Volume.READ_CACHE_POLICY_DISABLED
         self.c.volume_read_cache_policy_update(lsm_vol, policy)
         self.display_data([
             VolumeRAMCacheInfo(lsm_vol.id, *self.c.volume_cache_info(lsm_vol))
