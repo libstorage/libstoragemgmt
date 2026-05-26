@@ -255,11 +255,11 @@ class Disk(IData):
         self._status = _status
         self._system_id = _system_id
         self._plugin_data = _plugin_data
-        if _vpd83 and not Volume.vpd83_verify(_vpd83):
+        if _vpd83 and not _disk_regex_vpd83.match(_vpd83):
             raise LsmError(
                 ErrorNumber.INVALID_ARGUMENT,
-                "Incorrect format of VPD 0x83 NAA(3) string: '%s', "
-                "expecting 32 or 16 hex characters" % _vpd83)
+                "Incorrect format of VPD 0x83 string: '%s', "
+                "expecting 16, 24, or 32 hex characters" % _vpd83)
         self._vpd83 = _vpd83
         self._location = _location
         self._rpm = _rpm
@@ -364,6 +364,10 @@ class Disk(IData):
 # times it needs to be compiled.
 _vol_regex_vpd83 = re.compile(
     '(?:^6[0-9a-fA-F]{31}\\Z)|(?:^[235][0-9a-fA-F]{15}\\Z)')
+
+_disk_regex_vpd83 = re.compile(
+    '(?:^[0-9a-fA-F]{16}\\Z)|(?:^[0-9a-fA-F]{24}\\Z)'
+    '|(?:^[0-9a-fA-F]{32}\\Z)')
 
 
 @default_property('id', doc="Unique identifier")
