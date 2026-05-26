@@ -323,10 +323,26 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
             }
         }
     }
+    /* Fall back to EUI-64 (designator type 2) if no NAA was found */
+    if (vpd83[0] == '\0') {
+        for (i = 0; i < dp_count; ++i) {
+            if ((dps[i]->header.designator_type ==
+                 _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_EUI64) &&
+                (dps[i]->header.association ==
+                 _SG_T10_SPC_VPD_DI_ASSOCIATION_LUN) &&
+                (dps[i]->header.designator_len > 0) &&
+                (dps[i]->header.designator_len <= 16)) {
+                _be_raw_to_hex(dps[i]->designator,
+                               dps[i]->header.designator_len, vpd83);
+                break;
+            }
+        }
+    }
+
     if (vpd83[0] == '\0') {
         rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg,
-                         "SCSI VPD 83 NAA logical unit ID is not supported");
+        _lsm_err_msg_set(err_msg, "SCSI VPD 83 NAA or EUI-64 logical unit ID "
+                                  "is not supported");
     }
 
 out:
