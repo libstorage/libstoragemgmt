@@ -106,7 +106,6 @@ def _lsm_size_bytes_to_arcconf_mb(lsm_size):
     return lsm_size // (1024 * 1024)
 
 
-
 def _pool_id_of(sys_id, array_name):
     return "%s:%s" % (sys_id, array_name.replace(' ', ''))
 
