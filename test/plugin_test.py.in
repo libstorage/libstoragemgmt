@@ -532,10 +532,9 @@ class TestPlugin(unittest.TestCase):
                     len(volumes) > 0, "We need at least 1 volume to test")
                 for v in volumes:
 
-                    # Don't test this on HDS as VPD is empty
-                    if '10.1.134.227' not in TestPlugin.URI:
+                    if v.vpd83:
                         self.assertTrue(
-                            lsm.Volume.vpd83_verify(v.vpd83),
+                            lsm.Volume.vpd83_verify(v.vpd83.lower()),
                             "VPD is not as expected '%s' for volume id: '%s'" %
                             (v.vpd83, v.id))
                 if flag_created:
