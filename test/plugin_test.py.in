@@ -490,6 +490,21 @@ class TestPlugin(unittest.TestCase):
                     self._volume_create(s.id)
                     flag_created = True
                     break
+                if supported(cap, [Cap.VOLUME_RAID_CREATE, Cap.VOLUME_DELETE]):
+                    free_disks = [
+                        d for d in self.c.disks()
+                        if d.status & lsm.Disk.STATUS_FREE
+                    ]
+                    if free_disks:
+                        supported_raid_types, _ = \
+                            self.c.volume_raid_create_cap_get(s)
+                        if supported_raid_types:
+                            raid_type = supported_raid_types[0]
+                            _, new_vol = self._create_raid_vol(
+                                raid_type, free_disks, rs('v'))
+                            if new_vol is not None:
+                                flag_created = True
+                                break
             volumes = self.c.volumes()
 
         return volumes, flag_created
@@ -1561,44 +1576,35 @@ class TestPlugin(unittest.TestCase):
     def test_volume_raid_create(self):
         for s in self.systems:
             cap = self.c.capabilities(s)
-            # TODO(Gris Ge): Add test code for other RAID type and strip size
             if supported(cap, [Cap.VOLUME_RAID_CREATE]):
                 supported_raid_types, supported_strip_sizes = \
                     self.c.volume_raid_create_cap_get(s)
-                if lsm.Volume.RAID_TYPE_RAID1 not in supported_raid_types:
-                    self._skip_current_test(
-                        "Skip test: current system does not support "
-                        "creating RAID1 volume")
 
-                # Find two free disks
-                free_disks = []
-                for disk in self.c.disks():
-                    if len(free_disks) == 2:
+                free_disks = [
+                    d for d in self.c.disks()
+                    if d.status & lsm.Disk.STATUS_FREE
+                ]
+
+                new_vol = None
+                for rt in supported_raid_types:
+                    had_enough, new_vol = self._create_raid_vol(
+                        rt, free_disks, rs('v'))
+                    if had_enough:
                         break
-                    if disk.status & lsm.Disk.STATUS_FREE:
-                        free_disks.append(disk)
 
-                if len(free_disks) != 2:
+                if new_vol is None:
                     self._skip_current_test(
-                        "Skip test: Failed to find two free disks for RAID 1")
+                        "Skip test: not enough free disks for any "
+                        "supported RAID type")
                     return
 
-                new_vol = self.c.volume_raid_create(
-                    rs('v'), lsm.Volume.RAID_TYPE_RAID1, free_disks,
-                    lsm.Volume.VCR_STRIP_SIZE_DEFAULT)
-
-                self.assertTrue(new_vol is not None)
-
-                # TODO(Gris Ge): Use volume_raid_info() and pool_member_info()
-                # to verify size, raid_type, member type, member ids.
-
                 if supported(cap, [Cap.VOLUME_DELETE]):
+                    free_disk_ids = [d.id for d in free_disks]
                     self._volume_delete(new_vol)
 
                     updated_disks = []
-                    # Check whether disks are been set back to free mode.
                     for disk in self.c.disks():
-                        if disk.id in list(d.id for d in free_disks):
+                        if disk.id in free_disk_ids:
                             updated_disks.append(disk)
                             self.assertTrue(
                                 disk.status & lsm.Disk.STATUS_FREE,
@@ -1607,7 +1613,7 @@ class TestPlugin(unittest.TestCase):
                                 disk.id)
 
                     self.assertTrue(
-                        len(updated_disks) == 2,
+                        len(updated_disks) == len(free_disks),
                         "Disk missing after volume_delete() on "
                         "a raid volume")
 
