@@ -870,8 +870,10 @@ class MegaRAID(IPlugin):
         cap_output = self._storcli_exec([mega_sys_path, "show",
                                          "all"])['Capabilities']
 
-        mega_raid_types = \
+        mega_raid_types = [
+            t.split('(')[0] for t in
             cap_output['RAID Level Supported'].replace(', \n', '').split(', ')
+        ]
 
         supported_raid_types = []
         for cur_mega_raid_type in list(_RAID_TYPE_MAP.keys()):
