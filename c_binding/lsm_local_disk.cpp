@@ -12,7 +12,9 @@
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#ifdef HAVE_LEDMON
 #include <led/libled.h>
+#endif
 #include <libudev.h>
 #include <limits.h>
 #include <math.h> /* For log10() */
@@ -1021,6 +1023,7 @@ out:
     return rc;
 }
 
+#ifdef HAVE_LEDMON
 int led_ctx_slot_entry_get(const char *disk_path, struct led_ctx **ctx,
                            struct led_slot_list_entry **se,
                            lsm_error **lsm_err) {
@@ -1193,21 +1196,42 @@ out:
     led_free(ctx);
     return rc;
 }
+#endif /* HAVE_LEDMON */
 
 int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
+#ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_ON);
+#else
+    (void)disk_path; (void)lsm_err;
+    return LSM_ERR_NO_SUPPORT;
+#endif
 }
 
 int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
+#ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_OFF);
+#else
+    (void)disk_path; (void)lsm_err;
+    return LSM_ERR_NO_SUPPORT;
+#endif
 }
 
 int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
+#ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_ON);
+#else
+    (void)disk_path; (void)lsm_err;
+    return LSM_ERR_NO_SUPPORT;
+#endif
 }
 
 int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
+#ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_OFF);
+#else
+    (void)disk_path; (void)lsm_err;
+    return LSM_ERR_NO_SUPPORT;
+#endif
 }
 
 static void _sysfs_sas_addr_get(const char *blk_name, char *tp_sas_addr) {
@@ -1283,6 +1307,7 @@ out:
 int LSM_DLL_EXPORT lsm_local_disk_led_status_get(const char *disk_path,
                                                  uint32_t *led_status,
                                                  lsm_error **lsm_err) {
+#ifdef HAVE_LEDMON
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
     struct led_ctx *ctx = NULL;
@@ -1334,6 +1359,10 @@ out:
     led_slot_list_entry_free(slot_entry);
     led_free(ctx);
     return rc;
+#else
+    (void)disk_path; (void)led_status; (void)lsm_err;
+    return LSM_ERR_NO_SUPPORT;
+#endif
 }
 
 int lsm_local_disk_link_speed_get(const char *disk_path, uint32_t *link_speed,
@@ -1439,6 +1468,7 @@ out:
     return rc;
 }
 
+#ifdef HAVE_LEDMON
 lsm_error *translate_led_to_lsm(led_status_t led_error, const char *msg) {
     lsm_error_number rc = LSM_ERR_OK;
 
@@ -1481,7 +1511,9 @@ lsm_error *translate_led_to_lsm(led_status_t led_error, const char *msg) {
     }
     return NULL;
 }
+#endif /* HAVE_LEDMON (translate_led_to_lsm) */
 
+#ifdef HAVE_LEDMON
 int lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
     led_ctx *ctx = NULL;
 
@@ -1624,7 +1656,6 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
         }
 
         if (cntrl != LED_CNTRL_TYPE_SCSI) {
-            // Mask off fault LED (clear any FAULT_* state)
             translated &=
                 ~(LSM_DISK_LED_STATUS_FAULT_ON | LSM_DISK_LED_STATUS_FAULT_OFF |
                   LSM_DISK_LED_STATUS_FAULT_UNKNOWN);
@@ -1633,6 +1664,7 @@ uint32_t lsm_led_slot_status_get(lsm_led_slot *slot) {
 
     return translated;
 }
+
 int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
                             uint32_t led_state, lsm_error **lsm_err,
                             lsm_flag flags) {
@@ -1697,3 +1729,48 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
 
     return rc;
 }
+#else /* !HAVE_LEDMON */
+int LSM_DLL_EXPORT lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
+    (void)flags;
+    if (handle) *handle = NULL;
+    return LSM_ERR_NO_SUPPORT;
+}
+void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle) { (void)handle; }
+int LSM_DLL_EXPORT lsm_led_slot_iterator_get(lsm_led_handle *handle,
+                              lsm_led_slot_itr **slot_itr, lsm_error **lsm_err,
+                              lsm_flag flags) {
+    (void)handle; (void)flags;
+    if (slot_itr) *slot_itr = NULL;
+    if (lsm_err) *lsm_err = NULL;
+    return LSM_ERR_NO_SUPPORT;
+}
+void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
+                                               lsm_led_slot_itr *slot_itr) {
+    (void)handle; (void)slot_itr;
+}
+void LSM_DLL_EXPORT lsm_led_slot_iterator_reset(lsm_led_handle *handle,
+                                                lsm_led_slot_itr *slot_itr) {
+    (void)handle; (void)slot_itr;
+}
+lsm_led_slot LSM_DLL_EXPORT *lsm_led_slot_next(lsm_led_handle *handle,
+                                lsm_led_slot_itr *slot_itr) {
+    (void)handle; (void)slot_itr;
+    return NULL;
+}
+const char LSM_DLL_EXPORT *lsm_led_slot_id(lsm_led_slot *slot) {
+    (void)slot; return NULL;
+}
+const char LSM_DLL_EXPORT *lsm_led_slot_device(lsm_led_slot *slot) {
+    (void)slot; return NULL;
+}
+uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot) {
+    (void)slot; return LSM_DISK_LED_STATUS_UNKNOWN;
+}
+int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
+                            uint32_t led_state, lsm_error **lsm_err,
+                            lsm_flag flags) {
+    (void)handle; (void)slot; (void)led_state; (void)flags;
+    if (lsm_err) *lsm_err = NULL;
+    return LSM_ERR_NO_SUPPORT;
+}
+#endif /* HAVE_LEDMON */

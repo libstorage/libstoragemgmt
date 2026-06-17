@@ -105,7 +105,18 @@ fi
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 
 # Check for lib led
-PKG_CHECK_MODULES([LIBLED], [ledmon])
+AC_ARG_WITH([ledmon],
+    [AS_HELP_STRING([--without-ledmon],
+        [Disable LED slot management support (requires ledmon library)])],
+    [],
+    [with_ledmon=yes])
+
+AM_CONDITIONAL([WITH_LEDMON], [test "x$with_ledmon" = "xyes"])
+
+if test "x$with_ledmon" = "xyes"; then
+    PKG_CHECK_MODULES([LIBLED], [ledmon])
+    AC_DEFINE([HAVE_LEDMON], [1], [Define if the ledmon library is available])
+fi
 
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir

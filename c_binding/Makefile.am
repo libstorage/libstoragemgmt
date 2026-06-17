@@ -3,12 +3,19 @@ SUBDIRS = include
 AM_CPPFLAGS = 	-I$(top_srcdir)/c_binding/include \
 				-I$(top_builddir)/c_binding/include \
 				$(LIBGLIB_CFLAGS) \
-				$(LIBUDEV_CFLAGS) \
-				$(LIBLED_CFLAGS)
+				$(LIBUDEV_CFLAGS)
+
+if WITH_LEDMON
+AM_CPPFLAGS += $(LIBLED_CFLAGS)
+endif
 
 lib_LTLIBRARIES = libstoragemgmt.la
 
-libstoragemgmt_la_LIBADD=$(LIBXML_LIBS) $(LIBGLIB_LIBS) $(LIBUDEV_LIBS) $(LIBLED_LIBS)
+libstoragemgmt_la_LIBADD=$(LIBXML_LIBS) $(LIBGLIB_LIBS) $(LIBUDEV_LIBS)
+
+if WITH_LEDMON
+libstoragemgmt_la_LIBADD += $(LIBLED_LIBS)
+endif
 
 libstoragemgmt_la_LDFLAGS= -version-info $(LIBSM_LIBTOOL_VERSION)
 libstoragemgmt_la_SOURCES= \
