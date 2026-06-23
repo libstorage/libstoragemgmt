@@ -1,0 +1,2 @@
+usr/lib/udev/rules.d/90-scsi-ua.rules
+usr/lib/udev/scan-scsi-target

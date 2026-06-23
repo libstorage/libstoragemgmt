@@ -1,4 +1,6 @@
-usr/lib/python*/dist-packages/lsm/*.py{,c}
-usr/lib/python*/dist-packages/lsm/_clib.so
-usr/lib/python*/dist-packages/lsm/lsmcli/*.py
-usr/libexec/lsm.d/*.py
+usr/bin/sim_lsmplugin
+usr/share/man/man1/sim_lsmplugin.1*
+usr/lib/python3*/dist-packages/lsm/
+usr/lib/python3*/dist-packages/sim_plugin/
+usr/libexec/lsm.d/
+etc/lsm/pluginconf.d/sim.conf

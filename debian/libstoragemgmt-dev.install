@@ -1,5 +1,4 @@
-usr/include/*
-usr/lib/lib*.so
-usr/lib/pkgconfig/*
-usr/share/man/man3/lsm_*
-usr/share/man/man3/libstoragemgmt.h.*
+usr/include/libstoragemgmt/
+usr/lib/*/libstoragemgmt.so
+usr/lib/*/pkgconfig/libstoragemgmt.pc
+usr/share/man/man3/
