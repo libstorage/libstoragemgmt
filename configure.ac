@@ -105,7 +105,18 @@ fi
 PKG_CHECK_MODULES([SQLITE3], [sqlite3])
 
 # Check for lib led
-PKG_CHECK_MODULES([LIBLED], [ledmon])
+AC_ARG_WITH([ledmon],
+    [AS_HELP_STRING([--without-ledmon],
+        [Disable LED slot management support (requires ledmon library)])],
+    [],
+    [with_ledmon=yes])
+
+AM_CONDITIONAL([WITH_LEDMON], [test "x$with_ledmon" = "xyes"])
+
+if test "x$with_ledmon" = "xyes"; then
+    PKG_CHECK_MODULES([LIBLED], [ledmon])
+    AC_DEFINE([HAVE_LEDMON], [1], [Define if the ledmon library is available])
+fi
 
 dnl if --prefix is /usr, don't use /usr/var for localstatedir
 dnl or /usr/etc for sysconfdir
@@ -364,7 +375,11 @@ AC_SUBST([bashcompletiondir], [$with_bash_completion_dir])
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([systemdsystemunitdir],
         AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
-        [], [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)])
+        [with_systemdsystemunitdir=$withval],
+        [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd 2>/dev/null)
+         if test -z "$with_systemdsystemunitdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
+             with_systemdsystemunitdir=/lib/systemd/system
+         fi])
 if test "x$with_systemdsystemunitdir" != xno; then
         AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
 fi
@@ -372,7 +387,11 @@ fi
 #Setup the sysusersdir for systemd stuff
 AC_ARG_WITH([systemd-sysusersdir],
         AS_HELP_STRING([--with-systemd-sysusersdir=DIR], [Directory for systemd sysusers files]),
-        [], [with_systemdsysusersdir=$($PKG_CONFIG --variable=sysusersdir systemd)])
+        [with_systemdsysusersdir=$withval],
+        [with_systemdsysusersdir=$($PKG_CONFIG --variable=sysusersdir systemd 2>/dev/null)
+         if test -z "$with_systemdsysusersdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
+             with_systemdsysusersdir=/usr/lib/sysusers.d
+         fi])
 if test "x$with_systemdsysusersdir" != xno; then
         AC_SUBST([systemdsysusersdir], [$with_systemdsysusersdir])
 fi
@@ -380,7 +399,11 @@ fi
 #Setup the tmpfilesdir for systemd stuff
 AC_ARG_WITH([systemd-tmpfilesdir],
         AS_HELP_STRING([--with-systemd-tmpfilesdir=DIR], [Directory for systemd temporary files]),
-        [], [with_systemdtmpfilesdir=$($PKG_CONFIG --variable=tmpfilesdir systemd)])
+        [with_systemdtmpfilesdir=$withval],
+        [with_systemdtmpfilesdir=$($PKG_CONFIG --variable=tmpfilesdir systemd 2>/dev/null)
+         if test -z "$with_systemdtmpfilesdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
+             with_systemdtmpfilesdir=/usr/lib/tmpfiles.d
+         fi])
 if test "x$with_systemdtmpfilesdir" != xno; then
         AC_SUBST([systemdtmpfilesdir], [$with_systemdtmpfilesdir])
 fi

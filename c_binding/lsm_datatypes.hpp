@@ -16,7 +16,9 @@
 #include "libstoragemgmt/libstoragemgmt_plug_interface.h"
 #include "lsm_ipc.hpp"
 #include <glib.h>
+#ifdef HAVE_LEDMON
 #include <led/libled.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -313,21 +315,33 @@ struct LSM_DLL_LOCAL _lsm_battery {
 #define LSM_IS_LED_HANDLE(obj) MAGIC_CHECK(obj, LSM_LED_HANDLE_MAGIC)
 struct LSM_DLL_LOCAL _lsm_led_handle {
     uint32_t magic;
+#ifdef HAVE_LEDMON
     struct led_ctx *ctx;
+#else
+    void *ctx;
+#endif
 };
 
 #define LSM_LED_SLOT_MAGIC         0xAA7A0016
 #define LSM_IS_LED_SLOT_ENTRY(obj) MAGIC_CHECK(obj, LSM_LED_SLOT_MAGIC)
 struct LSM_DLL_LOCAL _lsm_led_slot {
     uint32_t magic;
+#ifdef HAVE_LEDMON
     struct led_slot_list_entry *slot;
+#else
+    void *slot;
+#endif
 };
 
 #define LSM_LED_SLOT_ITR_MAGIC   0xAA7A0015
 #define LSM_IS_LED_SLOT_ITR(obj) MAGIC_CHECK(obj, LSM_LED_SLOT_ITR_MAGIC)
 struct LSM_DLL_LOCAL _lsm_led_slot_itr {
     uint32_t magic;
+#ifdef HAVE_LEDMON
     struct led_slot_list *sl;
+#else
+    void *sl;
+#endif
     struct _lsm_led_slot entry;
 };
 
