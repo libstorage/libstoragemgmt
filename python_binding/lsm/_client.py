@@ -70,6 +70,33 @@ class Client(INetworkAttachedStorage):
     # Method added so that the interface for the client RPC and the plug-in
     # itself match.
     def plugin_register(self, uri, plain_text_password, timeout_ms, flags=0):
+        """
+        Client.plugin_register(uri, plain_text_password, timeout_ms, flags=0)
+
+        Version:
+            1.0
+        Usage:
+            Internal method for interface consistency.
+            Do not call directly - this method is not meant for public use.
+        Parameters:
+            uri (str)
+                Plugin URI (not used in Client context).
+            plain_text_password (str or None)
+                Password in plain text (not used in Client context).
+            timeout_ms (int)
+                Timeout in milliseconds (not used in Client context).
+            flags (int)
+                Reserved for future use, must be zero.
+        Returns:
+            None
+        Raises:
+            RuntimeError
+                Always raised - this method should not be called on Client.
+        Note:
+            This method exists to match the plugin interface but has no
+            functional implementation in the Client class. The actual
+            registration happens internally through __start().
+        """
         raise RuntimeError("Do not call directly!")
 
     # Called when we are ready to initialize the plug-in.
