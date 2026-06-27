@@ -1,0 +1,12 @@
+usr/bin/lsmcli
+usr/bin/lsmd
+usr/bin/simc_lsmplugin
+usr/share/bash-completion/completions/lsmcli
+usr/share/man/man1/lsmcli.1*
+usr/share/man/man1/lsmd.1*
+usr/share/man/man1/simc_lsmplugin.1*
+usr/share/man/man5/lsmd.conf.5*
+etc/lsm/lsmd.conf
+usr/lib/systemd/system/libstoragemgmt.service
+usr/lib/sysusers.d/libstoragemgmt.conf
+usr/lib/tmpfiles.d/libstoragemgmt.conf

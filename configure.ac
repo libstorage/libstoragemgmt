@@ -377,8 +377,9 @@ AC_ARG_WITH([systemdsystemunitdir],
         AS_HELP_STRING([--with-systemdsystemunitdir=DIR], [Directory for systemd service files]),
         [with_systemdsystemunitdir=$withval],
         [with_systemdsystemunitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd 2>/dev/null)
-         if test -z "$with_systemdsystemunitdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
-             with_systemdsystemunitdir=/lib/systemd/system
+         if test -z "$with_systemdsystemunitdir" && \
+            { $PKG_CONFIG --exists systemd 2>/dev/null || $PKG_CONFIG --exists libsystemd 2>/dev/null; }; then
+             with_systemdsystemunitdir=/usr/lib/systemd/system
          fi])
 if test "x$with_systemdsystemunitdir" != xno; then
         AC_SUBST([systemdsystemunitdir], [$with_systemdsystemunitdir])
@@ -389,7 +390,8 @@ AC_ARG_WITH([systemd-sysusersdir],
         AS_HELP_STRING([--with-systemd-sysusersdir=DIR], [Directory for systemd sysusers files]),
         [with_systemdsysusersdir=$withval],
         [with_systemdsysusersdir=$($PKG_CONFIG --variable=sysusersdir systemd 2>/dev/null)
-         if test -z "$with_systemdsysusersdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
+         if test -z "$with_systemdsysusersdir" && \
+            { $PKG_CONFIG --exists systemd 2>/dev/null || $PKG_CONFIG --exists libsystemd 2>/dev/null; }; then
              with_systemdsysusersdir=/usr/lib/sysusers.d
          fi])
 if test "x$with_systemdsysusersdir" != xno; then
@@ -401,7 +403,8 @@ AC_ARG_WITH([systemd-tmpfilesdir],
         AS_HELP_STRING([--with-systemd-tmpfilesdir=DIR], [Directory for systemd temporary files]),
         [with_systemdtmpfilesdir=$withval],
         [with_systemdtmpfilesdir=$($PKG_CONFIG --variable=tmpfilesdir systemd 2>/dev/null)
-         if test -z "$with_systemdtmpfilesdir" && $PKG_CONFIG --exists systemd 2>/dev/null; then
+         if test -z "$with_systemdtmpfilesdir" && \
+            { $PKG_CONFIG --exists systemd 2>/dev/null || $PKG_CONFIG --exists libsystemd 2>/dev/null; }; then
              with_systemdtmpfilesdir=/usr/lib/tmpfiles.d
          fi])
 if test "x$with_systemdtmpfilesdir" != xno; then

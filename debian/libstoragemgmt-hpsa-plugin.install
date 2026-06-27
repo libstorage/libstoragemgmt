@@ -1,0 +1,4 @@
+usr/bin/hpsa_lsmplugin
+usr/share/man/man1/hpsa_lsmplugin.1*
+usr/lib/python3*/dist-packages/hpsa_plugin/
+etc/lsm/pluginconf.d/hpsa.conf

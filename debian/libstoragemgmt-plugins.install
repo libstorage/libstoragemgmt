@@ -1,4 +1,0 @@
-usr/bin/*_lsmplugin
-usr/lib/python*/dist-packages/*_plugin/*.py
-usr/lib/python*/dist-packages/*_plugin/*.so
-usr/share/man/man1/*_lsmplugin.1
