@@ -12,8 +12,21 @@ jobs:
          command: ./test/docker_ci_test.sh
          no_output_timeout: 20m
 
+  debian:
+    docker:
+      - image: debian:bookworm
+    steps:
+      - run:
+         command: apt-get update -q && apt-get install -y git
+         no_output_timeout: 5m
+      - checkout
+      - run:
+         command: ./test/docker_ci_test.sh
+         no_output_timeout: 20m
+
 workflows:
   version: 2
   workflow:
     jobs:
     - fedora
+    - debian

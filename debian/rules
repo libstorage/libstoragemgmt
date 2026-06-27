@@ -11,7 +11,10 @@ override_dh_auto_configure:
 		--disable-static \
 		--without-test \
 		--without-smispy \
-		--without-ledmon
+		--without-ledmon \
+		--with-systemdsystemunitdir=/usr/lib/systemd/system \
+		--with-systemd-sysusersdir=/usr/lib/sysusers.d \
+		--with-systemd-tmpfilesdir=/usr/lib/tmpfiles.d
 
 override_dh_auto_install:
 	dh_auto_install

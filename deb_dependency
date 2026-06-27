@@ -12,6 +12,8 @@ libglib2.0-dev
 libssl-dev
 libconfig-dev
 libudev-dev
+libsystemd-dev
+pkg-config
 python3-dev
 perl
 valgrind
