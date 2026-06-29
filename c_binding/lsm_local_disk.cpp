@@ -1360,8 +1360,29 @@ out:
     led_free(ctx);
     return rc;
 #else
-    (void)disk_path; (void)led_status; (void)lsm_err;
-    return LSM_ERR_NO_SUPPORT;
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int rc = LSM_ERR_OK;
+    _lsm_err_msg_clear(err_msg);
+    if (lsm_err != NULL)
+        *lsm_err = NULL;
+    _good(_check_null_ptr(err_msg, 3 /* arg_count */, disk_path, led_status,
+                          lsm_err),
+          rc, out);
+    *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
+    if (!_file_exists(disk_path)) {
+        rc = LSM_ERR_NOT_FOUND_DISK;
+        _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+        goto out;
+    }
+    rc = LSM_ERR_NO_SUPPORT;
+out:
+    if (rc != LSM_ERR_OK) {
+        if (led_status != NULL)
+            *led_status = LSM_DISK_LED_STATUS_UNKNOWN;
+        if (lsm_err != NULL && *lsm_err == NULL)
+            *lsm_err = LSM_ERROR_CREATE_PLUGIN_MSG(rc, err_msg);
+    }
+    return rc;
 #endif
 }
 
