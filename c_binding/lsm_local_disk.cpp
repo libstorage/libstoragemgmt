@@ -330,8 +330,9 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
                  _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_EUI64) &&
                 (dps[i]->header.association ==
                  _SG_T10_SPC_VPD_DI_ASSOCIATION_LUN) &&
-                (dps[i]->header.designator_len > 0) &&
-                (dps[i]->header.designator_len <= 16)) {
+                ((dps[i]->header.designator_len == 8) ||
+                 (dps[i]->header.designator_len == 12) ||
+                 (dps[i]->header.designator_len == 16))) {
                 _be_raw_to_hex(dps[i]->designator,
                                dps[i]->header.designator_len, vpd83);
                 break;
@@ -833,6 +834,11 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
     *lsm_err = NULL;
 
     if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        if (!_file_exists(disk_path)) {
+            rc = LSM_ERR_NOT_FOUND_DISK;
+            _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+            goto out;
+        }
         *rpm = LSM_DISK_RPM_NON_ROTATING_MEDIUM;
         goto out;
     }
@@ -1099,6 +1105,11 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     *lsm_err = NULL;
 
     if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        if (!_file_exists(disk_path)) {
+            rc = LSM_ERR_NOT_FOUND_DISK;
+            _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+            goto out;
+        }
         *link_type = LSM_DISK_LINK_TYPE_PCIE;
         goto out;
     }
@@ -1364,7 +1375,8 @@ int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_ON);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1373,7 +1385,8 @@ int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_OFF);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1382,7 +1395,8 @@ int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_ON);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1391,7 +1405,8 @@ int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_OFF);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1522,7 +1537,9 @@ out:
     led_free(ctx);
     return rc;
 #else
-    (void)disk_path; (void)led_status; (void)lsm_err;
+    (void)disk_path;
+    (void)led_status;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1891,48 +1908,67 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
 
     return rc;
 }
-#else /* !HAVE_LEDMON */
+#else  /* !HAVE_LEDMON */
 int LSM_DLL_EXPORT lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
     (void)flags;
-    if (handle) *handle = NULL;
+    if (handle)
+        *handle = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
-void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle) { (void)handle; }
+void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle) {
+    (void)handle;
+}
 int LSM_DLL_EXPORT lsm_led_slot_iterator_get(lsm_led_handle *handle,
-                              lsm_led_slot_itr **slot_itr, lsm_error **lsm_err,
-                              lsm_flag flags) {
-    (void)handle; (void)flags;
-    if (slot_itr) *slot_itr = NULL;
-    if (lsm_err) *lsm_err = NULL;
+                                             lsm_led_slot_itr **slot_itr,
+                                             lsm_error **lsm_err,
+                                             lsm_flag flags) {
+    (void)handle;
+    (void)flags;
+    if (slot_itr)
+        *slot_itr = NULL;
+    if (lsm_err)
+        *lsm_err = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
 void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
                                                lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+    (void)handle;
+    (void)slot_itr;
 }
 void LSM_DLL_EXPORT lsm_led_slot_iterator_reset(lsm_led_handle *handle,
                                                 lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+    (void)handle;
+    (void)slot_itr;
 }
 lsm_led_slot LSM_DLL_EXPORT *lsm_led_slot_next(lsm_led_handle *handle,
-                                lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+                                               lsm_led_slot_itr *slot_itr) {
+    (void)handle;
+    (void)slot_itr;
     return NULL;
 }
 const char LSM_DLL_EXPORT *lsm_led_slot_id(lsm_led_slot *slot) {
-    (void)slot; return NULL;
+    (void)slot;
+    return NULL;
 }
 const char LSM_DLL_EXPORT *lsm_led_slot_device(lsm_led_slot *slot) {
-    (void)slot; return NULL;
+    (void)slot;
+    return NULL;
 }
 uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot) {
-    (void)slot; return LSM_DISK_LED_STATUS_UNKNOWN;
+    (void)slot;
+    return LSM_DISK_LED_STATUS_UNKNOWN;
 }
-int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
-                            uint32_t led_state, lsm_error **lsm_err,
-                            lsm_flag flags) {
-    (void)handle; (void)slot; (void)led_state; (void)flags;
-    if (lsm_err) *lsm_err = NULL;
+int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle,
+                                           lsm_led_slot *slot,
+                                           uint32_t led_state,
+                                           lsm_error **lsm_err,
+                                           lsm_flag flags) {
+    (void)handle;
+    (void)slot;
+    (void)led_state;
+    (void)flags;
+    if (lsm_err)
+        *lsm_err = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
 #endif /* HAVE_LEDMON */
