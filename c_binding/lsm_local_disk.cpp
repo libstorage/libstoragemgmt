@@ -8,6 +8,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <dirent.h>
 #include <endian.h>
 #include <errno.h>
@@ -61,7 +62,14 @@
 
 #define _SYSFS_BLK_PATH_FORMAT      "/sys/block/%s"
 #define _MAX_SYSFS_BLK_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
-#define _SYSFS_SAS_ADDR_LEN         (_SG_T10_SPL_SAS_ADDR_LEN + 2)
+
+#define _SYSFS_NGUID_PATH_FORMAT            "/sys/block/%s/nguid"
+#define _MAX_SYSFS_NGUID_PATH_STR_LEN       (128 + _MAX_SD_NAME_STR_LEN)
+#define _SYSFS_EUI_PATH_FORMAT              "/sys/block/%s/eui"
+#define _MAX_SYSFS_EUI_PATH_STR_LEN         (128 + _MAX_SD_NAME_STR_LEN)
+#define _SYSFS_NVME_SERIAL_PATH_FORMAT      "/sys/block/%s/device/serial"
+#define _MAX_SYSFS_NVME_SERIAL_PATH_STR_LEN (128 + _MAX_SD_NAME_STR_LEN)
+#define _SYSFS_SAS_ADDR_LEN                 (_SG_T10_SPL_SAS_ADDR_LEN + 2)
 /* ^ Only Linux sysfs entry /sys/block/sdx/device/sas_address which
  *   format is '0x<hex_addr>\0'
  */
@@ -131,6 +139,10 @@ static int _udev_vpd83_of_sd_name(char *err_msg, const char *sd_name,
                                   char *vpd83);
 static int _sysfs_vpd_pg83_data_get(char *err_msg, const char *sd_name,
                                     uint8_t *vpd_data, ssize_t *read_size);
+static int _nvme_nguid_get(char *err_msg, const char *blk_name, char *vpd83);
+static int _nvme_eui_get(char *err_msg, const char *blk_name, char *vpd83);
+static int _nvme_serial_get(char *err_msg, const char *blk_name,
+                            char **serial_num);
 /*
  * Use /sys/block/sdx/device/sas_address to retrieve sas address of certain
  * disk.
@@ -311,10 +323,27 @@ static int _sysfs_vpd83_naa_of_sd_name(char *err_msg, const char *sd_name,
             }
         }
     }
+    /* Fall back to EUI-64 (designator type 2) if no NAA was found */
+    if (vpd83[0] == '\0') {
+        for (i = 0; i < dp_count; ++i) {
+            if ((dps[i]->header.designator_type ==
+                 _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_EUI64) &&
+                (dps[i]->header.association ==
+                 _SG_T10_SPC_VPD_DI_ASSOCIATION_LUN) &&
+                ((dps[i]->header.designator_len == 8) ||
+                 (dps[i]->header.designator_len == 12) ||
+                 (dps[i]->header.designator_len == 16))) {
+                _be_raw_to_hex(dps[i]->designator,
+                               dps[i]->header.designator_len, vpd83);
+                break;
+            }
+        }
+    }
+
     if (vpd83[0] == '\0') {
         rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg,
-                         "SCSI VPD 83 NAA logical unit ID is not supported");
+        _lsm_err_msg_set(err_msg, "SCSI VPD 83 NAA or EUI-64 logical unit ID "
+                                  "is not supported");
     }
 
 out:
@@ -423,6 +452,120 @@ out:
     return rc;
 }
 
+static bool _is_all_zeros(const char *s) {
+    for (; *s != '\0'; ++s) {
+        if (*s != '0')
+            return false;
+    }
+    return true;
+}
+
+static int _nvme_nguid_get(char *err_msg, const char *blk_name, char *vpd83) {
+    char sysfs_path[_MAX_SYSFS_NGUID_PATH_STR_LEN];
+    uint8_t buf[128];
+    ssize_t read_size = 0;
+    int file_rc = 0;
+    size_t j = 0;
+
+    memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
+
+    snprintf(sysfs_path, sizeof(sysfs_path), _SYSFS_NGUID_PATH_FORMAT,
+             blk_name);
+
+    file_rc = _read_file(sysfs_path, buf, &read_size, sizeof(buf));
+    if (file_rc != 0) {
+        _lsm_err_msg_set(err_msg, "Failed to read '%s'", sysfs_path);
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    for (ssize_t i = 0; i < read_size; ++i) {
+        if (buf[i] != '-' && buf[i] != '\n' && buf[i] != ' ') {
+            if (j >= _LSM_MAX_VPD83_ID_LEN - 1)
+                break;
+            vpd83[j++] = (char)tolower(buf[i]);
+        }
+    }
+    vpd83[j] = '\0';
+
+    if (j == 0 || _is_all_zeros(vpd83)) {
+        memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
+        _lsm_err_msg_set(err_msg, "NVMe nguid is not set");
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    return LSM_ERR_OK;
+}
+
+static int _nvme_eui_get(char *err_msg, const char *blk_name, char *vpd83) {
+    char sysfs_path[_MAX_SYSFS_EUI_PATH_STR_LEN];
+    uint8_t buf[128];
+    ssize_t read_size = 0;
+    int file_rc = 0;
+    size_t j = 0;
+
+    memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
+
+    snprintf(sysfs_path, sizeof(sysfs_path), _SYSFS_EUI_PATH_FORMAT, blk_name);
+
+    file_rc = _read_file(sysfs_path, buf, &read_size, sizeof(buf));
+    if (file_rc != 0) {
+        _lsm_err_msg_set(err_msg, "Failed to read '%s'", sysfs_path);
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    for (ssize_t i = 0; i < read_size; ++i) {
+        if (buf[i] != ' ' && buf[i] != '\n') {
+            if (j >= _LSM_MAX_VPD83_ID_LEN - 1)
+                break;
+            vpd83[j++] = (char)tolower(buf[i]);
+        }
+    }
+    vpd83[j] = '\0';
+
+    if (j == 0 || _is_all_zeros(vpd83)) {
+        memset(vpd83, 0, _LSM_MAX_VPD83_ID_LEN);
+        _lsm_err_msg_set(err_msg, "NVMe eui is not set");
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    return LSM_ERR_OK;
+}
+
+static int _nvme_serial_get(char *err_msg, const char *blk_name,
+                            char **serial_num) {
+    char sysfs_path[_MAX_SYSFS_NVME_SERIAL_PATH_STR_LEN];
+    uint8_t buf[_LSM_MAX_SERIAL_NUM_LEN];
+    ssize_t read_size = 0;
+    int file_rc = 0;
+    char *trimmed = NULL;
+
+    snprintf(sysfs_path, sizeof(sysfs_path), _SYSFS_NVME_SERIAL_PATH_FORMAT,
+             blk_name);
+
+    file_rc = _read_file(sysfs_path, buf, &read_size, sizeof(buf));
+    if (file_rc != 0) {
+        _lsm_err_msg_set(err_msg, "Failed to read '%s'", sysfs_path);
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    /* Strip trailing newline */
+    if (read_size > 0 && buf[read_size - 1] == '\n')
+        buf[read_size - 1] = '\0';
+
+    buf[_LSM_MAX_SERIAL_NUM_LEN - 1] = '\0';
+    trimmed = _trim_spaces((char *)buf);
+    if (trimmed == NULL) {
+        _lsm_err_msg_set(err_msg, "NVMe serial number is empty");
+        return LSM_ERR_NO_SUPPORT;
+    }
+
+    *serial_num = strdup(trimmed);
+    if (*serial_num == NULL)
+        return LSM_ERR_NO_MEMORY;
+
+    return LSM_ERR_OK;
+}
+
 int lsm_local_disk_vpd83_search(const char *vpd83,
                                 lsm_string_list **disk_path_list,
                                 lsm_error **lsm_err) {
@@ -528,7 +671,7 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
                                   lsm_error **lsm_err) {
     uint8_t tmp_serial_num[_LSM_MAX_SERIAL_NUM_LEN];
     char *trimmed_serial_num = NULL;
-    const char *sd_name = NULL;
+    const char *blk_name = NULL;
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
 
@@ -553,16 +696,21 @@ int lsm_local_disk_serial_num_get(const char *disk_path, char **serial_num,
         goto out;
     }
 
-    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
-        rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg, "we only support disk path start with "
-                                  "'/dev/sd' today");
+    blk_name = disk_path + strlen("/dev/");
+
+    if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        rc = _nvme_serial_get(err_msg, blk_name, serial_num);
         goto out;
     }
 
-    sd_name = disk_path + strlen("/dev/");
+    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
+        rc = LSM_ERR_NO_SUPPORT;
+        _lsm_err_msg_set(err_msg, "Only support disk paths starting with "
+                                  "'/dev/sd' or '/dev/nvme'");
+        goto out;
+    }
 
-    rc = _sysfs_serial_num_of_sd_name(err_msg, sd_name, tmp_serial_num);
+    rc = _sysfs_serial_num_of_sd_name(err_msg, blk_name, tmp_serial_num);
     if (rc != LSM_ERR_OK)
         goto out;
 
@@ -604,7 +752,7 @@ out:
 int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
                              lsm_error **lsm_err) {
     char tmp_vpd83[_LSM_MAX_VPD83_ID_LEN];
-    const char *sd_name = NULL;
+    const char *blk_name = NULL;
     int rc = LSM_ERR_OK;
     char err_msg[_LSM_ERR_MSG_LEN];
 
@@ -628,19 +776,22 @@ int lsm_local_disk_vpd83_get(const char *disk_path, char **vpd83,
         goto out;
     }
 
-    if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) != 0) {
+    blk_name = disk_path + strlen("/dev/");
+
+    if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        rc = _nvme_nguid_get(err_msg, blk_name, tmp_vpd83);
+        if (rc == LSM_ERR_NO_SUPPORT)
+            rc = _nvme_eui_get(err_msg, blk_name, tmp_vpd83);
+    } else if (strncmp(disk_path, "/dev/sd", strlen("/dev/sd")) == 0) {
+        rc = _sysfs_vpd83_naa_of_sd_name(err_msg, blk_name, tmp_vpd83);
+        if (rc == LSM_ERR_NO_SUPPORT)
+            rc = _udev_vpd83_of_sd_name(err_msg, blk_name, tmp_vpd83);
+    } else {
         rc = LSM_ERR_NO_SUPPORT;
-        _lsm_err_msg_set(err_msg, "Only support disk path start with "
-                                  "'/dev/sd' yet");
+        _lsm_err_msg_set(err_msg, "Only support disk paths starting with "
+                                  "'/dev/sd' or '/dev/nvme'");
         goto out;
     }
-
-    sd_name = disk_path + strlen("/dev/");
-
-    rc = _sysfs_vpd83_naa_of_sd_name(err_msg, sd_name, tmp_vpd83);
-    if (rc == LSM_ERR_NO_SUPPORT)
-        /* Try udev if kernel does not expose vpd83 */
-        rc = _udev_vpd83_of_sd_name(err_msg, sd_name, tmp_vpd83);
 
     if (rc != LSM_ERR_OK)
         goto out;
@@ -679,6 +830,18 @@ int lsm_local_disk_rpm_get(const char *disk_path, int32_t *rpm,
     }
 
     _lsm_err_msg_clear(err_msg);
+
+    *lsm_err = NULL;
+
+    if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        if (!_file_exists(disk_path)) {
+            rc = LSM_ERR_NOT_FOUND_DISK;
+            _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+            goto out;
+        }
+        *rpm = LSM_DISK_RPM_NON_ROTATING_MEDIUM;
+        goto out;
+    }
 
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
     _good(_sg_io_vpd(err_msg, fd, _SG_T10_SBC_VPD_BLK_DEV_CHA, vpd_data), rc,
@@ -941,6 +1104,16 @@ int lsm_local_disk_link_type_get(const char *disk_path,
     *link_type = LSM_DISK_LINK_TYPE_NO_SUPPORT;
     *lsm_err = NULL;
 
+    if (strncmp(disk_path, "/dev/nvme", strlen("/dev/nvme")) == 0) {
+        if (!_file_exists(disk_path)) {
+            rc = LSM_ERR_NOT_FOUND_DISK;
+            _lsm_err_msg_set(err_msg, "Disk %s not found", disk_path);
+            goto out;
+        }
+        *link_type = LSM_DISK_LINK_TYPE_PCIE;
+        goto out;
+    }
+
     _good(_sg_io_open_ro(err_msg, disk_path, &fd), rc, out);
     _good(_sg_io_vpd(err_msg, fd, _SG_T10_SPC_VPD_SUP_VPD_PGS, vpd_sup_data),
           rc, out);
@@ -1202,7 +1375,8 @@ int lsm_local_disk_ident_led_on(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_ON);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1211,7 +1385,8 @@ int lsm_local_disk_ident_led_off(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_IDENT_OFF);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1220,7 +1395,8 @@ int lsm_local_disk_fault_led_on(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_ON);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1229,7 +1405,8 @@ int lsm_local_disk_fault_led_off(const char *disk_path, lsm_error **lsm_err) {
 #ifdef HAVE_LEDMON
     return ledlib_set(disk_path, lsm_err, LSM_DISK_LED_STATUS_FAULT_OFF);
 #else
-    (void)disk_path; (void)lsm_err;
+    (void)disk_path;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1360,7 +1537,9 @@ out:
     led_free(ctx);
     return rc;
 #else
-    (void)disk_path; (void)led_status; (void)lsm_err;
+    (void)disk_path;
+    (void)led_status;
+    (void)lsm_err;
     return LSM_ERR_NO_SUPPORT;
 #endif
 }
@@ -1729,48 +1908,67 @@ int lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
 
     return rc;
 }
-#else /* !HAVE_LEDMON */
+#else  /* !HAVE_LEDMON */
 int LSM_DLL_EXPORT lsm_led_handle_get(lsm_led_handle **handle, lsm_flag flags) {
     (void)flags;
-    if (handle) *handle = NULL;
+    if (handle)
+        *handle = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
-void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle) { (void)handle; }
+void LSM_DLL_EXPORT lsm_led_handle_free(lsm_led_handle *handle) {
+    (void)handle;
+}
 int LSM_DLL_EXPORT lsm_led_slot_iterator_get(lsm_led_handle *handle,
-                              lsm_led_slot_itr **slot_itr, lsm_error **lsm_err,
-                              lsm_flag flags) {
-    (void)handle; (void)flags;
-    if (slot_itr) *slot_itr = NULL;
-    if (lsm_err) *lsm_err = NULL;
+                                             lsm_led_slot_itr **slot_itr,
+                                             lsm_error **lsm_err,
+                                             lsm_flag flags) {
+    (void)handle;
+    (void)flags;
+    if (slot_itr)
+        *slot_itr = NULL;
+    if (lsm_err)
+        *lsm_err = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
 void LSM_DLL_EXPORT lsm_led_slot_iterator_free(lsm_led_handle *handle,
                                                lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+    (void)handle;
+    (void)slot_itr;
 }
 void LSM_DLL_EXPORT lsm_led_slot_iterator_reset(lsm_led_handle *handle,
                                                 lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+    (void)handle;
+    (void)slot_itr;
 }
 lsm_led_slot LSM_DLL_EXPORT *lsm_led_slot_next(lsm_led_handle *handle,
-                                lsm_led_slot_itr *slot_itr) {
-    (void)handle; (void)slot_itr;
+                                               lsm_led_slot_itr *slot_itr) {
+    (void)handle;
+    (void)slot_itr;
     return NULL;
 }
 const char LSM_DLL_EXPORT *lsm_led_slot_id(lsm_led_slot *slot) {
-    (void)slot; return NULL;
+    (void)slot;
+    return NULL;
 }
 const char LSM_DLL_EXPORT *lsm_led_slot_device(lsm_led_slot *slot) {
-    (void)slot; return NULL;
+    (void)slot;
+    return NULL;
 }
 uint32_t LSM_DLL_EXPORT lsm_led_slot_status_get(lsm_led_slot *slot) {
-    (void)slot; return LSM_DISK_LED_STATUS_UNKNOWN;
+    (void)slot;
+    return LSM_DISK_LED_STATUS_UNKNOWN;
 }
-int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle, lsm_led_slot *slot,
-                            uint32_t led_state, lsm_error **lsm_err,
-                            lsm_flag flags) {
-    (void)handle; (void)slot; (void)led_state; (void)flags;
-    if (lsm_err) *lsm_err = NULL;
+int LSM_DLL_EXPORT lsm_led_slot_status_set(lsm_led_handle *handle,
+                                           lsm_led_slot *slot,
+                                           uint32_t led_state,
+                                           lsm_error **lsm_err,
+                                           lsm_flag flags) {
+    (void)handle;
+    (void)slot;
+    (void)led_state;
+    (void)flags;
+    if (lsm_err)
+        *lsm_err = NULL;
     return LSM_ERR_NO_SUPPORT;
 }
 #endif /* HAVE_LEDMON */

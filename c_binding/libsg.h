@@ -23,7 +23,8 @@ extern "C" {
 /* SPC-5 rev 7, Table 487 - ASSOCIATION field */
 #define _SG_T10_SPC_ASSOCIATION_TGT_PORT 1
 
-#define _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA 0x3
+#define _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_EUI64 0x2
+#define _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA   0x3
 
 /* SPL-4 rev5 4.2.4 SAS address. With trailing \0. */
 #define _SG_T10_SPL_SAS_ADDR_LEN 17

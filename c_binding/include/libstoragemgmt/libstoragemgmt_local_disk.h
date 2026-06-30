@@ -23,12 +23,15 @@ extern "C" {
  *      1.3
  *
  * Description:
- *      Search all the disk paths of specified SCSI VPD 0x83 page NAA type ID.
- *      For any ATA and other non-SCSI protocol disks supporting VPD 0x83 pages
- *      NAA ID, their disk path will also be included.
+ *      Search all the disk paths of specified VPD 0x83 page ID.
+ *      Supported ID formats:
+ *          * SCSI NAA type ID (16 or 32 hex characters)
+ *          * SCSI EUI-64 type ID (16, 24, or 32 hex characters)
+ *          * NVMe NGUID (32 hex characters)
+ *          * NVMe EUI-64 (16 hex characters)
  *
  * @vpd83:
- *      String. The SCSI VPD 0x83 page NAA type ID.
+ *      String. The VPD 0x83 page ID.
  * @disk_path_list:
  *      Output pointer of &lsm_string_list. The format of
  *      disk path will be like "/dev/sdb" for SCSI or ATA disk.
@@ -94,19 +97,26 @@ int LSM_DLL_EXPORT lsm_local_disk_serial_num_get(const char *disk_path,
                                                  lsm_error **lsm_err);
 
 /**
- * lsm_local_disk_vpd83_get - Query scsi VPD 0x83 NAA ID.
+ * lsm_local_disk_vpd83_get - Query disk VPD 0x83 ID.
  *
  * Version:
  *      1.3
  *
  * Description:
- *      Query the SCSI VPD 0x83 page NAA type ID of specified disk path.
+ *      Query the VPD 0x83 page ID of specified disk path.
+ *      For SCSI/SAS/ATA disks, returns the NAA type ID if available,
+ *      falling back to EUI-64 type ID.
+ *      For NVMe disks, returns the namespace NGUID or EUI-64.
  *
  * @disk_path:
- *      String. The path of disk path, example "/dev/sdb".
+ *      String. The path of disk, example: "/dev/sdb", "/dev/nvme0n1".
  * @vpd83:
- *      Output pointer of SCSI VPD83 NAA ID. The format is:
- *          (?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$
+ *      Output pointer of VPD83 ID. The format is one of:
+ *          * SCSI NAA:    (?:^6[0-9a-f]{31})|(?:^[235][0-9a-f]{15})$
+ *          * EUI-64:      ^[0-9a-f]{16}$  (8 bytes)
+ *          * EUI-64 (12): ^[0-9a-f]{24}$  (12 bytes)
+ *          * EUI-64 (16): ^[0-9a-f]{32}$  (16 bytes)
+ *          * NVMe NGUID:  ^[0-9a-f]{32}$
  *      Set to NULL when error. Memory should be freed by free().
  * @lsm_err:
  *      Output pointer of lsm_error. Error message could be retrieved via
