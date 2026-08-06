@@ -1099,8 +1099,14 @@ int _sg_io_mode_sense(char *err_msg, int fd, uint8_t page_code,
     if (ioctl_errno == 0) {
         mode_hdr = (struct _sg_t10_mode_para_hdr *)tmp_data;
         mode_data_len = be16toh(mode_hdr->mode_data_len_be);
+        /* MODE DATA LENGTH excludes itself, so the valid data ends at offset
+         * 'mode_data_len + sizeof(mode_data_len_be)'. That total, not
+         * mode_data_len alone, is what has to fit in the buffer we handed to
+         * the device.
+         */
         if ((mode_data_len == 0) ||
-            (mode_data_len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN)) {
+            (mode_data_len > _SG_T10_SPC_MODE_SENSE_MAX_LEN -
+                                 sizeof(mode_hdr->mode_data_len_be))) {
             rc = LSM_ERR_LIB_BUG;
             _lsm_err_msg_set(err_msg,
                              "BUG: Got illegal SCSI mode page return: "
