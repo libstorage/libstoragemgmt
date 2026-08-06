@@ -2,6 +2,72 @@
 #
 # Copyright (C) 2011-2023 Red Hat, Inc.
 
+"""
+libStorageMgmt Python Binding
+
+This module provides Python bindings for the libStorageMgmt storage management
+library. It enables applications to manage storage arrays, volumes, file systems,
+and related resources through a vendor-neutral API.
+
+Main Classes:
+    Client - Primary interface for remote storage management operations via plugins
+    LocalDisk - Direct local disk operations without requiring a plugin
+    Disk, Volume, Pool, System - Data model classes representing storage resources
+    FileSystem, FsSnapshot, NfsExport - NAS storage classes
+    AccessGroup, TargetPort - Access control and connectivity classes
+    Capabilities, Battery - System capabilities and hardware components
+    LsmError, ErrorNumber - Exception handling classes
+
+Plugin Interfaces:
+    IPlugin - Base plugin interface
+    IStorageAreaNetwork - Block storage operations interface
+    INetworkAttachedStorage - Combined block and NAS operations interface
+    INfs - NFS-specific operations interface
+
+Utility Functions:
+    size_bytes_2_size_human() - Convert bytes to human-readable format (e.g., "1.5 GiB")
+    size_human_2_size_bytes() - Convert human format to bytes
+    uri_parse() - Parse plugin URIs
+    error(), info() - Logging functions
+
+Usage Example:
+    import lsm
+
+    # Connect to a storage system via plugin
+    try:
+        c = lsm.Client('sim://')  # simulator plugin for testing
+
+        # Query systems and capabilities
+        systems = c.systems()
+        for sys in systems:
+            print(f"System: {sys.name}")
+            caps = c.capabilities(sys)
+            if caps.supported(lsm.Capabilities.VOLUMES):
+                volumes = c.volumes()
+                for vol in volumes:
+                    print(f"  Volume: {vol.name} ({vol.size_bytes} bytes)")
+
+        c.close()
+    except lsm.LsmError as e:
+        print(f"Error: {e}")
+
+    # Local disk operations (no plugin required)
+    disks = lsm.LocalDisk.list()
+    for disk_path in disks:
+        vpd83 = lsm.LocalDisk.vpd83_get(disk_path)
+        print(f"Disk: {disk_path}, VPD83: {vpd83}")
+
+Version:
+    Check lsm.VERSION for the current library version.
+
+Documentation:
+    For detailed documentation on each class and method, use help() or refer to
+    the individual class and method docstrings.
+
+Project:
+    https://github.com/libstorage/libstoragemgmt
+"""
+
 from lsm.version import VERSION
 
 from lsm._common import error, info, LsmError, ErrorNumber, \

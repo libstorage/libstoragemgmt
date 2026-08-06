@@ -317,6 +317,38 @@ class IStorageAreaNetwork(IPlugin):
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
     def target_ports(self, search_key=None, search_value=None, flags=0):
+        """
+        IStorageAreaNetwork.target_ports(search_key=None, search_value=None,
+                                         flags=0)
+
+        Version:
+            1.0
+        Usage:
+            Query target ports on the storage system.
+            Target ports are the endpoints through which volumes are accessed
+            (FC WWPNs, iSCSI IQNs, etc.).
+        Parameters:
+            search_key (str or None)
+                Optional search key from TargetPort.SUPPORTED_SEARCH_KEYS.
+            search_value (str or None)
+                Value to search for.
+            flags (int)
+                Reserved for future use, must be zero.
+        Returns:
+            list of TargetPort
+                List of target port objects.
+                Empty list if none found.
+        Raises:
+            LsmError
+                ErrorNumber.NO_SUPPORT
+                    Method not implemented by this plugin.
+                ErrorNumber.INVALID_ARGUMENT
+                    Invalid search_key or search_value.
+                ErrorNumber.NOT_FOUND_SYSTEM
+                    System not found.
+        Capability:
+            Capabilities.TARGET_PORTS
+        """
         raise LsmError(ErrorNumber.NO_SUPPORT, "Not supported")
 
 
