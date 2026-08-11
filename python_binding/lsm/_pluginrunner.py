@@ -88,17 +88,20 @@ class PluginRunner(object):
                     msg_id = msg['id']
                     params = msg['params']
 
-                    # Check to see if this plug-in implements this operation
-                    # if not return the expected error.
-                    if hasattr(self.plugin, method):
-                        if params is None:
-                            result = getattr(self.plugin, method)()
-                        else:
-                            result = getattr(self.plugin,
-                                             method)(**msg['params'])
-                    else:
+                    if not isinstance(method, str) \
+                            or method.startswith('_'):
                         raise LsmError(ErrorNumber.NO_SUPPORT,
                                        "Unsupported operation")
+
+                    target = getattr(self.plugin, method, None)
+                    if target is None or not callable(target):
+                        raise LsmError(ErrorNumber.NO_SUPPORT,
+                                       "Unsupported operation")
+
+                    if params is None:
+                        result = target()
+                    else:
+                        result = target(**msg['params'])
 
                     self.tp.send_resp(result)
 
