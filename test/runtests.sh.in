@@ -36,6 +36,14 @@ echo "src_dir = ${src_dir}"
 echo "Starting in dir =  $(pwd)"
 
 
+# Standalone Python unit tests (no daemon, no C extension required)
+echo "Running standalone Python unit tests"
+_good python3 -m pytest "${src_dir}/test/test_transport.py" -v
+
+# Standalone C++ IPC wire-protocol unit tests (no daemon required)
+echo "Running standalone C++ IPC unit tests"
+_good "${build_dir}/test/test_ipc"
+
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
 if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$EUID" -eq 0 ] ; then

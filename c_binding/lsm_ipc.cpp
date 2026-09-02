@@ -235,6 +235,11 @@ void Ipc::errorSend(int error_code, std::string msg, std::string debug,
 Value Ipc::readRequest(void) {
     int ec;
     std::string resp = t.msg_recv(ec);
+    if (ec != 0) {
+        std::string em =
+            std::string("Error reading message: errno ") + ::to_string(ec);
+        throw LsmException((int)LSM_ERR_TRANSPORT_COMMUNICATION, em);
+    }
     return Payload::deserialize(resp);
 }
 
