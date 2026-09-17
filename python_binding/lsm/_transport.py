@@ -32,6 +32,9 @@ class TransPort(object):
 
     HDR_LEN = 10
 
+    # Matches the overflow guard in c_binding/lsm_ipc.cpp Transport::msg_recv
+    MAX_MSG_LEN = 0x80000000
+
     def _read_all(self, l):
         """
         Reads l number of bytes before returning.  Will raise a SocketEOF
@@ -71,7 +74,13 @@ class TransPort(object):
         """
         try:
             num_bytes = self._read_all(self.HDR_LEN)
-            msg = self._read_all(int(num_bytes))
+            length = int(num_bytes)
+            if length >= self.MAX_MSG_LEN:
+                raise LsmError(
+                    ErrorNumber.TRANSPORT_COMMUNICATION,
+                    "Message length of %d exceeds maximum allowed of %d" %
+                    (length, self.MAX_MSG_LEN))
+            msg = self._read_all(length)
             # common.Info("RECV: ", msg)
         except socket.error as e:
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
@@ -269,6 +278,20 @@ class _TestTransport(unittest.TestCase):
 
             reply, msg_id = self.client.read_resp()
             self.assertTrue(payload == reply)
+
+    def test_oversized_message_rejected(self):
+        # A header declaring a length >= MAX_MSG_LEN must be rejected before
+        # ever attempting to read that many bytes, matching the overflow
+        # guard in c_binding/lsm_ipc.cpp Transport::msg_recv.
+        c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client = TransPort(c)
+            hdr = str(TransPort.MAX_MSG_LEN).zfill(TransPort.HDR_LEN)
+            s.sendall(hdr.encode('utf-8'))
+            self.assertRaises(LsmError, client._recv_msg)
+        finally:
+            c.close()
+            s.close()
 
     def tearDown(self):
         self.client.send_req("done", None)

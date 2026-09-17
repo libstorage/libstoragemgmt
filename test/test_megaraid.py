@@ -3,8 +3,8 @@ import os
 import unittest
 
 # Import utils directly to avoid megaraid_plugin.__init__ pulling in lsm (C extension).
-_utils_path = os.path.join(
-    os.path.dirname(__file__), '..', 'plugin', 'megaraid_plugin', 'utils.py')
+_utils_path = os.path.join(os.path.dirname(__file__), '..', 'plugin',
+                           'megaraid_plugin', 'utils.py')
 _spec = importlib.util.spec_from_file_location("megaraid_utils", _utils_path)
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)

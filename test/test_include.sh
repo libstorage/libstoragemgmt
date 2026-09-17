@@ -34,8 +34,22 @@ LSM_TEST_MEM_LEAK_ERROR_CODE=99
 LSM_TEST_MEM_LEAK_LOG_FILE_PREFIX=""
 LSM_TEST_LSMD_PID=65535
 
+# --run-libc-freeres=no works around an exit-time crash.  At process exit
+# Memcheck runs glibc's __libc_freeres() so libc can release its own
+# still-reachable allocations (otherwise they show up as false leaks).  On this
+# system's valgrind/glibc combo that path -- __libc_freeres -> free_mem ->
+# clearenv() (glibc stdlib/setenv.c) -- faults with SIGTRAP and dumps core for
+# *every* traced process, reproducible even with a trivial program that never
+# touches the environment.  The result was a non-empty valgrind log per process
+# (falsely tripping our leak check) plus a core dump each.  --run-libc-freeres=no
+# is valgrind's documented switch for "runs fine but crashes at exit"; definite
+# leaks are still reported, and with --show-reachable=no we don't care about
+# libc's still-reachable memory anyway.  See the valgrind manual's
+# --run-libc-freeres description and the __libc_freeres notes in
+# "Warning messages" / the FAQ: https://valgrind.org/docs/manual/manual-core.html
 VALGRIND_OPTIONS="
     --quiet --leak-check=full --show-reachable=no --show-possibly-lost=no
+    --run-libc-freeres=no
     --trace-children=yes --error-exitcode=$LSM_TEST_MEM_LEAK_ERROR_CODE"
 
 VALGRIND_OPTIONS_3_9="${VALGRIND_OPTIONS} --errors-for-leak-kinds=definite "
@@ -99,7 +113,15 @@ function lsm_test_dump_log
 {
     echo "============ Dumping log BEGIN ====================="
     for x in "$LSM_TEST_LOG_DIR"/*;do
-        if [ -e "$x" ] && [ "$(wc -l < "$x")" -gt 0 ];then
+        [ -e "$x" ] || continue
+        # Never cat binary files (e.g. core dumps).  Doing so previously turned
+        # a handful of multi-MB cores into a multi-GB text log.  'grep -I'
+        # reports a binary file as non-matching, so treat that as "skip".
+        if ! LC_ALL=C grep -Iq . "$x" 2>/dev/null;then
+            echo "======== $x SKIPPED (binary, $(du -h "$x" | cut -f1)) ========"
+            continue
+        fi
+        if [ "$(wc -l < "$x")" -gt 0 ];then
             echo ======== "$x" BEGIN ==========
             cat "$x"
             echo ======== "$x" END   ==========

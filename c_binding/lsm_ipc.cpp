@@ -90,16 +90,15 @@ static std::string string_read(int fd, ssize_t count, int &error_code) {
                 break;
             }
             rc += std::string(buff, rd);
+        } else if (rd == 0) {
+            throw EOFException("");
         } else {
             error_code = errno;
             break;
         }
     }
 
-    if ((amount_read == count) && (error_code == 0))
-        return rc;
-    else
-        throw EOFException("");
+    return rc;
 }
 
 std::string Transport::msg_recv(int &error_code) {
@@ -235,6 +234,11 @@ void Ipc::errorSend(int error_code, std::string msg, std::string debug,
 Value Ipc::readRequest(void) {
     int ec;
     std::string resp = t.msg_recv(ec);
+    if (ec != 0) {
+        std::string em =
+            std::string("Error reading message: errno ") + ::to_string(ec);
+        throw LsmException((int)LSM_ERR_TRANSPORT_COMMUNICATION, em);
+    }
     return Payload::deserialize(resp);
 }
 

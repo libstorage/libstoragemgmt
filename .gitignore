@@ -32,6 +32,7 @@ daemon/lsm_restd
 daemon/lsmd
 *.pyc
 test/tester
+test/test_ipc
 tools/udev/scan-scsi-target
 tools/lsmcli/lsmcli
 test/runtests.sh

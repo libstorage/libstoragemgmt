@@ -11,6 +11,7 @@ import errno
 import math
 import tempfile
 import shutil
+import time
 
 from lsm import (uri_parse, search_property, size_human_2_size_bytes,
                  Capabilities, LsmError, ErrorNumber, System, Client, Disk,
@@ -75,6 +76,13 @@ def _disk_type_of(disk_show_basic_dict):
 
     return Disk.TYPE_UNKNOWN
 
+
+# storcli's "add vd" can return success before the controller has finished
+# propagating the new drive group assignment to the member disks, so a
+# "show" queried immediately after can still report the disk as
+# unconfigured. Retry briefly before treating that as a real failure.
+_DG_ID_POLL_COUNT = 5
+_DG_ID_POLL_INTERVAL = 1
 
 _DISK_STATE_MAP = {
     'Onln': Disk.STATUS_OK,
@@ -1002,11 +1010,20 @@ class MegaRAID(IPlugin):
 
             raise
 
-        # Find out the DG ID from one disk.
-        dg_show_output = self._storcli_exec(
-            ["/c%s/e%s/s%s" % tuple(disks[0].plugin_data.split(":")), "show"])
+        # Find out the DG ID from one disk. The controller may take a
+        # moment to propagate the new drive group assignment after "add
+        # vd" reports success, so poll a few times before giving up.
+        disk_show_path = "/c%s/e%s/s%s" % tuple(
+            disks[0].plugin_data.split(":"))
+        dg_id = '-'
+        for attempt in range(_DG_ID_POLL_COUNT):
+            if attempt:
+                time.sleep(_DG_ID_POLL_INTERVAL)
+            dg_show_output = self._storcli_exec([disk_show_path, "show"])
+            dg_id = dg_show_output['Drive Information'][0]['DG']
+            if dg_id != '-':
+                break
 
-        dg_id = dg_show_output['Drive Information'][0]['DG']
         if dg_id == '-':
             raise LsmError(
                 ErrorNumber.PLUGIN_BUG,
