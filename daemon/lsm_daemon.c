@@ -44,6 +44,10 @@
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 
+/* Poll interval of the main event loop. Also the upper bound on how long an
+ * exited plug-in lingers before child_cleanup() reaps it. */
+#define SELECT_TIMEOUT_SECONDS 1
+
 #define max(a, b)                                                              \
     ({                                                                         \
         __typeof__(a) _a = (a);                                                \
@@ -762,7 +766,7 @@ void _serving(void) {
         FD_ZERO(&readfds);
         nfds = 0;
 
-        tmo.tv_sec = 15;
+        tmo.tv_sec = SELECT_TIMEOUT_SECONDS;
         tmo.tv_usec = 0;
 
         LIST_FOREACH(plug, &head, pointers) {
