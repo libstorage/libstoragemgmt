@@ -10,6 +10,9 @@ AM_DISTCHECK_CONFIGURE_FLAGS += \
 # prefix-sensitive, but we need to adjust it in order for distcheck to pass.
 AM_DISTCHECK_CONFIGURE_FLAGS += \
 	--with-systemd-tmpfilesdir=$${dc_install_base}/$(systemdtmpfilesdir)
+# Same story for systemd-sysusersdir.
+AM_DISTCHECK_CONFIGURE_FLAGS += \
+	--with-systemd-sysusersdir=$${dc_install_base}/$(systemdsysusersdir)
 
 SUBDIRS= c_binding python_binding plugin doc tools daemon packaging config test
 

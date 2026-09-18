@@ -1,4 +1,26 @@
 News for libStorageMgmt
+
+1.11.0: Sep 18 2026
+    * New feature: NVMe and EUI-64 support for disk/VPD83 identification
+      (local_disk, hpsa plugin); relaxed vpd83 format validation
+    * megaraid: robustness fixes for NVMe JSON parsing, RAID type parsing,
+      DG lookup retry after volume_raid_create, RAID 50/60 odd-disk-count support
+    * Extensive memory-safety and correctness sweep across daemon, IPC layer,
+      and plugins (simc, HPSA, arcconf, NFS, SMI-S): fixes for use-after-free,
+      NULL dereferences, buffer over/underreads, integer overflow/underflow,
+      memory and fd leaks, and reference-counting bugs in the Python C extension
+    * Hardening of input validation: sense-data/VPD parsing bounds checks,
+      strtol/snprintf return-value checks, IP address validation, bare
+      `except:` clauses replaced in Python plugins
+    * daemon: fix EINTR handling in main loop, FD_SETSIZE guard, SIGHUP
+      plugin-state reset, signal-safety fixes
+    * ledmon support made optional at configure time; fix !HAVE_LEDMON stub
+    * Debian packaging re-introduced/updated; CI now builds and validates
+      Debian bookworm packages
+    * Test suite: numerous bug fixes, valgrind false-positive/log-size fixes,
+      new devel_env.sh setup script, pytest dependency, megaraid tests added
+      to distcheck
+
 1.10.3: Feb 4 2026
     * Removed Python 2 support and python-six dependencies
     * Bug fixes: bit mask correction, sprintf -> snprintf, string concatenation
