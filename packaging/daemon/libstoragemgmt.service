@@ -6,5 +6,23 @@ ExecStart=/usr/bin/lsmd -d
 ExecReload=/bin/kill -HUP $MAINPID
 User=root
 
+# Resource limits to constrain the service cgroup below a normal user's
+# allotment, bounding the blast radius of a misbehaving or malicious IPC
+# client. These are pure resource-control directives only: no capability,
+# device or namespace sandboxing, as hardware plug-ins run vendor CLIs and
+# issue SG_IO ioctls as root.
+#
+# Note these apply to the whole cgroup, which holds lsmd plus one forked
+# plug-in per client connection. TasksMax is therefore also a ceiling on
+# concurrent clients, and MemoryMax is shared by every plug-in running at
+# once; raise both if you expect more concurrency than this. The values are
+# set well above any plausible legitimate load so that a fork storm still
+# hits a wall long before the host does.
+TasksMax=512
+MemoryHigh=512M
+MemoryMax=2G
+CPUQuota=200%
+LimitNOFILE=4096
+
 [Install]
 WantedBy=multi-user.target
