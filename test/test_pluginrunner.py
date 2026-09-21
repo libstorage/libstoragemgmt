@@ -2,53 +2,26 @@
 #
 # Copyright (C) 2011-2023 Red Hat, Inc.
 
-import importlib.util
 import os
 import socket
 import sys
 import threading
 import time
-import types
 import unittest
+
+# Make the shared stub bootstrap importable however we're invoked (pytest
+# from any directory, or running this file directly).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import lsm_stub
 
 # Import python_binding/lsm/_pluginrunner.py (and the modules it needs)
 # directly, bypassing lsm/__init__.py which pulls in the compiled _clib C
-# extension.  Mirrors the approach in test_transport.py.
-_lsm_src_dir = os.path.join(os.path.dirname(__file__), '..', 'python_binding',
-                            'lsm')
-
-
-def _load(name, filename):
-    path = os.path.join(_lsm_src_dir, filename)
-    spec = importlib.util.spec_from_file_location(name, path)
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[name] = mod
-    spec.loader.exec_module(mod)
-    return mod
-
-
-_lsm_pkg = types.ModuleType("lsm")
-_lsm_pkg.__path__ = [_lsm_src_dir]
-sys.modules.setdefault("lsm", _lsm_pkg)
-
-_common = _load("lsm._common", "_common.py")
-_load("lsm._data", "_data.py")
-_transport = _load("lsm._transport", "_transport.py")
-
-# _pluginrunner.py does "from lsm import LsmError, error, ErrorNumber", so the
-# stub package must expose those names.
-_lsm_pkg.LsmError = _common.LsmError
-_lsm_pkg.error = _common.error
-_lsm_pkg.ErrorNumber = _common.ErrorNumber
-
-# It also does "from lsm.lsmcli import cmd_line_wrapper"; provide a stub so we
-# don't drag in the CLI (and the C extension) it lives beside.
-_lsmcli_stub = types.ModuleType("lsm.lsmcli")
-_lsmcli_stub.cmd_line_wrapper = lambda *args, **kwargs: None
-sys.modules["lsm.lsmcli"] = _lsmcli_stub
-_lsm_pkg.lsmcli = _lsmcli_stub
-
-_pluginrunner = _load("lsm._pluginrunner", "_pluginrunner.py")
+# extension.
+lsm_stub.install()
+_common = lsm_stub.load('lsm._common', '_common.py')
+_transport = lsm_stub.load('lsm._transport', '_transport.py')
+_pluginrunner = lsm_stub.load('lsm._pluginrunner', '_pluginrunner.py')
 
 PluginRunner = _pluginrunner.PluginRunner
 TransPort = _transport.TransPort
