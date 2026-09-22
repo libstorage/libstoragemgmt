@@ -34,6 +34,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "conn_limit.h"
+
 #define BASE_DIR                       "/run/lsm"
 #define SOCKET_DIR                     BASE_DIR "/ipc"
 #define PLUGIN_DIR                     "/usr/bin"
@@ -43,6 +45,7 @@
 #define LSMD_CONF_FILE                 "lsmd.conf"
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
+#define LSM_CONF_MAX_CONN_OPT_NAME     "max-connections-per-uid"
 
 /* Poll interval of the main event loop. Also the upper bound on how long an
  * exited plug-in lingers before child_cleanup() reaps it. */
@@ -73,6 +76,11 @@ int plugin_mem_debug = 0;
 
 int allow_root_plugin = 0;
 int has_root_plugin = 0;
+int max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+
+/* Client uid we could not determine; such a connection is never counted
+ * against the per-uid cap. */
+#define CLIENT_UID_UNKNOWN ((uid_t)(-1))
 
 /**
  * Each item in plugin list contains this information
@@ -456,6 +464,38 @@ void parse_conf_bool(const char *conf_path, const char *key_name, int *value) {
 }
 
 /**
+ * Parse config and seeking provided key name int, same semantics as
+ * parse_conf_bool().
+ * @param conf_path     config file path
+ * @param key_name      string, searching key
+ * @param value         int, output, value of this config key
+ */
+
+void parse_conf_int(const char *conf_path, const char *key_name, int *value) {
+    if (access(conf_path, F_OK) == -1) {
+        /* file not exist. */
+        return;
+    }
+    config_t *cfg = (config_t *)malloc(sizeof(config_t));
+    if (cfg) {
+        config_init(cfg);
+        if (CONFIG_TRUE == config_read_file(cfg, conf_path)) {
+            config_lookup_int(cfg, key_name, value);
+        } else {
+            log_and_exit("configure %s parsing failed: %s at line %d\n",
+                         conf_path, config_error_text(cfg),
+                         config_error_line(cfg));
+        }
+    } else {
+        log_and_exit(
+            "malloc failure while trying to allocate memory for config_t\n");
+    }
+
+    config_destroy(cfg);
+    free(cfg);
+}
+
+/**
  * Load plugin config for root privilege setting.
  * If config not found, return 0 for no root privilege required.
  * @param plugin_name plugin name.
@@ -583,6 +623,7 @@ void child_cleanup(void) {
             if (0 == rc && si.si_pid == 0) {
                 break;
             } else {
+                conn_limit_remove(si.si_pid);
                 if (si.si_code == CLD_EXITED && si.si_status != 0) {
                     info("Plug-in process %d exited with %d\n", si.si_pid,
                          si.si_status);
@@ -633,13 +674,53 @@ struct plugin *plugin_lookup(int fd) {
 }
 
 /**
+ * Retrieves the uid of the peer on an accepted connection.
+ * @param client_fd     Client connected file descriptor
+ * @return uid of the client, or CLIENT_UID_UNKNOWN if it can't be determined
+ */
+uid_t peer_uid(int client_fd) {
+    struct ucred cred;
+    socklen_t cred_len = sizeof(cred);
+
+    if (-1 ==
+        getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
+        /* Not expected to happen on a local AF_UNIX socket. Fail open: a
+         * condition we don't understand is a poor reason to deny service. */
+        warn("Unable to get client uid, getsockopt() error %d, per-uid "
+             "connection limit not applied\n",
+             errno);
+        return CLIENT_UID_UNKNOWN;
+    }
+    return cred.uid;
+}
+
+/**
+ * Decides whether an accepted connection gets a plug-in process.
+ * @param client_uid    uid of the client, or CLIENT_UID_UNKNOWN
+ * @return 1 to serve the connection, 0 to drop it
+ */
+int admit_client(uid_t client_uid) {
+    if (client_uid == CLIENT_UID_UNKNOWN || conn_limit_allow(client_uid)) {
+        return 1;
+    }
+
+    info("Refusing connection from uid %u: it already holds %u of the %d "
+         "permitted concurrent plug-in processes\n",
+         (unsigned)client_uid, conn_limit_count(client_uid),
+         conn_limit_get_max());
+    return 0;
+}
+
+/**
  * Does the actual fork and exec of the plug-in
  * @param plugin        Full filename and path of plug-in to exec.
  * @param client_fd     Client connected file descriptor
  * @param require_root  int, indicate whether this plugin require root
  *                      privilege or not
+ * @param client_uid    uid of the connecting client, or CLIENT_UID_UNKNOWN
  */
-void exec_plugin(char *plugin, int client_fd, int require_root) {
+void exec_plugin(char *plugin, int client_fd, int require_root,
+                 uid_t client_uid) {
     int err = 0;
 
     info("Exec'ing plug-in = %s\n", plugin);
@@ -653,6 +734,15 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
         return;
     } else if (process > 0) {
         /* Parent */
+        /* Count this worker against its client's uid. Done here rather than
+         * before the fork so a failed fork cannot leak an entry. */
+        if (client_uid != CLIENT_UID_UNKNOWN &&
+            -1 == conn_limit_add(process, client_uid)) {
+            warn("Connection tracking table full, plug-in process %d for "
+                 "uid %u is not counted against the per-uid limit\n",
+                 (int)process, (unsigned)client_uid);
+        }
+
         int rc = close(client_fd);
         if (-1 == rc) {
             err = errno;
@@ -802,7 +892,17 @@ void _serving(void) {
                     if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
                         if (p != NULL) {
-                            exec_plugin(p->file_path, cfd, p->require_root);
+                            /* A cap of 0 disables this outright, down to
+                             * not asking who the peer is. */
+                            uid_t uid = (conn_limit_get_max() > 0)
+                                            ? peer_uid(cfd)
+                                            : CLIENT_UID_UNKNOWN;
+                            if (admit_client(uid)) {
+                                exec_plugin(p->file_path, cfd, p->require_root,
+                                            uid);
+                            } else {
+                                close(cfd);
+                            }
                         } else {
                             info("plugin_lookup failed for fd %d", fd);
                             close(cfd);
@@ -928,7 +1028,14 @@ int main(int argc, char *argv[]) {
     char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
     parse_conf_bool(lsmd_conf_path, (char *)LSM_CONF_ALLOW_ROOT_OPT_NAME,
                     &allow_root_plugin);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_CONN_OPT_NAME,
+                   &max_conn_per_uid);
     free(lsmd_conf_path);
+
+    conn_limit_set_max(max_conn_per_uid);
+    if (conn_limit_get_max() == 0) {
+        info("Per-uid concurrent connection limit disabled\n");
+    }
 
     /* Check to see if we want to check plugin for memory errors */
     if (getenv("LSM_VALGRIND")) {

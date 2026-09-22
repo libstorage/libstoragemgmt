@@ -35,6 +35,21 @@ plugins as root user:
     2. "require-root-privilege = true;" in plugin config
     3. API connection (or lsmcli) has root privileges
 
+.TP
+\fBmax-connections-per-uid = 64;\fR
+
+Maximum number of plugin processes \fBlsmd\fR will run concurrently on behalf
+of a single client user id.
+
+\fBlsmd\fR forks a plugin process for every connection it accepts, so without
+a limit a single local user can occupy the daemon's entire process budget.
+Further connections from a user already at the limit are closed immediately,
+and the client sees them as a failure to communicate with the daemon; existing
+connections are unaffected.
+
+The default is \fB64\fR, far above what any normal client needs. Set it to
+\fB0\fR for no limit.
+
 .SH Plugin OPTIONS
 .TP
 \fBrequire-root-privilege = true;\fR

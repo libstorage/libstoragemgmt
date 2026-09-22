@@ -46,6 +46,10 @@ _good python3 -m pytest "${src_dir}/test/test_pluginrunner.py" -v
 echo "Running standalone C++ IPC unit tests"
 _good "${build_dir}/test/test_ipc"
 
+# Standalone daemon connection limit unit tests (no daemon required)
+echo "Running standalone connection limit unit tests"
+_good "${build_dir}/test/test_conn_limit"
+
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
 if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$EUID" -eq 0 ] ; then

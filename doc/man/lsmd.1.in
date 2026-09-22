@@ -4,7 +4,9 @@ Daemon \- lsmd
 .SH DESCRIPTION
 libStorageMgmt plug\-in daemon.  Plug-ins execute in their own process space
 for fault isolation and to accommodate different plug\-in licensing
-requirements.  Runs as an unprivileged user.
+requirements.  The daemon normally runs as \fBroot\fR and drops privileges when
+launching each plug\-in, only retaining root for plug\-ins that require it (see
+\fBlsmd.conf\fR(5)).
 
 .SH OPTIONS
 \fB\-\-plugindir\fR = The directory where the plugins are located
@@ -19,6 +21,71 @@ requirements.  Runs as an unprivileged user.
 \fB\-d\fR
 = New style daemon (systemd) non-forking
 
+.SH RESTRICTING SOCKET ACCESS
+\fBlsmd\fR creates one Unix domain socket per plug\-in in the socket directory
+(default \fB/run/lsm/ipc\fR, see \fB\-\-socketdir\fR). The individual socket
+files are created world read/write, so which local users may connect to the
+daemon is governed entirely by the permissions of the \fBsocket directory\fR,
+not by the socket files themselves. Connecting to a socket requires search
+(\fBx\fR) permission on the directory that contains it.
+
+By default the directory is created with mode \fB0775\fR and owner
+\fBroot:libstoragemgmt\fR, which lets any local user connect. Note that a
+client's uid is only inspected (via \fBSO_PEERCRED\fR) to decide whether a
+plug\-in may run with root privileges (see \fBlsmd.conf\fR(5)); it does not
+restrict who may connect.
+
+This matters on any machine with untrusted local users. \fBlsmd\fR forks and
+execs a plug\-in process for every connection it accepts, before the client has
+sent anything, so any user who can reach a socket can make the daemon fork. A
+user sustaining connections can therefore keep the daemon busy spawning
+workers; the \fBTasksMax\fR limit shipped in the systemd unit confines that to
+the service's own cgroup, but the API stays unavailable for everyone until the
+flood stops. Restricting the socket directory as described below is what
+actually keeps an untrusted local user out.
+
+\fBlsmd\fR caps how many plug\-in processes it will run concurrently for one
+client uid (\fBmax-connections-per-uid\fR in \fBlsmd.conf\fR(5)). That keeps a
+single user to a slice of the daemon's process budget rather than all of it,
+but it does not stop a user who is permitted to connect from consuming their
+slice, so it is no substitute for the directory permissions.
+
+To limit access, drop the \fBother\fR permission bits from the socket directory
+and add the permitted users to the group that owns it. The directory must stay
+readable, writable and searchable by \fBlsmd\fR itself: the daemon drops
+privileges to the \fBlibstoragemgmt\fR user whenever no installed plug\-in
+requires root (see \fBlsmd.conf\fR(5)), and it exits at start\-up if it cannot
+access the socket directory, where it also keeps its lock file. So keep the
+owning group \fBlibstoragemgmt\fR with its \fBrwx\fR bits intact and change
+only the permissions granted to everyone else.
+
+On systemd installations the directory is created at boot by
+\fBsystemd-tmpfiles\fR(8); because \fB/run\fR is a \fBtmpfs\fR, changes made
+directly with \fBchmod\fR(1) or \fBchown\fR(1) are lost on reboot. Make the
+change persistent with a drop\-in in \fB/etc/tmpfiles.d/libstoragemgmt.conf\fR,
+which overrides the packaged file in \fB/usr/lib/tmpfiles.d\fR:
+
+    D /run/lsm 0775 root libstoragemgmt -
+    D /run/lsm/ipc 0770 root libstoragemgmt -
+
+Apply it without rebooting, then restart the daemon:
+
+    # systemd-tmpfiles --create
+    # systemctl restart libstoragemgmt.service
+
+Then grant access to each permitted user by adding them to the group:
+
+    # usermod -a -G libstoragemgmt \fIusername\fR
+
+Restricting access to a single user is the same operation with a single member
+in the group. Do not give the directory away to an individual user, or drop the
+group's write permission: \fBlsmd\fR would no longer be able to create its
+sockets and would fail to start. Note also that group members can write to the
+socket directory, so grant membership only to users trusted not to disturb the
+sockets themselves.
+
+.SH SEE ALSO
+\fIlsmd.conf\fR(5), \fIlsmcli\fR(1), \fIsystemd-tmpfiles\fR(8)
 
 .SH BUGS
 Please report bugs to
