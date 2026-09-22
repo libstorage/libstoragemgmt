@@ -14,6 +14,13 @@ import errno
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
 
+# How long (seconds) a client has to complete plugin_register.  Turned into a
+# single absolute deadline covering every read until registration, so a peer
+# cannot renew it by sending requests.  Kept consistent with the C binding
+# (LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS in c_binding/lsm_ipc_timeout.h).
+# Cleared once the client registers so slow operations are never interrupted.
+REGISTRATION_TIMEOUT = 30
+
 
 def search_property(lsm_objs, search_key, search_value):
     """
@@ -77,6 +84,14 @@ class PluginRunner(object):
         need_shutdown = False
         msg_id = 0
 
+        # One absolute deadline for the whole registration handshake, armed
+        # before the first read: an un-registered client cannot stretch it by
+        # keeping the conversation alive with requests we reject, the way a
+        # per-message timeout let it.  It bounds our replies too, so a peer
+        # that chatters but never reads them cannot pin us inside sendall()
+        # either; both expiries arrive as socket.timeout.
+        self.tp.set_io_deadline(REGISTRATION_TIMEOUT)
+
         try:
             while True:
                 try:
@@ -107,6 +122,9 @@ class PluginRunner(object):
 
                     if method == 'plugin_register':
                         need_shutdown = True
+                        # Client has registered; drop the deadline so slow
+                        # operations are never interrupted.
+                        self.tp.set_io_deadline(None)
 
                     if method == 'plugin_unregister':
                         # This is a graceful plugin_unregister
@@ -123,6 +141,12 @@ class PluginRunner(object):
                 except LsmError as lsm_err:
                     self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
                                        lsm_err.data)
+        except socket.timeout:
+            # Client connected but did not complete plugin_register within the
+            # allotted time; give up rather than block this worker.  Note this
+            # must precede the socket.error handler as socket.timeout is a
+            # subclass of it.
+            error('Client failed to register in time, exiting plug-in')
         except _SocketEOF:
             # Client went away and didn't meet our expectations for protocol,
             # this error message should not be seen as it shouldn't be

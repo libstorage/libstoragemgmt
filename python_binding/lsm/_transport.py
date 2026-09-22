@@ -7,6 +7,7 @@
 import json
 import socket
 import os
+import time
 import unittest
 import threading
 
@@ -14,6 +15,7 @@ from lsm._common import LsmError, ErrorNumber
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._data import DataDecoder as _DataDecoder
 from lsm._data import DataEncoder as _DataEncoder
+
 
 
 class TransPort(object):
@@ -38,7 +40,9 @@ class TransPort(object):
     def _read_all(self, l):
         """
         Reads l number of bytes before returning.  Will raise a SocketEOF
-        if socket returns zero bytes (i.e. socket no longer connected)
+        if socket returns zero bytes (i.e. socket no longer connected), or
+        socket.timeout if the deadline armed by set_io_deadline() passes
+        before the read completes.
         """
 
         if l < 1:
@@ -46,6 +50,16 @@ class TransPort(object):
 
         data = bytearray()
         while len(data) < l:
+            if self._io_deadline is not None:
+                # settimeout() bounds a single recv() call, so each read gets
+                # what is left of the deadline rather than a fresh copy of the
+                # full timeout.  Note settimeout(0) puts the socket in
+                # non-blocking mode, so an expired deadline has to be handled
+                # here instead of being passed on.
+                remaining = self._io_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise socket.timeout("timed out")
+                self.s.settimeout(remaining)
             r = self.s.recv(l - len(data))
             if not r:
                 raise _SocketEOF()
@@ -56,11 +70,23 @@ class TransPort(object):
     def _send_msg(self, msg):
         """
         Sends the json formatted message by pre-appending the length
-        first.
+        first.  Raises socket.timeout if the deadline armed by
+        set_io_deadline() passes before the message is written; a peer that
+        stops reading our replies fills the socket buffer and would otherwise
+        block us here forever.
         """
 
         if msg is None or len(msg) < 1:
             raise ValueError("Msg argument empty")
+
+        if self._io_deadline is not None:
+            # Same handling as _read_all(): settimeout(0) would put the
+            # socket in non-blocking mode, so an expired deadline is dealt
+            # with here rather than being passed on.
+            remaining = self._io_deadline - time.monotonic()
+            if remaining <= 0:
+                raise socket.timeout("timed out")
+            self.s.settimeout(remaining)
 
         # Note: Don't catch io exceptions at this level!
         s = str.zfill(str(len(msg)), self.HDR_LEN) + msg
@@ -82,6 +108,11 @@ class TransPort(object):
                     (length, self.MAX_MSG_LEN))
             msg = self._read_all(length)
             # common.Info("RECV: ", msg)
+        except socket.timeout:
+            # A receive timeout is distinct from a generic communication
+            # error; let it propagate so the caller can act on it (e.g. a
+            # plug-in giving up on an un-registered client).
+            raise
         except socket.error as e:
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while reading a message from the plug-in",
@@ -94,6 +125,28 @@ class TransPort(object):
 
     def __init__(self, socket_descriptor):
         self.s = socket_descriptor
+        self._io_deadline = None
+
+    def set_io_deadline(self, seconds):
+        """
+        Arms (or clears) an absolute I/O deadline.  The deadline expires the
+        given number of seconds from now and covers every subsequent read and
+        write, not just the next one: sending or receiving a message does not
+        buy any more time.  Pass None to clear it and return to blocking
+        behavior.
+
+        Mirrors Transport::io_deadline() in c_binding/lsm_ipc.cpp, except
+        that sendall() bounds the whole write against the deadline, where
+        the C side can overshoot it by one send() call.
+        """
+        if seconds is not None:
+            self._io_deadline = time.monotonic() + seconds
+            # The socket timeout is left alone here; each read and write sets
+            # it to whatever is left of the deadline.
+            return
+
+        self._io_deadline = None
+        self.s.settimeout(None)
 
     @staticmethod
     def get_socket(path):
@@ -143,6 +196,10 @@ class TransPort(object):
             msg = {'method': method, 'id': 100, 'params': args}
             data = json.dumps(msg, cls=_DataEncoder)
             self._send_msg(data)
+        except socket.timeout:
+            # As in _recv_msg(), a deadline expiry is distinct from a generic
+            # communication error; let the caller act on it.
+            raise
         except socket.error as se:
             raise LsmError(ErrorNumber.TRANSPORT_COMMUNICATION,
                            "Error while sending a message to the plug-in",
@@ -278,6 +335,177 @@ class _TestTransport(unittest.TestCase):
 
             reply, msg_id = self.client.read_resp()
             self.assertTrue(payload == reply)
+
+    def test_io_deadline(self):
+        # With a receive deadline armed, an incomplete (or absent) frame must
+        # surface as socket.timeout rather than being folded into a generic
+        # LsmError, so callers (e.g. a plug-in waiting on an un-registered
+        # client) can react to it.  b'' exercises a stalled header read;
+        # b'00000' exercises a partial header.
+        for partial in (b'', b'00000'):
+            c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                client = TransPort(c)
+                client.set_io_deadline(0.25)
+                if partial:
+                    s.sendall(partial)
+                self.assertRaises(socket.timeout, client._recv_msg)
+                # Clearing the deadline returns to blocking behavior.
+                client.set_io_deadline(None)
+                self.assertIsNone(c.gettimeout())
+            finally:
+                c.close()
+                s.close()
+
+    def _drip_server(self, s, header, count, interval, initial_delay=0):
+        """
+        Waits 'initial_delay', sends 'header', then sends 'count' single
+        payload bytes 'interval' apart - never enough to complete the payload
+        the header declares.  Returns the started thread.
+        """
+
+        def drip():
+            try:
+                time.sleep(initial_delay)
+                if header:
+                    s.sendall(header)
+                for _ in range(count):
+                    time.sleep(interval)
+                    s.sendall(b'x')
+            except OSError:
+                return
+
+        t = threading.Thread(target=drip)
+        t.start()
+        return t
+
+    def test_io_deadline_bounds_whole_message(self):
+        # A peer declares a 50 byte payload, then keeps sending a trickle of
+        # payload bytes one at a time, each arriving well inside the
+        # deadline, but never enough to complete the declared payload.  The
+        # deadline must bound the whole read, not just each individual recv()
+        # call, otherwise this drip defeats it and _recv_msg() never raises.
+        c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client = TransPort(c)
+            client.set_io_deadline(0.3)
+            dripper = self._drip_server(s, b'0000000050', 8, 0.15)
+            try:
+                start = time.monotonic()
+                self.assertRaises(socket.timeout, client._recv_msg)
+                elapsed = time.monotonic() - start
+                self.assertLess(elapsed, 1.0)
+            finally:
+                dripper.join()
+        finally:
+            c.close()
+            s.close()
+
+    def test_io_deadline_spans_header_and_payload(self):
+        # The header can land just before the deadline; the payload read that
+        # follows must inherit what is left of it rather than starting with a
+        # fresh full timeout of its own, which would let a peer stretch a
+        # single message to roughly twice the configured bound.
+        c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client = TransPort(c)
+            client.set_io_deadline(1.0)
+            # A complete header at ~0.9s, then the peer stalls forever.
+            late = self._drip_server(s, b'0000000050', 0, 0,
+                                     initial_delay=0.9)
+            try:
+                start = time.monotonic()
+                self.assertRaises(socket.timeout, client._recv_msg)
+                elapsed = time.monotonic() - start
+                self.assertLess(
+                    elapsed, 1.5,
+                    "payload read started a fresh timeout (elapsed %.2fs)" %
+                    elapsed)
+            finally:
+                late.join()
+        finally:
+            c.close()
+            s.close()
+
+    def test_io_deadline_spans_messages(self):
+        # A deadline that restarted on every message would let an
+        # un-registered peer keep a plug-in alive forever by sending one
+        # junk-but-parseable request just inside each window.  Reading a
+        # complete message must not buy any more time.
+        c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            client = TransPort(c)
+            peer = TransPort(s)
+            client.set_io_deadline(1.0)
+
+            # The request arrives late in the deadline, so a deadline that
+            # restarted here would buy the peer a whole extra window.
+            def late_request():
+                time.sleep(0.8)
+                try:
+                    peer.send_req('systems', None)
+                except OSError:
+                    pass
+
+            sender = threading.Thread(target=late_request)
+            sender.start()
+            try:
+                start = time.monotonic()
+                msg = client.read_req()
+                self.assertEqual(msg['method'], 'systems')
+
+                # Peer has gone quiet; the original deadline still applies.
+                self.assertRaises(socket.timeout, client._recv_msg)
+                elapsed = time.monotonic() - start
+                self.assertLess(
+                    elapsed, 1.5,
+                    "deadline restarted after a successful read "
+                    "(elapsed %.2fs)" % elapsed)
+            finally:
+                sender.join()
+        finally:
+            c.close()
+            s.close()
+
+    def test_io_deadline_bounds_send(self):
+        # A peer that chatters requests and never reads the replies fills the
+        # socket buffer; unless the deadline covers writes too, sendall()
+        # blocks forever and pins the worker just as effectively as a stalled
+        # read does.  Run in a thread so a regression fails rather than hangs.
+        c, s = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+        outcome = {}
+
+        def sender():
+            client = TransPort(c)
+            client.set_io_deadline(0.3)
+            start = time.monotonic()
+            try:
+                # Far more than the socket buffer holds; s never reads.
+                for _ in range(64):
+                    client.send_resp('x' * 65536)
+                outcome['result'] = 'completed'
+            except socket.timeout:
+                outcome['result'] = 'timeout'
+            except OSError as e:
+                outcome['result'] = 'oserror: %s' % e
+            outcome['elapsed'] = time.monotonic() - start
+
+        sending = threading.Thread(target=sender)
+        sending.daemon = True
+        sending.start()
+        try:
+            sending.join(timeout=5)
+            self.assertFalse(
+                sending.is_alive(),
+                "send to a peer that never reads was not bounded")
+            self.assertEqual(outcome.get('result'), 'timeout')
+            self.assertLess(
+                outcome['elapsed'], 2.0,
+                "deadline did not bound the send (elapsed %.2fs)" %
+                outcome['elapsed'])
+        finally:
+            c.close()
+            s.close()
 
     def test_oversized_message_rejected(self):
         # A header declaring a length >= MAX_MSG_LEN must be rejected before
