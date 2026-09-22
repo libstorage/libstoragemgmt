@@ -3,7 +3,8 @@ AM_CPPFLAGS = \
 	-I@srcdir@/c_binding/include
 
 EXTRA_DIST=cmdtest.py plugin_test.py test_include.sh runtests.sh.in integration.sh \
-	test_transport.py test_pluginrunner.py test_megaraid.py lsm_stub.py
+	test_transport.py test_pluginrunner.py test_megaraid.py \
+	test_daemon_conn_limit.py lsm_stub.py conftest.py devel_env.sh docker_ci_test.sh
 
 if WITH_TEST
 all: tester test_ipc test_conn_limit
