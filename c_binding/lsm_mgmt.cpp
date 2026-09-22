@@ -257,6 +257,9 @@ static int rpc(lsm_connect *c, const char *method, const Value &parameters,
     } catch (const EOFException &eof) {
         return log_exception(c, LSM_ERR_TRANSPORT_COMMUNICATION, "Plug-in died",
                              "Check syslog");
+    } catch (const TimeoutException &to) {
+        return log_exception(c, LSM_ERR_TRANSPORT_COMMUNICATION,
+                             "Timed out talking to plug-in", to.what());
     } catch (...) {
         return log_exception(c, LSM_ERR_LIB_BUG, "Unexpected exception",
                              "Unknown exception");
