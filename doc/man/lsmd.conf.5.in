@@ -50,6 +50,34 @@ connections are unaffected.
 The default is \fB64\fR, far above what any normal client needs. Set it to
 \fB0\fR for no limit.
 
+.TP
+\fBplugin-registration-timeout = 30;\fR
+
+Seconds a client has to complete \fBplugin_register\fR (the authenticating
+first call, carrying the URI and password) before the plugin process gives
+up on it and exits. Once registration succeeds this deadline no longer
+applies, so slow post-registration operations are never interrupted.
+
+\fBlsmd\fR forks a plugin process per connection and hands it the client
+socket before the client has proven itself in any way, so without a bound a
+connection that never completes registration would wedge that worker
+indefinitely.
+
+The deadline is only enforced while the plugin is waiting on the client, so
+a \fBplugin_register\fR that is already running when it passes is allowed to
+finish, and is answered if it succeeds. One that fails after the deadline
+ends the connection: the client gets the error but no second attempt on it.
+
+The default is \fB30\fR seconds, generous for a normal login exchange.
+Raise it if clients are slow to send \fBplugin_register\fR, or if a
+plugin's array is slow enough to reject a login that clients need to be able
+to retry on the same connection. The largest accepted
+value is \fB3600\fR seconds. Unlike \fBmax-connections-per-uid\fR, \fB0\fR
+does not disable this timeout, and neither does a very large value: anything
+outside \fB1\fR to \fB3600\fR is ignored and the default is used instead,
+since disabling it would reopen the connect-and-stall exposure this option
+exists to close.
+
 .SH Plugin OPTIONS
 .TP
 \fBrequire-root-privilege = true;\fR

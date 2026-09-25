@@ -35,6 +35,7 @@
 #include <unistd.h>
 
 #include "conn_limit.h"
+#include "lsm_ipc_timeout.h"
 
 #define BASE_DIR                       "/run/lsm"
 #define SOCKET_DIR                     BASE_DIR "/ipc"
@@ -46,6 +47,7 @@
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 #define LSM_CONF_MAX_CONN_OPT_NAME     "max-connections-per-uid"
+#define LSM_CONF_REG_TIMEOUT_OPT_NAME  "plugin-registration-timeout"
 
 /* Poll interval of the main event loop. Also the upper bound on how long an
  * exited plug-in lingers before child_cleanup() reaps it. */
@@ -77,6 +79,7 @@ int plugin_mem_debug = 0;
 int allow_root_plugin = 0;
 int has_root_plugin = 0;
 int max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+int plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
 
 /* Client uid we could not determine; such a connection is never counted
  * against the per-uid cap. */
@@ -1045,11 +1048,40 @@ int main(int argc, char *argv[]) {
                     &allow_root_plugin);
     parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_CONN_OPT_NAME,
                    &max_conn_per_uid);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_REG_TIMEOUT_OPT_NAME,
+                   &plugin_registration_timeout);
     free(lsmd_conf_path);
 
     conn_limit_set_max(max_conn_per_uid);
     if (conn_limit_get_max() == 0) {
         info("Per-uid concurrent connection limit disabled\n");
+    }
+
+    /* Unlike the connection cap above, 0 (or negative) is not a valid way to
+     * disable this: an un-registered client could then pin a plug-in worker
+     * forever, which is the exact DoS this deadline exists to close. A very
+     * large value is the same thing in disguise, and is further than the
+     * plug-in's millisecond timeout arithmetic can be trusted, so bound it
+     * too. */
+    if (plugin_registration_timeout <= 0 ||
+        plugin_registration_timeout > LSM_PLUGIN_MAX_RECV_TIMEOUT_SECONDS) {
+        warn("Ignoring invalid %s value %d in %s, using default of %d "
+             "seconds\n",
+             LSM_CONF_REG_TIMEOUT_OPT_NAME, plugin_registration_timeout,
+             LSMD_CONF_FILE, LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS);
+        plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
+    }
+
+    /* Every plug-in lsmd execs inherits this from our environment; see
+     * LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV in c_binding/lsm_ipc_timeout.h. */
+    char reg_timeout_str[16];
+    snprintf(reg_timeout_str, sizeof(reg_timeout_str), "%d",
+             plugin_registration_timeout);
+    if (-1 == setenv(LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, reg_timeout_str, 1)) {
+        warn("Failed to set %s in the environment: %s; plug-ins will fall "
+             "back to their compiled-in default of %d seconds\n",
+             LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, strerror(errno),
+             LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS);
     }
 
     /* Check to see if we want to check plugin for memory errors */
