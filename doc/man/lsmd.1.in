@@ -50,6 +50,11 @@ single user to a slice of the daemon's process budget rather than all of it,
 but it does not stop a user who is permitted to connect from consuming their
 slice, so it is no substitute for the directory permissions.
 
+It also bounds how long a single worker in that slice can live before the
+client authenticates (\fBplugin-registration-timeout\fR in \fBlsmd.conf\fR(5)),
+so a connection that never completes \fBplugin_register\fR cannot occupy its
+slot indefinitely.
+
 To limit access, drop the \fBother\fR permission bits from the socket directory
 and add the permitted users to the group that owns it. The directory must stay
 readable, writable and searchable by \fBlsmd\fR itself: the daemon drops

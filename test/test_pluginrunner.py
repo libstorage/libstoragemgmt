@@ -197,5 +197,93 @@ class TestPluginRunner(unittest.TestCase):
             client_sock.close()
 
 
+class TestRegistrationTimeoutFromEnv(unittest.TestCase):
+    """_registration_timeout_from_env() is what lets lsmd.conf(5)'s
+    "plugin-registration-timeout" reach a plug-in process: lsmd resolves it
+    once at startup and passes it down via the environment (see
+    LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV in c_binding/lsm_ipc_timeout.h and
+    the C-side mirror, registration_timeout_seconds(), in
+    c_binding/lsm_plugin_ipc.cpp). Anything this parser gets wrong either
+    silently ignores an administrator's override or - worse - disables the
+    registration deadline outright."""
+
+    ENV_NAME = _pluginrunner._REGISTRATION_TIMEOUT_ENV_NAME
+
+    def setUp(self):
+        self._had_env = self.ENV_NAME in os.environ
+        self._saved_env = os.environ.get(self.ENV_NAME)
+
+    def tearDown(self):
+        if self._had_env:
+            os.environ[self.ENV_NAME] = self._saved_env
+        else:
+            os.environ.pop(self.ENV_NAME, None)
+
+    def _set(self, value):
+        if value is None:
+            os.environ.pop(self.ENV_NAME, None)
+        else:
+            os.environ[self.ENV_NAME] = value
+
+    def test_unset_uses_default(self):
+        self._set(None)
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_valid_override_is_used(self):
+        self._set('120')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(), 120)
+
+    def test_empty_uses_default(self):
+        self._set('')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_zero_uses_default(self):
+        # 0 is not a valid way to disable the deadline: an un-registered
+        # client could then pin a worker forever, defeating the point.
+        self._set('0')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_negative_uses_default(self):
+        self._set('-5')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_non_numeric_uses_default(self):
+        self._set('soon')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_float_like_uses_default(self):
+        # int() rejects "12.5" outright rather than truncating it; a typo'd
+        # config value should fall back, not silently round down.
+        self._set('12.5')
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_at_max_is_used(self):
+        self._set(str(_pluginrunner._REGISTRATION_TIMEOUT_MAX))
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_MAX)
+
+    def test_too_large_uses_default(self):
+        # int() accepts arbitrarily large values, unlike C's strtol()+INT_MAX
+        # check, so this has to be rejected explicitly - otherwise it would
+        # sail through into set_io_deadline()'s time.monotonic() + seconds
+        # as an uncaught OverflowError on every connection, rather than
+        # falling back to the default the way an equally-malformed value
+        # does in the C plug-in runner.
+        self._set(str(_pluginrunner._REGISTRATION_TIMEOUT_MAX + 1))
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+    def test_absurdly_large_uses_default(self):
+        self._set('9' * 400)
+        self.assertEqual(_pluginrunner._registration_timeout_from_env(),
+                         _pluginrunner._REGISTRATION_TIMEOUT_DEFAULT)
+
+
 if __name__ == "__main__":
     unittest.main()
