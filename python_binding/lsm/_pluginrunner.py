@@ -31,7 +31,7 @@ _REGISTRATION_TIMEOUT_DEFAULT = 30
 # set_io_deadline()'s time.monotonic() + seconds, as an uncaught
 # OverflowError on every single connection - the opposite of the safe
 # fallback this function exists to provide.
-_REGISTRATION_TIMEOUT_MAX = 2 ** 31 - 1
+_REGISTRATION_TIMEOUT_MAX = 2**31 - 1
 
 
 def _registration_timeout_from_env():

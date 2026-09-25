@@ -2506,8 +2506,7 @@ static int lsm_plugin_run(lsm_plugin_ptr p) {
                          * let a register call return LSM_ERR_JOB_STARTED,
                          * but the deadline drop must not ride on that
                          * invariant holding. */
-                        if (method == "plugin_register" &&
-                            LSM_ERR_OK == rc) {
+                        if (method == "plugin_register" && LSM_ERR_OK == rc) {
                             p->tp->io_deadline(0);
                         }
                     } else {

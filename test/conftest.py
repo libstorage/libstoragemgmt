@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Copyright (C) 2026 Red Hat, Inc.
-
 """
 plugin_test.py is a specification-based integration script that drives the real
 "lsm" package (the compiled _clib extension and all) against a running

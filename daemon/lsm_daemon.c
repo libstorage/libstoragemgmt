@@ -1058,8 +1058,7 @@ int main(int argc, char *argv[]) {
     char reg_timeout_str[16];
     snprintf(reg_timeout_str, sizeof(reg_timeout_str), "%d",
              plugin_registration_timeout);
-    if (-1 ==
-        setenv(LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, reg_timeout_str, 1)) {
+    if (-1 == setenv(LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, reg_timeout_str, 1)) {
         warn("Failed to set %s in the environment: %s; plug-ins will fall "
              "back to their compiled-in default of %d seconds\n",
              LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, strerror(errno),

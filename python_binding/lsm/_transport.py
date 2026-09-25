@@ -17,7 +17,6 @@ from lsm._data import DataDecoder as _DataDecoder
 from lsm._data import DataEncoder as _DataEncoder
 
 
-
 class TransPort(object):
     """
     Provides wire serialization by using json.  Loosely conforms to json-rpc,
@@ -411,8 +410,7 @@ class _TestTransport(unittest.TestCase):
             client = TransPort(c)
             client.set_io_deadline(1.0)
             # A complete header at ~0.9s, then the peer stalls forever.
-            late = self._drip_server(s, b'0000000050', 0, 0,
-                                     initial_delay=0.9)
+            late = self._drip_server(s, b'0000000050', 0, 0, initial_delay=0.9)
             try:
                 start = time.monotonic()
                 self.assertRaises(socket.timeout, client._recv_msg)
@@ -458,8 +456,7 @@ class _TestTransport(unittest.TestCase):
                 self.assertRaises(socket.timeout, client._recv_msg)
                 elapsed = time.monotonic() - start
                 self.assertLess(
-                    elapsed, 1.5,
-                    "deadline restarted after a successful read "
+                    elapsed, 1.5, "deadline restarted after a successful read "
                     "(elapsed %.2fs)" % elapsed)
             finally:
                 sender.join()

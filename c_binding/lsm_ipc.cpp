@@ -156,8 +156,9 @@ int Transport::msg_send(const std::string &msg, int &error_code) {
                     break;
                 }
             } else if (errno == EAGAIN || errno == EWOULDBLOCK ||
-                      errno == EINTR) {
-                continue; // Spurious wakeup; wait_ready() re-checks the deadline.
+                       errno == EINTR) {
+                continue; // Spurious wakeup; wait_ready() re-checks the
+                          // deadline.
             } else {
                 error_code = errno;
                 break;
@@ -193,9 +194,9 @@ static std::string string_read(int fd, ssize_t count, int &error_code,
             break;
         }
 
-        ssize_t rd = recv(
-            fd, buff, std::min((ssize_t)(sizeof(buff)), (count - amount_read)),
-            0);
+        ssize_t rd =
+            recv(fd, buff,
+                 std::min((ssize_t)(sizeof(buff)), (count - amount_read)), 0);
         if (rd > 0) {
             ssize_t t = amount_read;
             if (__builtin_add_overflow(t, rd, &amount_read)) {
@@ -205,8 +206,7 @@ static std::string string_read(int fd, ssize_t count, int &error_code,
             rc += std::string(buff, rd);
         } else if (rd == 0) {
             throw EOFException("");
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK ||
-                  errno == EINTR) {
+        } else if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
             continue; // Spurious wakeup; wait_ready() re-checks the deadline.
         } else {
             error_code = errno;

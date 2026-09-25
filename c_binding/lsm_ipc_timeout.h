@@ -28,8 +28,8 @@
  * in python_binding/lsm/_pluginrunner.py. */
 #define LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS 30
 
-/* Name of the environment variable lsmd sets (from "plugin-registration-timeout"
- * in lsmd.conf) before exec'ing a plug-in; see
+/* Name of the environment variable lsmd sets (from
+ * "plugin-registration-timeout" in lsmd.conf) before exec'ing a plug-in; see
  * LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS above. Kept consistent with the
  * same literal in python_binding/lsm/_pluginrunner.py. */
 #define LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV "LSM_PLUGIN_REGISTRATION_TIMEOUT"

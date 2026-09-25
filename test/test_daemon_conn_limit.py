@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Copyright (C) 2026 Red Hat, Inc.
-
 """Black-box coverage for lsmd's per-uid admission and reaping path.
 
 This runs from runtests.sh after the sim plug-in daemon has been started with

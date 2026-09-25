@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 #
 # Copyright (C) 2026 Red Hat, Inc.
-
 """
 Shared bootstrap for the standalone python unit tests.
 
@@ -53,8 +52,9 @@ def _reuse(name, mod):
         raise RuntimeError(
             "%s is already loaded from %s; these tests must run against "
             "%s.  Run them in a process that has not imported the installed "
-            "lsm package." % (name, getattr(mod, '__file__', 'an unknown '
-                                            'location'), LSM_SRC_DIR))
+            "lsm package." %
+            (name, getattr(mod, '__file__', 'an unknown '
+                           'location'), LSM_SRC_DIR))
     return mod
 
 

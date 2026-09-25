@@ -48,6 +48,7 @@ class FakePlugin(object):
 
 
 class TestPluginRunner(unittest.TestCase):
+
     def setUp(self):
         # Small deadline so the pre-auth case fires quickly.
         self._saved_timeout = _pluginrunner.REGISTRATION_TIMEOUT
@@ -58,8 +59,9 @@ class TestPluginRunner(unittest.TestCase):
 
     @staticmethod
     def _start_runner(plugin_sock):
-        runner = PluginRunner(FakePlugin, ["fake_plugin",
-                                           str(plugin_sock.fileno())])
+        runner = PluginRunner(
+            FakePlugin,
+            ["fake_plugin", str(plugin_sock.fileno())])
         thread = threading.Thread(target=runner.run)
         thread.daemon = True
         thread.start()
@@ -70,7 +72,7 @@ class TestPluginRunner(unittest.TestCase):
         wedge the worker; run() has to exit once the pre-auth deadline
         fires."""
         plugin_sock, client_sock = socket.socketpair(socket.AF_UNIX,
-                                                      socket.SOCK_STREAM)
+                                                     socket.SOCK_STREAM)
         try:
             thread = self._start_runner(plugin_sock)
             # Send nothing at all from the client end.
@@ -174,17 +176,22 @@ class TestPluginRunner(unittest.TestCase):
             thread = self._start_runner(plugin_sock)
             client = TransPort(client_sock)
 
-            client.rpc('plugin_register', {'uri': 'sim://',
-                                           'plain_text_password': None,
-                                           'timeout_ms': 1000,
-                                           'flags': 0})
+            client.rpc(
+                'plugin_register', {
+                    'uri': 'sim://',
+                    'plain_text_password': None,
+                    'timeout_ms': 1000,
+                    'flags': 0
+                })
 
             # Idle longer than the (now-cleared) pre-auth timeout.
             time.sleep(_pluginrunner.REGISTRATION_TIMEOUT * 2)
 
-            result = client.rpc('systems', {'search_key': None,
-                                            'search_value': None,
-                                            'flags': 0})
+            result = client.rpc('systems', {
+                'search_key': None,
+                'search_value': None,
+                'flags': 0
+            })
             self.assertEqual(result, [],
                              "established session was killed during idle gap")
 
