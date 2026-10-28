@@ -79,7 +79,14 @@ else
 fi
 
 V=1 make || exit 1
-V=1 make check || { cat test-suite.log; exit 1; }
+
+# VERBOSE=1 has the automake test harness print the test-suite.log of
+# whichever directory failed. Without it only the top level log was shown,
+# which says nothing about a test that failed further down the tree.
+V=1 VERBOSE=1 make check || {
+    find . -name test-suite.log -printf '\n===== %p =====\n' -exec cat {} \;
+    exit 1
+}
 
 if [ "CHK$IS_PY3" == "CHK1" ];then
     echo "Testing 'make rpm'"
