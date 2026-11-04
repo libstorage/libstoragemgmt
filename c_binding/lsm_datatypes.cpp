@@ -41,7 +41,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#define LSM_DEFAULT_PLUGIN_DIR "/var/run/lsm/ipc"
+#define LSM_DEFAULT_PLUGIN_DIR "/run/lsm/ipc"
 
 int lsm_string_list_append(lsm_string_list *sl, const char *value) {
     int rc = LSM_ERR_INVALID_ARGUMENT;
