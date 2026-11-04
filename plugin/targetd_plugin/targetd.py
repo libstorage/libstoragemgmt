@@ -25,15 +25,6 @@ DEFAULT_USER = "admin"
 DEFAULT_PORT = 18700
 PATH = "/targetrpc"
 
-SSL_DEFAULT_CONTEXT = False
-
-# Check to see if we have the ability to call ssl.create_default_context
-try:
-    if ssl.create_default_context:
-        SSL_DEFAULT_CONTEXT = True
-except AttributeError:
-    pass
-
 # Current sector size in liblvm
 _LVM_SECTOR_SIZE = 512
 
@@ -106,6 +97,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
         self.no_ssl_verify = False
         self._flag_ag_support = True
         self.ca_cert_file = ""
+        self.ctx = None
         self.system = System("targetd", "targetd storage appliance",
                              System.STATUS_UNKNOWN, '')
 
@@ -154,12 +146,13 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
                     "Specifying 'no_ssl_verify' and 'ca_cert_file' "
                     "is unsupported combination.")
 
-        if not SSL_DEFAULT_CONTEXT and (self.no_ssl_verify
-                                        or self.ca_cert_file):
-            raise LsmError(
-                ErrorNumber.INVALID_ARGUMENT,
-                "Cannot specify no_ssl_verify or ca_cert_file for this"
-                "version of python!")
+        if self.ca_cert_file:
+            self.ctx = ssl.create_default_context(cafile=self.ca_cert_file)
+        elif self.no_ssl_verify:
+            self.ctx = ssl.create_default_context()
+            self.ctx.check_hostname = False
+            self.ctx.verify_mode = ssl.CERT_NONE
+
         try:
             self._jsonrequest('access_group_list', default_error_handler=False)
         except TargetdError as te:
@@ -988,20 +981,7 @@ class TargetdStorage(IStorageAreaNetwork, INfs):
 
         request = Request(self.url, data.encode('utf-8'), self.headers)
 
-        if SSL_DEFAULT_CONTEXT:
-            if self.ca_cert_file:
-                ctx = ssl.create_default_context(cafile=self.ca_cert_file)
-            elif self.no_ssl_verify:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-            else:
-                ctx = None
-
-            response_obj = urlopen(request, context=ctx)
-        else:
-            # Does not support context parameter
-            response_obj = urlopen(request)
+        response_obj = urlopen(request, context=self.ctx)
 
         response_data = response_obj.read().decode('utf-8')
         response = json.loads(response_data)
