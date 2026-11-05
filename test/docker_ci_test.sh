@@ -33,7 +33,7 @@ fi
 getent group libstoragemgmt >/dev/null || \
     groupadd -r libstoragemgmt || exit 1
 getent passwd libstoragemgmt >/dev/null || \
-    useradd -r -g libstoragemgmt -d /var/run/lsm \
+    useradd -r -g libstoragemgmt -d /run/lsm \
     -s /sbin/nologin \
     -c "daemon account for libstoragemgmt" libstoragemgmt || exit 1
 

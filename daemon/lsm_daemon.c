@@ -34,7 +34,7 @@
 #include <syslog.h>
 #include <unistd.h>
 
-#define BASE_DIR                       "/var/run/lsm"
+#define BASE_DIR                       "/run/lsm"
 #define SOCKET_DIR                     BASE_DIR "/ipc"
 #define PLUGIN_DIR                     "/usr/bin"
 #define LSM_USER                       "libstoragemgmt"

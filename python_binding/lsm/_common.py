@@ -139,7 +139,7 @@ class Proxy(object):
 
 
 # variable in client and specified on the command line for the daemon
-UDS_PATH = '/var/run/lsm/ipc'
+UDS_PATH = '/run/lsm/ipc'
 
 # Set to True for verbose logging
 LOG_VERBOSE = True
