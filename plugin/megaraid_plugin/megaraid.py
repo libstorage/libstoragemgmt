@@ -325,6 +325,12 @@ class MegaRAID(IPlugin):
         "/opt/hpe/storcli/storcli64"
     ]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
+    # storcli wording for a query about hardware the controller lacks:
+    # HBA-mode controllers (eg. Dell HBA355i) answer RAID commands with
+    # 'Un-supported command', and a controller fitted with a capacitor
+    # answers '/cx/bbu' with 'use /cx/cv'.
+    _ABSENT_DEVICE_REGEX = re.compile(
+        r'un-?supported\s+command|\buse\s+/c[\dx]+/', re.IGNORECASE)
 
     def __init__(self):
         self._storcli_bin = None
@@ -431,6 +437,25 @@ class MegaRAID(IPlugin):
         cap.set(Capabilities.VOLUME_DELETE)
         return cap
 
+    @staticmethod
+    def _absent_device_error(cmd_status):
+        """
+        Return a NO_SUPPORT LsmError if the storcli 'Command Status' says the
+        controller has no such device, otherwise None.
+        """
+        texts = [cmd_status.get('Description', '')]
+        texts += [
+            d.get('ErrMsg', '')
+            for d in cmd_status.get('Detailed Status') or []
+        ]
+        for text in texts:
+            if MegaRAID._ABSENT_DEVICE_REGEX.search(text):
+                return LsmError(
+                    ErrorNumber.NO_SUPPORT,
+                    "MegaRAID storcli: not supported by this controller: %s" %
+                    text)
+        return None
+
     def _storcli_exec(self, storcli_cmds, flag_json=True):
         storcli_cmds.insert(0, self._storcli_bin)
         if flag_json:
@@ -445,6 +470,21 @@ class MegaRAID(IPlugin):
                     self._storcli_bin)
             else:
                 raise
+        except ExecError as exec_error:
+            # storcli exits non-zero for some failures, reporting them in its
+            # output just as it does when exiting zero. Turn an absent device
+            # into NO_SUPPORT; leave everything else as ExecError, which
+            # several callers inspect to retry or report a better error.
+            stdout = re.sub("[^\x20-\x7e]", " ", exec_error.stdout or '')
+            try:
+                cmd_status = json.loads(
+                    stdout)['Controllers'][0]['Command Status']
+            except (ValueError, TypeError, KeyError, IndexError):
+                raise exec_error
+            absent = MegaRAID._absent_device_error(cmd_status)
+            if absent is None:
+                raise
+            raise absent
 
         output = re.sub("[^\x20-\x7e]", " ", output)
 
@@ -459,11 +499,19 @@ class MegaRAID(IPlugin):
 
             rc_status = ctrl_output[0].get('Command Status')
             if rc_status.get('Status') != 'Success':
-                detail_status = rc_status['Detailed Status'][0]
+                absent = MegaRAID._absent_device_error(rc_status)
+                if absent is not None:
+                    raise absent
+                # Failures carrying only a Description have no Detailed Status
+                details = rc_status.get('Detailed Status')
+                if not details:
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_BUG, "MegaRAID storcli failed: %s" %
+                        rc_status.get('Description', 'Unknown error'))
                 raise LsmError(
                     ErrorNumber.PLUGIN_BUG,
                     "MegaRAID storcli failed with error %d: %s" %
-                    (detail_status['ErrCd'], detail_status['ErrMsg']))
+                    (details[0]['ErrCd'], details[0]['ErrMsg']))
             real_data = ctrl_output[0].get('Response Data', {})
             if real_data and 'Response Data' in list(real_data.keys()):
                 return real_data['Response Data']
@@ -471,6 +519,18 @@ class MegaRAID(IPlugin):
             return real_data
         else:
             return output
+
+    def _storcli_exec_optional(self, storcli_cmds, flag_json=True):
+        """
+        Same as _storcli_exec(), but return None when the controller lacks
+        the queried device or feature instead of raising NO_SUPPORT.
+        """
+        try:
+            return self._storcli_exec(storcli_cmds, flag_json)
+        except LsmError as lsm_err:
+            if lsm_err.code == ErrorNumber.NO_SUPPORT:
+                return None
+            raise
 
     def _ctrl_count(self):
         ctrl_count = self._storcli_exec(["show",
@@ -482,14 +542,16 @@ class MegaRAID(IPlugin):
         return ctrl_count
 
     def _lsm_status_of_ctrl(self, ctrl_show_all_output):
-        lsi_status_info = ctrl_show_all_output['Status']
+        lsi_status_info = ctrl_show_all_output.get('Status', {})
         status_info = ''
         status = System.STATUS_UNKNOWN
-        if lsi_status_info['Controller Status'] == 'Optimal':
+        # HBA-mode controllers report no Controller Status: leave it UNKNOWN
+        ctrl_status = lsi_status_info.get('Controller Status')
+        if ctrl_status == 'Optimal':
             status = System.STATUS_OK
-        else:
+        elif ctrl_status is not None:
             # TODO(Gris Ge): Try pull a disk off to check whether this change.
-            status_info = "%s: " % lsi_status_info['Controller Status']
+            status_info = "%s: " % ctrl_status
             for key_name in list(lsi_status_info.keys()):
                 if key_name == 'Controller Status':
                     continue
@@ -517,7 +579,7 @@ class MegaRAID(IPlugin):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
             sys_name = "%s %s %s" % (
                 ctrl_show_all_output['Basics']['Model'],
-                ctrl_show_all_output['Bus']['Host Interface'],
+                ctrl_show_all_output.get('Bus', {}).get('Host Interface', ''),
                 ctrl_show_all_output['Basics']['PCI Address'])
             (status,
              status_info) = self._lsm_status_of_ctrl(ctrl_show_all_output)
@@ -693,8 +755,10 @@ class MegaRAID(IPlugin):
         for ctrl_num in range(self._ctrl_count()):
             cc_vd_ids = []
             cc_dg_ids = []
-            dg_show_output = self._storcli_exec(
+            dg_show_output = self._storcli_exec_optional(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
+            if not dg_show_output:
+                continue
             consist_check_output = self._storcli_exec(
                 ["/c%d/vall" % ctrl_num, "show", "cc"])
             free_space_list = dg_show_output.get("FREE SPACE DETAILS", [])
@@ -753,7 +817,7 @@ class MegaRAID(IPlugin):
                 flags=Client.FLAG_RSVD):
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
-            vol_show_output = self._storcli_exec(
+            vol_show_output = self._storcli_exec_optional(
                 ["/c%d/vall" % ctrl_num, "show", "all"])
             sys_id = self._sys_id_of_ctrl_num(ctrl_num)
             if vol_show_output is None or len(vol_show_output) == 0:
@@ -1060,7 +1124,7 @@ class MegaRAID(IPlugin):
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
 
             try:
-                bbu_show_all_output = self._storcli_exec(
+                bbu_show_all_output = self._storcli_exec_optional(
                     ["/c%d/bbu" % ctrl_num, "show", "all"])
             except ExecError as exec_error:
                 bbu_show_all_output = None
@@ -1070,7 +1134,7 @@ class MegaRAID(IPlugin):
 
             # Capacitor
             try:
-                cv_show_all_output = self._storcli_exec(
+                cv_show_all_output = self._storcli_exec_optional(
                     ["/c%d/cv" % ctrl_num, "show", "all"])
             except ExecError as exec_error:
                 cv_show_all_output = None
