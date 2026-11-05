@@ -325,6 +325,10 @@ class MegaRAID(IPlugin):
         "/opt/hpe/storcli/storcli64"
     ]
     _CMD_JSON_OUTPUT_SWITCH = 'J'
+    # HBA-mode controllers (e.g. Dell HBA355i) reject RAID commands with a
+    # 'Failure' status carrying only a Description, no 'Detailed Status'.
+    _UNSUPPORTED_CMD_REGEX = re.compile(r'un-?supported\s+command',
+                                        re.IGNORECASE)
 
     def __init__(self):
         self._storcli_bin = None
@@ -413,25 +417,36 @@ class MegaRAID(IPlugin):
     @_handle_errors
     def capabilities(self, system, flags=Client.FLAG_RSVD):
         cur_lsm_syss = self.systems()
-        if system.id not in list(s.id for s in cur_lsm_syss):
+        lsm_sys = None
+        for s in cur_lsm_syss:
+            if system.id == s.id:
+                lsm_sys = s
+                break
+        if lsm_sys is None:
             raise LsmError(ErrorNumber.NOT_FOUND_SYSTEM, "System not found")
+
         cap = Capabilities()
         cap.set(Capabilities.DISKS)
         cap.set(Capabilities.DISK_VPD83_GET)
-        cap.set(Capabilities.VOLUMES)
-        cap.set(Capabilities.VOLUME_RAID_INFO)
-        cap.set(Capabilities.POOL_MEMBER_INFO)
-        cap.set(Capabilities.VOLUME_RAID_CREATE)
         cap.set(Capabilities.BATTERIES)
-        cap.set(Capabilities.VOLUME_CACHE_INFO)
-        cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
-        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
-        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
-        cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
-        cap.set(Capabilities.VOLUME_DELETE)
+
+        # Only advertise RAID capabilities for RAID mode controllers
+        if lsm_sys.mode == System.MODE_HARDWARE_RAID:
+            cap.set(Capabilities.VOLUMES)
+            cap.set(Capabilities.VOLUME_RAID_INFO)
+            cap.set(Capabilities.POOL_MEMBER_INFO)
+            cap.set(Capabilities.VOLUME_RAID_CREATE)
+            cap.set(Capabilities.VOLUME_CACHE_INFO)
+            cap.set(Capabilities.VOLUME_PHYSICAL_DISK_CACHE_UPDATE)
+            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_BACK)
+            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_AUTO)
+            cap.set(Capabilities.VOLUME_WRITE_CACHE_POLICY_UPDATE_WRITE_THROUGH)
+            cap.set(Capabilities.VOLUME_DELETE)
+
         return cap
 
     def _storcli_exec(self, storcli_cmds, flag_json=True):
+        """Execute storcli command and return parsed JSON output or handle errors."""
         storcli_cmds.insert(0, self._storcli_bin)
         if flag_json:
             storcli_cmds.append(MegaRAID._CMD_JSON_OUTPUT_SWITCH)
@@ -459,11 +474,21 @@ class MegaRAID(IPlugin):
 
             rc_status = ctrl_output[0].get('Command Status')
             if rc_status.get('Status') != 'Success':
-                detail_status = rc_status['Detailed Status'][0]
-                raise LsmError(
-                    ErrorNumber.PLUGIN_BUG,
-                    "MegaRAID storcli failed with error %d: %s" %
-                    (detail_status['ErrCd'], detail_status['ErrMsg']))
+                detail_status_list = rc_status.get('Detailed Status')
+                if detail_status_list:
+                    detail_status = detail_status_list[0]
+                    raise LsmError(
+                        ErrorNumber.PLUGIN_BUG,
+                        "MegaRAID storcli failed with error %d: %s" %
+                        (detail_status['ErrCd'], detail_status['ErrMsg']))
+                description = rc_status.get('Description', 'Unknown error')
+                if MegaRAID._UNSUPPORTED_CMD_REGEX.search(description):
+                    raise LsmError(
+                        ErrorNumber.NO_SUPPORT,
+                        "MegaRAID storcli command not supported by this "
+                        "controller: %s" % description)
+                raise LsmError(ErrorNumber.PLUGIN_BUG,
+                               "MegaRAID storcli failed: %s" % description)
             real_data = ctrl_output[0].get('Response Data', {})
             if real_data and 'Response Data' in list(real_data.keys()):
                 return real_data['Response Data']
@@ -472,7 +497,28 @@ class MegaRAID(IPlugin):
         else:
             return output
 
+    def _storcli_exec_optional(self, storcli_cmds, flag_json=True):
+        """
+        Same as _storcli_exec() but return None when the controller does not
+        implement the command, which is the normal case for HBA-mode
+        controllers and for RAID controllers without a battery or capacitor.
+        Every other failure is raised so a genuine storcli problem is not
+        silently turned into an empty result.
+        """
+        try:
+            return self._storcli_exec(storcli_cmds, flag_json)
+        except ExecError as exec_err:
+            # Only suppress if the error indicates unsupported command
+            if "Un-supported command" in str(exec_err):
+                return None
+            raise
+        except LsmError as lsm_err:
+            if lsm_err.code == ErrorNumber.NO_SUPPORT:
+                return None
+            raise
+
     def _ctrl_count(self):
+        """Get the total number of MegaRAID controllers."""
         ctrl_count = self._storcli_exec(["show",
                                          "ctrlcount"]).get("Controller Count")
         if ctrl_count < 1:
@@ -482,14 +528,19 @@ class MegaRAID(IPlugin):
         return ctrl_count
 
     def _lsm_status_of_ctrl(self, ctrl_show_all_output):
-        lsi_status_info = ctrl_show_all_output['Status']
+        """Map storcli controller status to LSM system status."""
+        lsi_status_info = ctrl_show_all_output.get('Status', {})
         status_info = ''
         status = System.STATUS_UNKNOWN
-        if lsi_status_info['Controller Status'] == 'Optimal':
+        ctrl_status = lsi_status_info.get('Controller Status')
+        if ctrl_status is None:
+            # HBA-mode controllers omit Controller Status; keep UNKNOWN
+            return status, status_info
+        if ctrl_status == 'Optimal':
             status = System.STATUS_OK
         else:
             # TODO(Gris Ge): Try pull a disk off to check whether this change.
-            status_info = "%s: " % lsi_status_info['Controller Status']
+            status_info = "%s: " % ctrl_status
             for key_name in list(lsi_status_info.keys()):
                 if key_name == 'Controller Status':
                     continue
@@ -510,14 +561,17 @@ class MegaRAID(IPlugin):
 
     @_handle_errors
     def systems(self, flags=Client.FLAG_RSVD):
+        """Discover MegaRAID controllers as storage systems."""
         rc_lsm_syss = []
         for ctrl_num in range(self._ctrl_count()):
             ctrl_show_all_output = self._storcli_exec(
                 ["/c%d" % ctrl_num, "show", "all"])
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
+            host_interface = ctrl_show_all_output.get(
+                'Bus', {}).get('Host Interface', '')
             sys_name = "%s %s %s" % (
                 ctrl_show_all_output['Basics']['Model'],
-                ctrl_show_all_output['Bus']['Host Interface'],
+                host_interface,
                 ctrl_show_all_output['Basics']['PCI Address'])
             (status,
              status_info) = self._lsm_status_of_ctrl(ctrl_show_all_output)
@@ -563,10 +617,9 @@ class MegaRAID(IPlugin):
         return rc_lsm_syss
 
     @_handle_errors
-    def disks(self,
-              search_key=None,
-              search_value=None,
+    def disks(self, search_key=None, search_value=None,
               flags=Client.FLAG_RSVD):
+        """Discover physical disks attached to MegaRAID controllers."""
         rc_lsm_disks = []
         mega_disk_path_regex = re.compile(
             r"""
@@ -689,20 +742,23 @@ class MegaRAID(IPlugin):
               search_key=None,
               search_value=None,
               flags=Client.FLAG_RSVD):
+        """Discover storage pools (disk groups) from MegaRAID controllers."""
         lsm_pools = []
         for ctrl_num in range(self._ctrl_count()):
             cc_vd_ids = []
             cc_dg_ids = []
-            dg_show_output = self._storcli_exec(
+            dg_show_output = self._storcli_exec_optional(
                 ["/c%d/dall" % ctrl_num, "show", "all"])
-            consist_check_output = self._storcli_exec(
-                ["/c%d/vall" % ctrl_num, "show", "cc"])
+            if not dg_show_output:
+                continue
+            consist_check_output = self._storcli_exec_optional(
+                ["/c%d/vall" % ctrl_num, "show", "cc"]) or {}
             free_space_list = dg_show_output.get("FREE SPACE DETAILS", [])
 
             if "TOPOLOGY" not in dg_show_output:
                 continue
 
-            for vd_stat in consist_check_output["VD Operation Status"]:
+            for vd_stat in consist_check_output.get("VD Operation Status", []):
                 if vd_stat["Status"] == "In progress":
                     cc_vd_ids.append(int(vd_stat["VD"]))
 
@@ -751,13 +807,14 @@ class MegaRAID(IPlugin):
                 search_key=None,
                 search_value=None,
                 flags=Client.FLAG_RSVD):
+        """Discover RAID volumes on MegaRAID controllers."""
         lsm_vols = []
         for ctrl_num in range(self._ctrl_count()):
-            vol_show_output = self._storcli_exec(
+            vol_show_output = self._storcli_exec_optional(
                 ["/c%d/vall" % ctrl_num, "show", "all"])
-            sys_id = self._sys_id_of_ctrl_num(ctrl_num)
-            if vol_show_output is None or len(vol_show_output) == 0:
+            if not vol_show_output:
                 continue
+            sys_id = self._sys_id_of_ctrl_num(ctrl_num)
             for key_name in list(vol_show_output.keys()):
                 if key_name.startswith('/c'):
                     vd_basic_info = vol_show_output[key_name][0]
@@ -1059,21 +1116,15 @@ class MegaRAID(IPlugin):
                 ["/c%d" % ctrl_num, "show", "all"])
             sys_id = self._sys_id_of_ctrl_num(ctrl_num, ctrl_show_all_output)
 
-            try:
-                bbu_show_all_output = self._storcli_exec(
-                    ["/c%d/bbu" % ctrl_num, "show", "all"])
-            except ExecError as exec_error:
-                bbu_show_all_output = None
+            bbu_show_all_output = self._storcli_exec_optional(
+                ["/c%d/bbu" % ctrl_num, "show", "all"])
 
             if bbu_show_all_output:
                 lsm_bats.append(_mega_bbu_to_lsm(sys_id, bbu_show_all_output))
 
             # Capacitor
-            try:
-                cv_show_all_output = self._storcli_exec(
-                    ["/c%d/cv" % ctrl_num, "show", "all"])
-            except ExecError as exec_error:
-                cv_show_all_output = None
+            cv_show_all_output = self._storcli_exec_optional(
+                ["/c%d/cv" % ctrl_num, "show", "all"])
 
             if cv_show_all_output:
                 lsm_bats.append(_mega_cv_to_lsm(sys_id, cv_show_all_output))
