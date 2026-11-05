@@ -329,6 +329,10 @@ class MegaRAID(IPlugin):
     # 'Failure' status carrying only a Description, no 'Detailed Status'.
     _UNSUPPORTED_CMD_REGEX = re.compile(r'un-?supported\s+command',
                                         re.IGNORECASE)
+    # Asked about hardware it does not have, a controller names the device
+    # that is fitted instead, eg. '/c0/bbu show' answers 'use /cx/cv' on a
+    # controller carrying a capacitor rather than a battery.
+    _WRONG_DEVICE_REGEX = re.compile(r'\buse\s+/c[\dx]+/', re.IGNORECASE)
 
     def __init__(self):
         self._storcli_bin = None
@@ -445,6 +449,30 @@ class MegaRAID(IPlugin):
 
         return cap
 
+    @staticmethod
+    def _absent_device_msg(output):
+        """
+        Return storcli's wording when it reports that the controller has no
+        such device, or None when the failure is anything else. An HBA-mode
+        controller says so with an unsupported-command reply, and one with a
+        capacitor rather than a battery answers /cx/bbu with 'use /cx/cv'.
+        """
+        try:
+            status = json.loads(output)['Controllers'][0]['Command Status']
+        except (ValueError, TypeError, KeyError, IndexError):
+            return None
+
+        texts = [status.get('Description', '')]
+        detail_status_list = status.get('Detailed Status')
+        if detail_status_list:
+            texts.append(detail_status_list[0].get('ErrMsg', ''))
+
+        for text in texts:
+            if (MegaRAID._UNSUPPORTED_CMD_REGEX.search(text) or
+                    MegaRAID._WRONG_DEVICE_REGEX.search(text)):
+                return text
+        return None
+
     def _storcli_exec(self, storcli_cmds, flag_json=True):
         """Execute storcli command and return parsed JSON output or handle errors."""
         storcli_cmds.insert(0, self._storcli_bin)
@@ -460,6 +488,19 @@ class MegaRAID(IPlugin):
                     self._storcli_bin)
             else:
                 raise
+        except ExecError as exec_err:
+            # storcli exits non-zero for some failures and zero for others
+            # while reporting both the same way in its output. Pick out the
+            # replies saying this controller has no such device; everything
+            # else stays an ExecError, which several callers read in order
+            # to retry or to report a better error than the command gave.
+            absent = MegaRAID._absent_device_msg(exec_err.stdout)
+            if absent is None:
+                raise
+            raise LsmError(
+                ErrorNumber.NO_SUPPORT,
+                "MegaRAID storcli: this controller has no such device: %s" %
+                absent)
 
         output = re.sub("[^\x20-\x7e]", " ", output)
 
@@ -477,12 +518,20 @@ class MegaRAID(IPlugin):
                 detail_status_list = rc_status.get('Detailed Status')
                 if detail_status_list:
                     detail_status = detail_status_list[0]
+                    err_msg = detail_status.get('ErrMsg', '')
+                    if (MegaRAID._UNSUPPORTED_CMD_REGEX.search(err_msg) or
+                            MegaRAID._WRONG_DEVICE_REGEX.search(err_msg)):
+                        raise LsmError(
+                            ErrorNumber.NO_SUPPORT,
+                            "MegaRAID storcli: this controller has no such "
+                            "device: %s" % err_msg)
                     raise LsmError(
                         ErrorNumber.PLUGIN_BUG,
                         "MegaRAID storcli failed with error %d: %s" %
-                        (detail_status['ErrCd'], detail_status['ErrMsg']))
+                        (detail_status['ErrCd'], err_msg))
                 description = rc_status.get('Description', 'Unknown error')
-                if MegaRAID._UNSUPPORTED_CMD_REGEX.search(description):
+                if (MegaRAID._UNSUPPORTED_CMD_REGEX.search(description) or
+                        MegaRAID._WRONG_DEVICE_REGEX.search(description)):
                     raise LsmError(
                         ErrorNumber.NO_SUPPORT,
                         "MegaRAID storcli command not supported by this "
@@ -507,11 +556,6 @@ class MegaRAID(IPlugin):
         """
         try:
             return self._storcli_exec(storcli_cmds, flag_json)
-        except ExecError as exec_err:
-            # Only suppress if the error indicates unsupported command
-            if "Un-supported command" in str(exec_err):
-                return None
-            raise
         except LsmError as lsm_err:
             if lsm_err.code == ErrorNumber.NO_SUPPORT:
                 return None
