@@ -22,6 +22,7 @@
 #include "lsm_convert.hpp"
 #include "lsm_datatypes.hpp"
 #include "lsm_ipc.hpp"
+#include "lsm_ipc_timeout.h"
 #include "uri_parser.hpp"
 #include <errno.h>
 #include <limits.h>
@@ -2437,11 +2438,47 @@ static int process_request(lsm_plugin_ptr p, const std::string &method,
     return rc;
 }
 
+// How long (seconds) this plug-in gives a client to complete
+// plugin_register, per LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS in
+// lsm_ipc_timeout.h. lsmd resolves lsmd.conf(5)'s
+// "plugin-registration-timeout" once at startup and passes it down via
+// LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV in the environment it execs us with,
+// so a deployment with an array that is slow to authenticate can raise it
+// without a rebuild. Falls back to the compiled-in default if the variable
+// is absent, empty, not a plain integer, or not positive - which also
+// covers running this plug-in by hand, outside of lsmd. Note strtol() skips
+// leading but not trailing whitespace, so e.g. " 30" parses as 30 while
+// "30 " falls back to the default; the Python mirror's int() strips both.
+// lsmd itself never sets a value with either, via a plain snprintf("%d",
+// ...), so this only matters for a hand-set variable.
+static int registration_timeout_seconds(void) {
+    const char *env = getenv(LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV);
+
+    if (env != NULL && *env != '\0') {
+        char *end = NULL;
+        long value = strtol(env, &end, 10);
+
+        if (*end == '\0' && value > 0 && value <= INT_MAX) {
+            return (int)value;
+        }
+    }
+    return LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
+}
+
 static int lsm_plugin_run(lsm_plugin_ptr p) {
     int rc = 0;
     lsm_flag flags = 0;
 
     if (LSM_IS_PLUGIN(p)) {
+        /* One absolute deadline for the whole registration handshake, armed
+         * before the first read: an un-registered client cannot stretch it by
+         * keeping the conversation alive with requests we reject, the way a
+         * per-message timeout let it.  It bounds our replies too, so a client
+         * that chatters but never reads them cannot pin us inside send()
+         * either; both expiries arrive here as TimeoutException.
+         */
+        p->tp->io_deadline(registration_timeout_seconds());
+
         while (true) {
             try {
 
@@ -2460,6 +2497,18 @@ static int lsm_plugin_run(lsm_plugin_ptr p) {
 
                     if (LSM_ERR_OK == rc || LSM_ERR_JOB_STARTED == rc) {
                         p->tp->responseSend(resp);
+
+                        /* Client has registered; drop the deadline so slow
+                         * operations are never interrupted. Gate this on
+                         * LSM_ERR_OK specifically rather than on having sent
+                         * a response at all: lsm_plugin_register has no job
+                         * out-parameter, so the RPC protocol should never
+                         * let a register call return LSM_ERR_JOB_STARTED,
+                         * but the deadline drop must not ride on that
+                         * invariant holding. */
+                        if (method == "plugin_register" && LSM_ERR_OK == rc) {
+                            p->tp->io_deadline(0);
+                        }
                     } else {
                         error_send(p, rc);
                     }
@@ -2472,6 +2521,10 @@ static int lsm_plugin_run(lsm_plugin_ptr p) {
                     syslog(LOG_USER | LOG_NOTICE, "Invalid request");
                     break;
                 }
+            } catch (TimeoutException &to) {
+                syslog(LOG_USER | LOG_NOTICE,
+                       "Client failed to register in time, exiting!");
+                break;
             } catch (EOFException &eof) {
                 break;
             } catch (ValueException &ve) {

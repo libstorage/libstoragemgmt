@@ -235,6 +235,11 @@ static int connection_establish(lsm_connect *c, const char *password,
                               "Error in communication", le.what(), NULL, NULL,
                               0);
         rc = LSM_ERR_TRANSPORT_COMMUNICATION;
+    } catch (const TimeoutException &to) {
+        *e = lsm_error_create(LSM_ERR_TRANSPORT_COMMUNICATION,
+                              "Timed out talking to plug-in", to.what(), NULL,
+                              NULL, 0);
+        rc = LSM_ERR_TRANSPORT_COMMUNICATION;
     } catch (...) {
         *e = lsm_error_create(LSM_ERR_LIB_BUG, "Undefined exception", NULL,
                               NULL, NULL, 0);
