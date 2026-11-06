@@ -5,19 +5,29 @@
 # Bash completion for lsmcli. This may be far from ideal,
 # suggestions & improvements appreciated!
 
-potential_args=''
+# Value look-ups ('lsmcli list' for systems, pools, volumes, ...) can be slow
+# or hang depending on plugin and configuration, so they are off unless
+# LSMCLI_AUTO_COMPLETE_VALUE=1 is set in the environment. It is read on every
+# completion, so it can be exported or changed after this file is sourced.
+#
+# Everything defined here is prefixed with _lsm so sourcing this file does not
+# clobber functions of the user's shell, eg. 'join'. The helpers use no
+# variable names of their own that could collide with the caller's either:
+# scratch variables are 'local', and results come back through a variable
+# whose name the caller passes in.
 
-# Skip value lookups by default
-NO_VALUE_LOOKUP=${LSMCLI_AUTO_COMPLETE_VALUE:=0}
-
-function join { local IFS="$1"; shift; echo "$*"; }
+function _lsm_join { local IFS="$1"; shift; echo "$*"; }
 
 # Linear search of an array of strings for the specified string
-function listcontains() {
-    declare -a the_list=("${!1}")
+# $1 Name of the array, with [@], eg. COMP_WORDS[@]
+# $2 String to look for
+function _lsm_listcontains()
+{
+    local -a _lsm_the_list=("${!1}")
+    local _lsm_word
 
-    for word in "${the_list[@]}" ; do
-        [[ ${word} == $2 ]] && return 0
+    for _lsm_word in "${_lsm_the_list[@]}" ; do
+        [[ ${_lsm_word} == "$2" ]] && return 0
     done
     return 1
 }
@@ -25,48 +35,244 @@ function listcontains() {
 # Given a list of what is possible and what is on the command line return
 # what is left.
 # $1 What is possible
-# Results are returned in global string $potential_args
-function possible_args()
+# The result is left in $_lsm_potential_args, which _lsm declares local, so
+# it is _lsm that gets it and nothing is left behind in the shell.
+function _lsm_possible_args()
 {
-    local l=()
+    local -a _lsm_left=()
+    local _lsm_i
 
-    for i in $1
+    for _lsm_i in $1
     do
-        listcontains COMP_WORDS[@] "$i"
-        if [[ $? -eq 1 ]] ; then
-            l+=("$i")
-        fi
+        _lsm_listcontains "COMP_WORDS[@]" "$_lsm_i" || _lsm_left+=("$_lsm_i")
     done
 
-    potential_args=$( join ' ', "${l[@]}" )
+    _lsm_potential_args=$( _lsm_join ' ' "${_lsm_left[@]}" )
 }
 
-# Returns the position of the value in the COMP_WORDS that contains $1, or
-# 255 if it doesn't exist
-function arg_index()
+# Look for a word on the command line.
+# $1 The word to look for
+# $2 Name of the variable to set to the position of the word in COMP_WORDS
+# Returns 0 if found, else 1 and the variable is left alone. The position is
+# not the exit status as that cannot hold more than 255.
+function _lsm_arg_index()
 {
-    count=0
-	for i in "${COMP_WORDS[@]}"
-	do
-		if [[ "$i" == "$1" ]] ; then
-			return ${count}
-		fi
-		let count+=1
-	done
-	return 255
+    local _lsm_i
+
+    for (( _lsm_i = 0; _lsm_i < ${#COMP_WORDS[@]}; _lsm_i++ )) ; do
+        if [[ ${COMP_WORDS[_lsm_i]} == "$1" ]] ; then
+            printf -v "$2" '%d' "${_lsm_i}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Turn a word as the user typed it, which may be escaped or quoted, into the
+# value it stands for, the way the shell would read it but without evaluating
+# anything. Quoted and unquoted parts can follow each other, eg. 'a'"b"\ c.
+#   unquoted        a backslash escapes the next character, whatever it is
+#   "double quoted" a backslash escapes only \ " $ and `, else it is kept
+#   'single quoted' nothing is escaped
+#   $'ANSI-C'       what printf %q writes for a tab, newline and the like:
+#                   \a \b \e \E \f \n \r \t \v \\ \' \" \? \nnn and \xHH
+# A quote left open is fine, as that is the word being completed, and so is
+# a backslash at the very end.
+# $1 The word
+# $2 Name of the variable to set
+function _lsm_unescape()
+{
+    local _lsm_in="$1"
+    local _lsm_out=''
+    local _lsm_state=none
+    local _lsm_len=${#_lsm_in}
+    local _lsm_c _lsm_next _lsm_digits _lsm_i
+
+    for (( _lsm_i = 0; _lsm_i < _lsm_len; _lsm_i++ )) ; do
+        _lsm_c="${_lsm_in:_lsm_i:1}"
+        _lsm_next="${_lsm_in:_lsm_i+1:1}"
+        case "${_lsm_state}" in
+        none)
+            case "${_lsm_c}" in
+                '\')
+                    _lsm_out+="${_lsm_next}"
+                    (( ++_lsm_i ))
+                    ;;
+                "'") _lsm_state=single ;;
+                '"') _lsm_state=double ;;
+                '$')
+                    if [[ ${_lsm_next} == "'" ]] ; then
+                        _lsm_state=ansi
+                        (( ++_lsm_i ))
+                    else
+                        _lsm_out+='$'
+                    fi
+                    ;;
+                *) _lsm_out+="${_lsm_c}" ;;
+            esac
+            ;;
+        single)
+            if [[ ${_lsm_c} == "'" ]] ; then
+                _lsm_state=none
+            else
+                _lsm_out+="${_lsm_c}"
+            fi
+            ;;
+        double)
+            case "${_lsm_c}" in
+                '"') _lsm_state=none ;;
+                '\')
+                    case "${_lsm_next}" in
+                        '\'|'"'|'$'|'`')
+                            _lsm_out+="${_lsm_next}"
+                            (( ++_lsm_i ))
+                            ;;
+                        *) _lsm_out+='\' ;;
+                    esac
+                    ;;
+                *) _lsm_out+="${_lsm_c}" ;;
+            esac
+            ;;
+        ansi)
+            case "${_lsm_c}" in
+                "'") _lsm_state=none ;;
+                '\')
+                    case "${_lsm_next}" in
+                        a) _lsm_out+=$'\a' ; (( ++_lsm_i )) ;;
+                        b) _lsm_out+=$'\b' ; (( ++_lsm_i )) ;;
+                        e|E) _lsm_out+=$'\e' ; (( ++_lsm_i )) ;;
+                        f) _lsm_out+=$'\f' ; (( ++_lsm_i )) ;;
+                        n) _lsm_out+=$'\n' ; (( ++_lsm_i )) ;;
+                        r) _lsm_out+=$'\r' ; (( ++_lsm_i )) ;;
+                        t) _lsm_out+=$'\t' ; (( ++_lsm_i )) ;;
+                        v) _lsm_out+=$'\v' ; (( ++_lsm_i )) ;;
+                        '\'|"'"|'"'|'?')
+                            _lsm_out+="${_lsm_next}"
+                            (( ++_lsm_i ))
+                            ;;
+                        x)
+                            _lsm_digits="${_lsm_in:_lsm_i+2:2}"
+                            _lsm_digits="${_lsm_digits%%[!0-9a-fA-F]*}"
+                            if [[ -n ${_lsm_digits} ]] ; then
+                                # Only hex digits get into the format here.
+                                printf -v _lsm_c "\\x${_lsm_digits}"
+                                _lsm_out+="${_lsm_c}"
+                                (( _lsm_i += 1 + ${#_lsm_digits} ))
+                            else
+                                _lsm_out+='\'
+                            fi
+                            ;;
+                        [0-7])
+                            _lsm_digits="${_lsm_in:_lsm_i+1:3}"
+                            _lsm_digits="${_lsm_digits%%[!0-7]*}"
+                            printf -v _lsm_c "\\${_lsm_digits}"
+                            _lsm_out+="${_lsm_c}"
+                            (( _lsm_i += ${#_lsm_digits} ))
+                            ;;
+                        *) _lsm_out+='\' ;;
+                    esac
+                    ;;
+                *) _lsm_out+="${_lsm_c}" ;;
+            esac
+            ;;
+        esac
+    done
+    printf -v "$2" '%s' "${_lsm_out}"
+}
+
+# Get the value that follows a flag on the command line, for use as a filter.
+# $1 The flag, eg. --ag
+# $2 Name of the variable to set to the value, unescaped
+# Returns 0 if the flag is present with a usable value. A missing value, an
+# empty one or one that looks like the next option is treated as if the flag
+# was not there, rather than passing garbage on to lsmcli.
+function _lsm_flag_value()
+{
+    local _lsm_index _lsm_value
+
+    _lsm_arg_index "$1" _lsm_index || return 1
+    (( _lsm_index + 1 < ${#COMP_WORDS[@]} )) || return 1
+    _lsm_value="${COMP_WORDS[_lsm_index+1]}"
+    [[ -n ${_lsm_value} && ${_lsm_value} != -* ]] || return 1
+    _lsm_unescape "${_lsm_value}" "$2"
+}
+
+# Fill COMPREPLY with the values of the requested column of a 'lsmcli list'.
+# $1 Value for --type
+# $2 Column number to use as the completion value, or 'all' to use every
+#    field of every line, for nfs_client_auth which prints one line of values
+# $@ Any remaining arguments are passed to lsmcli as-is
+# Reads $_lsm_cur and $_lsm_sep of the caller, _lsm.
+#
+# Note: We cannot use 'compgen -W' here as it expands the word list, which
+# would execute command substitution, eg. $(...), embedded in a name returned
+# by a plugin, so do the prefix matching ourselves instead. As nothing
+# escapes the values for us they are escaped here, so a name with a space in
+# it completes as one word.
+function _lsm_values()
+{
+    local _lsm_list_type="$1"
+    local _lsm_column="$2"
+    local _lsm_item _lsm_plain
+    local -a _lsm_fields _lsm_items
+    shift 2
+
+    # What was typed so far, minus any escaping or quoting.
+    _lsm_unescape "${_lsm_cur}" _lsm_plain
+
+    COMPREPLY=()
+    # ${_lsm_sep} is not white space, so read splits the line on it alone and
+    # values keep any spaces they contain. Errors from lsmcli go nowhere as
+    # they would be written over the user's command line.
+    while IFS="${_lsm_sep}" read -r -a _lsm_fields ; do
+        if [[ ${_lsm_column} == all ]] ; then
+            _lsm_items=(${_lsm_fields[@]+"${_lsm_fields[@]}"})
+        else
+            _lsm_items=("${_lsm_fields[_lsm_column-1]:-}")
+        fi
+        for _lsm_item in ${_lsm_items[@]+"${_lsm_items[@]}"} ; do
+            if [[ -n ${_lsm_item} && ${_lsm_item} == "${_lsm_plain}"* ]] ; then
+                printf -v _lsm_item '%q' "${_lsm_item}"
+                COMPREPLY+=("${_lsm_item}")
+            fi
+        done
+    done < <(lsmcli list --type "${_lsm_list_type}" -t"${_lsm_sep}" "$@" 2>/dev/null)
 }
 
 function _lsm()
 {
-    local cur prev opts
-    sep='#'
+    local _lsm_cur _lsm_prev _lsm_sep _lsm_potential_args _lsm_opts_short
+    local _lsm_opts_long _lsm_opts_cmds _lsm_list_args _lsm_list_type_args
+    local _lsm_cap_args _lsm_ag_value _lsm_fs_value _lsm_volume_create_args
+    local _lsm_volume_delete_args _lsm_volume_resize_args
+    local _lsm_volume_replicate_args _lsm_volume_rep_types
+    local _lsm_volume_replicate_range_args _lsm_volume_replication_range_bs
+    local _lsm_volume_dependants _lsm_volume_access_group_args
+    local _lsm_volume_masking_args _lsm_access_group_create_args
+    local _lsm_access_group_delete_args _lsm_access_group_add_remove_args
+    local _lsm_volume_enable_disable_args _lsm_volume_raidinfo_args
+    local _lsm_iscsi_chap_args _lsm_fs_create_args _lsm_fs_delete_args
+    local _lsm_fs_resize_args _lsm_fs_export_args _lsm_fs_unexport_args
+    local _lsm_fs_clone_args _lsm_fs_snap_create_args _lsm_fs_snap_delete_args
+    local _lsm_fs_snap_restore_args _lsm_fs_dependants_args
+    local _lsm_file_clone_args _lsm_pool_member_info_args
+    local _lsm_volume_raid_create_args _lsm_volume_raid_create_cap_args
+    local _lsm_volume_phy_disk_cache_update_args
+    local _lsm_volume_read_cache_policy_update_args
+    local _lsm_volume_write_cache_policy_update_args
+    local _lsm_volume_cache_info_args _lsm_volume_ident_led_on_off_args
+    local _lsm_system_read_cache_pct_update_args _lsm_local_disk_led_args
+
+    # The ASCII unit separator, made for this and not something a name has in
+    # it, unlike '#' or ' ', which split a value in two.
+    _lsm_sep=$'\x1f'
     COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts_short="-b -v -u -P -H -t -e -f -w -b"
-    opts_long=" --help --version --uri --prompt --human --terse --enum \
+    _lsm_cur="${COMP_WORDS[COMP_CWORD]}"
+    _lsm_prev="${COMP_WORDS[COMP_CWORD-1]}"
+    _lsm_opts_short="-b -v -u -P -H -t -e -f -w -b"
+    _lsm_opts_long=" --help --version --uri --prompt --human --terse --enum \
               --force --wait --header --script "
-    opts_cmds="list job-status capabilities plugin-info volume-create \
+    _lsm_opts_cmds="list job-status capabilities plugin-info volume-create \
                 volume-delete volume-resize volume-replicate \
                 volume-replicate-range volume-replicate-range-block-size \
                 volume-dependants volume-dependants-rm volume-access-group \
@@ -89,154 +295,123 @@ function _lsm()
                 local-disk-fault-led-on ldflon \
                 local-disk-fault-led-off ldfloff"
 
-    list_args="--type"
-    list_type_args="volumes pools fs snapshots exports nfs_client_auth \
+    _lsm_list_args="--type"
+    _lsm_list_type_args="volumes pools fs snapshots exports nfs_client_auth \
                     access_groups systems disks plugins target_ports \
                     batteries"
 
-    opts_filter="--sys --pool --vol --disk --ag --fs --nfs"
+    _lsm_cap_args="--sys"
+    _lsm_volume_create_args="--name --size --pool"
+    _lsm_volume_delete_args="--vol --force"  # Should force be here, to easy to tab through?"
+    _lsm_volume_resize_args="--vol --size --force" # Should force be here, to easy to tab through?"
 
-    cap_args="--sys"
-    volume_create_args="--name --size --pool"
-    volume_delete_args="--vol --force"  # Should force be here, to easy to tab through?"
-    volume_resize_args="--vol --size --force" # Should force be here, to easy to tab through?"
-
-    volume_replicate_args="--vol --name --rep-type"
+    _lsm_volume_replicate_args="--vol --name --rep-type"
     # Hmmm, this looks like a bug with CLI, should support lower and upper case?
-    volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC"
+    _lsm_volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC"
 
-    volume_replicate_range_args="--src-vol --dst-vol --rep-type --src-start \
+    _lsm_volume_replicate_range_args="--src-vol --dst-vol --rep-type --src-start \
                                 --dst-start --count --force" # Force ?
 
-    volume_replication_range_bs="--sys"
-    volume_dependants="--vol"
+    _lsm_volume_replication_range_bs="--sys"
+    _lsm_volume_dependants="--vol"
 
-    volume_access_group_args="--vol"
-    volume_masking_args="--vol --ag"
+    _lsm_volume_access_group_args="--vol"
+    _lsm_volume_masking_args="--vol --ag"
 
-    access_group_create_args="--name --init --sys"
-    access_group_delete_args="--ag"
+    _lsm_access_group_create_args="--name --init --sys"
+    _lsm_access_group_delete_args="--ag"
 
-    access_group_add_remove_args="--ag --init"
+    _lsm_access_group_add_remove_args="--ag --init"
 
-    volume_enable_disable_args="--vol"
+    _lsm_volume_enable_disable_args="--vol"
 
-    volume_raidinfo_args="--vol"
+    _lsm_volume_raidinfo_args="--vol"
 
-    iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
+    _lsm_iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
 
-    fs_create_args="--name --size --pool"
-    fs_delete_args="--fs --force" # Force ?
-    fs_resize_args="--fs --size --force" # Force ?
-    fs_export_args="--fs --exportpath --anonuid --auth-type --root-host --ro-host --rw-host"
-    fs_unexport_args="--export"
-    fs_clone_args="--src-fs --dst-name"
-    fs_snap_create_args="--name --fs"
-    fs_snap_delete_args="--snap --fs"
-    fs_snap_restore_args="--snap --fs --file --fileas --force"
-    fs_dependants_args="--fs"
-    file_clone_args="--fs --src --dst --backing-snapshot"
-    pool_member_info_args="--pool"
-    volume_raid_create_args="--name --disk --raid-type --strip-size"
-    volume_raid_create_cap_args="--sys"
-    volume_phy_disk_cache_update_args="--vol --policy"
-    volume_read_cache_policy_update_args="--vol --policy"
-    volume_write_cache_policy_update_args="--vol --policy"
-    volume_cache_info_args="--vol"
-    volume_ident_led_on_off_args="--vol"
-    system_read_cache_pct_update_args="--vol --read-pct"
-    local_disk_led_args="--path"
+    _lsm_fs_create_args="--name --size --pool"
+    _lsm_fs_delete_args="--fs --force" # Force ?
+    _lsm_fs_resize_args="--fs --size --force" # Force ?
+    _lsm_fs_export_args="--fs --exportpath --anonuid --auth-type --root-host --ro-host --rw-host"
+    _lsm_fs_unexport_args="--export"
+    _lsm_fs_clone_args="--src-fs --dst-name"
+    _lsm_fs_snap_create_args="--name --fs"
+    _lsm_fs_snap_delete_args="--snap --fs"
+    _lsm_fs_snap_restore_args="--snap --fs --file --fileas --force"
+    _lsm_fs_dependants_args="--fs"
+    _lsm_file_clone_args="--fs --src --dst --backing-snapshot"
+    _lsm_pool_member_info_args="--pool"
+    _lsm_volume_raid_create_args="--name --disk --raid-type --strip-size"
+    _lsm_volume_raid_create_cap_args="--sys"
+    _lsm_volume_phy_disk_cache_update_args="--vol --policy"
+    _lsm_volume_read_cache_policy_update_args="--vol --policy"
+    _lsm_volume_write_cache_policy_update_args="--vol --policy"
+    _lsm_volume_cache_info_args="--vol"
+    _lsm_volume_ident_led_on_off_args="--vol"
+    _lsm_system_read_cache_pct_update_args="--vol --read-pct"
+    _lsm_local_disk_led_args="--path"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
-    if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
+    if [[ ${LSMCLI_AUTO_COMPLETE_VALUE:-0} == 1 ]] ; then
 
         # Check if we have somthing present that we can help the user with
-        case "${prev}" in
+        case "${_lsm_prev}" in
             --sys)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values systems 1
                 return 0
                 ;;
             --pool)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values pools 1
                 return 0
                 ;;
             --vol|--src-vol|--dst-vol)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values volumes 1
                 return 0
                 ;;
             --disk)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values disks 1
                 return 0
                 ;;
             --ag)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values access_groups 1
                 return 0
                 ;;
             --init)
-                arg_index "--ag"
-                i=$?
                 # We have an access group present on the command line so filter the intiators to it
-                if [[ ${i} -ne 255 ]]; then
-                    # It would be better if we filtered the result with the access group
-                    # if it's present on the command line already.
-                    local items=`lsmcli list --type access_groups -t${sep} --ag ${COMP_WORDS[${i}+1]} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                if _lsm_flag_value "--ag" _lsm_ag_value ; then
+                    _lsm_values access_groups 3 --ag "${_lsm_ag_value}"
                 else
-                    local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                    _lsm_values access_groups 3
                 fi
+                return 0
                 ;;
             --nfs-export)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values exports 1
                 return 0
                 ;;
             --tgt)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values target_ports 1
                 return 0
                 ;;
             --fs|--src-fs)
-                local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values fs 1
                 return 0
                 ;;
             --export)
-                local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values exports 1
                 return 0
                 ;;
             --snap)
-                arg_index "--fs"
-                i=$?
-                # We have an access group present on the command line so filter the snapshots to it
-                if [[ ${i} -ne 255 ]]; then
-                    local items=`lsmcli list --type snapshots \
-                        --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                # We have a file system present on the command line so filter the snapshots to it
+                if _lsm_flag_value "--fs" _lsm_fs_value ; then
+                    _lsm_values snapshots 1 --fs "${_lsm_fs_value}"
                 else
-                    COMPREPLY=( $(compgen -W "" -- ${cur}) )
-                    return 0
+                    COMPREPLY=()
                 fi
+                return 0
                 ;;
             --auth-type)
-                local items=`lsmcli list --type nfs_client_auth -t ' '`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values nfs_client_auth all
                 return 0
                 ;;
             *)
@@ -245,27 +420,27 @@ function _lsm()
     fi
 
     # Cases where we don't have to worry about look-up time
-    case "${prev}" in
+    case "${_lsm_prev}" in
         --type)
-            COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
+            COMPREPLY=( $(compgen -W "${_lsm_list_type_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
             --out-user|--out-pass|--exportpath|--anonuid|--root-host|--ro-host|\
             --rw-host|--dest-name|--file|--fileas|--src|--dst)
             # These we cannot lookup, so don't offer any values
-            COMPREPLY=( $(compgen -W "" -- ${cur}) )
+            COMPREPLY=( $(compgen -W "" -- "${_lsm_cur}") )
             return 0
             ;;
         --rep-type)
-            COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
+            COMPREPLY=( $(compgen -W "${_lsm_volume_rep_types}" -- "${_lsm_cur}") )
             return 0
             ;;
         snapshots)
             # Specific listing case where you need a fs too
             if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
                   ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
-                COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
+                COMPREPLY=( $(compgen -W "--fs" -- "${_lsm_cur}") )
                 return 0
             fi
             ;;
@@ -274,201 +449,201 @@ function _lsm()
 
     case "${COMP_WORDS[1]}" in
         job-status)
-            possible_args "--job"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "--job"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         list)
-            possible_args ${list_args}
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args ${_lsm_list_args}
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-create|vc)
-            possible_args "${volume_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_create_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-delete|vd)
-            possible_args "${volume_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_delete_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-raid-info|vri)
-            possible_args "${volume_raidinfo_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_raidinfo_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-resize|vr)
-            possible_args "${volume_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_resize_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-replicate)
-            possible_args "${volume_replicate_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_replicate_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-replicate-range)
-            possible_args "${volume_replicate_range_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_replicate_range_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-replicate-range-block-size)
-            possible_args "${volume_replication_range_bs}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_replication_range_bs}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-dependants|volume-dependants-rm)
-            possible_args "${volume_dependants}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_dependants}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-access-group)
-            possible_args "${volume_access_group_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_access_group_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-mask|volume-unmask|vm|vu)
-            possible_args "${volume_masking_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_masking_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         access-group-create|ac)
-            possible_args "${access_group_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_access_group_create_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         access-group-delete|ad)
-            possible_args "${access_group_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_access_group_delete_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         access-group-add|access-group-remove|aa|ar)
-            possible_args "${access_group_add_remove_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_access_group_add_remove_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-enable|volume-disable|ve|vi)
-            possible_args "${volume_enable_disable_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_enable_disable_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         iscsi-chap)
-            possible_args "${iscsi_chap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_iscsi_chap_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-create)
-            possible_args "${fs_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_create_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-delete)
-            possible_args "${fs_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_delete_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-resize)
-            possible_args "${fs_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_resize_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-export)
-            possible_args "${fs_export_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_export_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-unexport)
-            possible_args "${fs_unexport_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_unexport_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-clone)
-            possible_args "${fs_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_clone_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-snap-create)
-            possible_args "${fs_snap_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_snap_create_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-snap-delete)
-            possible_args "${fs_snap_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_snap_delete_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-snap-restore)
-            possible_args "${fs_snap_restore_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_snap_restore_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         fs-dependants|fs-dependants-rm)
-            possible_args "${fs_dependants_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_fs_dependants_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         file-clone)
-            possible_args "${file_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_file_clone_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         capabilities|c)
-            possible_args "${cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_cap_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         pool-member-info|pmi)
-            possible_args "${pool_member_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_pool_member_info_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-raid-create|vrc)
-            possible_args "${volume_raid_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_raid_create_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-raid-create-cap|vrcc)
-            possible_args "${volume_raid_create_cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_raid_create_cap_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-phy-disk-cache-update|vpdcu)
-            possible_args "${volume_phy_disk_cache_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_phy_disk_cache_update_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-read-cache-policy-update|vrcpu)
-            possible_args "${volume_read_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_read_cache_policy_update_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-write-cache-policy-update|vwcpu)
-            possible_args "${volume_write_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_write_cache_policy_update_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-cache-info|vci)
-            possible_args "${volume_cache_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_cache_info_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         volume-ident-led-on|volume-ident-led-off|vilon|viloff)
-            possible_args "${volume_ident_led_on_off_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_volume_ident_led_on_off_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         system-read-cache-pct-update|srcpu)
-            possible_args "${system_read_cache_pct_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_system_read_cache_pct_update_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         local-disk-ident-led-on|ldilon| \
         local-disk-ident-led-off|ldiloff| \
         local-disk-fault-led-on|ldflon| \
         local-disk-fault-led-off|ldfloff)
-            possible_args "${local_disk_led_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            _lsm_possible_args "${_lsm_local_disk_led_args}"
+            COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         *)
@@ -476,19 +651,19 @@ function _lsm()
     esac
 
     # Handle the case where we are starting out with nothing
-    if [[ ${prev} == 'lsmcli' ]] ; then
-        if [[ ${cur} == --* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_long}"  -- ${cur}) )
+    if [[ ${_lsm_prev} == 'lsmcli' ]] ; then
+        if [[ ${_lsm_cur} == --* ]] ; then
+            COMPREPLY=( $(compgen -W "${_lsm_opts_long}"  -- "${_lsm_cur}") )
             return 0
         fi
 
-        if [[ ${cur} == -* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}"  -- ${cur}) )
+        if [[ ${_lsm_cur} == -* ]] ; then
+            COMPREPLY=( $(compgen -W "${_lsm_opts_short}${_lsm_opts_long}"  -- "${_lsm_cur}") )
             return 0
         fi
 
-        if [[ ${cur} == * ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}${opts_cmds}"  -- ${cur}) )
+        if [[ ${_lsm_cur} == * ]] ; then
+            COMPREPLY=( $(compgen -W "${_lsm_opts_short}${_lsm_opts_long}${_lsm_opts_cmds}"  -- "${_lsm_cur}") )
             return 0
         fi
     fi
