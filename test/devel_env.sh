@@ -10,6 +10,7 @@
 # Usage:
 #   source test/devel_env.sh     # sets env vars, starts daemon
 #   lsmcli list --type systems   # use lsmcli normally
+#   lsmcli capabilities --sys    # TAB completes, values come from the sim
 #   devel_env_stop               # tear down when done
 
 # ---------------------------------------------------------------------------
@@ -213,6 +214,22 @@ _DEVEL_HAD_LSM_SIM_TIME="${LSM_SIM_TIME+yes}"
 _DEVEL_ORIG_LSM_SIM_TIME="${LSM_SIM_TIME-}"
 _DEVEL_HAD_LSMCLI_URI="${LSMCLI_URI+yes}"
 _DEVEL_ORIG_LSMCLI_URI="${LSMCLI_URI-}"
+_DEVEL_HAD_LSMCLI_AUTO_COMPLETE_VALUE="${LSMCLI_AUTO_COMPLETE_VALUE+yes}"
+_DEVEL_ORIG_LSMCLI_AUTO_COMPLETE_VALUE="${LSMCLI_AUTO_COMPLETE_VALUE-}"
+_DEVEL_ORIG_LSMCLI_COMPLETE="$(complete -p lsmcli 2>/dev/null)"
+# Everything the completion script defines. A completion installed on the
+# system defines the same names, so keep what is there to put it back.
+_DEVEL_LSMCLI_COMPLETION_FUNCS="_lsm _lsm_join _lsm_listcontains \
+    _lsm_possible_args _lsm_arg_index _lsm_unescape _lsm_flag_value \
+    _lsm_values"
+_DEVEL_ORIG_LSMCLI_FUNCS=""
+for _devel_f in $_DEVEL_LSMCLI_COMPLETION_FUNCS; do
+    if declare -F "$_devel_f" > /dev/null 2>&1; then
+        _DEVEL_ORIG_LSMCLI_FUNCS="${_DEVEL_ORIG_LSMCLI_FUNCS}$(declare -f "$_devel_f")
+"
+    fi
+done
+unset _devel_f
 
 # ---------------------------------------------------------------------------
 # Export environment variables
@@ -264,6 +281,22 @@ if [ -z "$DEVEL_LSMD_PID" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Bash completion for lsmcli, from the source tree rather than any installed
+# copy. Only once lsmd is up, as devel_env_stop, which takes it down again,
+# is not defined yet when lsmd fails on the first source of this script.
+# ---------------------------------------------------------------------------
+# Let TAB completion look up systems, pools, volumes and so on. Off by
+# default for installed systems because the lookups can be slow against a
+# real array, which is not a concern against the simulator. The completion
+# script reads it on every TAB and only 1 turns the look-ups on, so set it to
+# 0 before sourcing this script to keep it off, or change it any time later.
+export LSMCLI_AUTO_COMPLETE_VALUE="${LSMCLI_AUTO_COMPLETE_VALUE:-1}"
+
+if [ -r "$_DEVEL_SRC_DIR/tools/bash_completion/lsmcli" ]; then
+    source "$_DEVEL_SRC_DIR/tools/bash_completion/lsmcli"
+fi
+
+# ---------------------------------------------------------------------------
 # Clean up internal variables
 # ---------------------------------------------------------------------------
 unset _devel_clib_so _DEVEL_SCRIPT_DIR _DEVEL_SRC_DIR _DEVEL_BUILD_DIR _DEVEL_LIBTOOL
@@ -292,6 +325,23 @@ devel_env_stop() {
         echo "Removed $DEVEL_BASE"
     fi
     unset DEVEL_BASE
+
+    # Drop the completion we sourced, putting back whatever was bound to
+    # lsmcli before, eg. an installed completion script.
+    complete -r lsmcli 2>/dev/null
+    # shellcheck disable=SC2086
+    unset -f $_DEVEL_LSMCLI_COMPLETION_FUNCS 2>/dev/null
+    # What follows was written by declare -f and complete -p above, so it is
+    # safe to evaluate. Functions first, as the completion names one of them.
+    if [ -n "${_DEVEL_ORIG_LSMCLI_FUNCS-}" ]; then
+        eval "$_DEVEL_ORIG_LSMCLI_FUNCS"
+    fi
+    if [ -n "${_DEVEL_ORIG_LSMCLI_COMPLETE-}" ]; then
+        eval "$_DEVEL_ORIG_LSMCLI_COMPLETE"
+    fi
+    unset _DEVEL_ORIG_LSMCLI_COMPLETE _DEVEL_ORIG_LSMCLI_FUNCS \
+          _DEVEL_LSMCLI_COMPLETION_FUNCS
+
     if [ -n "${_DEVEL_ORIG_PATH+set}" ]; then
         export PATH="$_DEVEL_ORIG_PATH"
         if [ "$_DEVEL_HAD_PYTHONPATH" = "yes" ]; then
@@ -334,6 +384,11 @@ devel_env_stop() {
         else
             unset LSMCLI_URI
         fi
+        if [ "$_DEVEL_HAD_LSMCLI_AUTO_COMPLETE_VALUE" = "yes" ]; then
+            export LSMCLI_AUTO_COMPLETE_VALUE="$_DEVEL_ORIG_LSMCLI_AUTO_COMPLETE_VALUE"
+        else
+            unset LSMCLI_AUTO_COMPLETE_VALUE
+        fi
         unset _DEVEL_ORIG_PATH \
               _DEVEL_HAD_PYTHONPATH _DEVEL_ORIG_PYTHONPATH \
               _DEVEL_HAD_LD_LIBRARY_PATH _DEVEL_ORIG_LD_LIBRARY_PATH \
@@ -342,7 +397,9 @@ devel_env_stop() {
               _DEVEL_HAD_LSM_TEST_RUNDIR _DEVEL_ORIG_LSM_TEST_RUNDIR \
               _DEVEL_HAD_LSM_TEST_CFG_DIR _DEVEL_ORIG_LSM_TEST_CFG_DIR \
               _DEVEL_HAD_LSM_SIM_TIME _DEVEL_ORIG_LSM_SIM_TIME \
-              _DEVEL_HAD_LSMCLI_URI _DEVEL_ORIG_LSMCLI_URI
+              _DEVEL_HAD_LSMCLI_URI _DEVEL_ORIG_LSMCLI_URI \
+              _DEVEL_HAD_LSMCLI_AUTO_COMPLETE_VALUE \
+              _DEVEL_ORIG_LSMCLI_AUTO_COMPLETE_VALUE
     fi
 }
 
@@ -356,6 +413,10 @@ devel_env_show() {
     echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
     echo "LSM_UDS_PATH:    $LSM_UDS_PATH"
     echo "LSMCLI_URI:      $LSMCLI_URI"
+    if complete -p lsmcli > /dev/null 2>&1; then
+        echo "TAB completion:  on, value look-up" \
+             "LSMCLI_AUTO_COMPLETE_VALUE=$LSMCLI_AUTO_COMPLETE_VALUE"
+    fi
     echo ""
     echo "Installed plugins:"
     ls -1 "$DEVEL_BASE/plugins/"
