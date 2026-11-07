@@ -477,11 +477,13 @@ class PluginFork:
             if not line:
                 break
             else:
-                print("PLUGIN>> %s" % (line.decode("utf-8").rstrip("\n")))
+                print("PLUGIN>> %s" % (line.decode("utf-8").rstrip("\n")),
+                      file=sys.stderr)
 
         if instance.plugin_process.poll() is not None:
             # Output plugin exit code.
-            print("PLUGIN EC>> %d" % instance.plugin_process.wait())
+            print("PLUGIN EC>> %d" % instance.plugin_process.wait(),
+                  file=sys.stderr)
 
     def close(self):
         if self.client:
