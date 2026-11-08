@@ -382,12 +382,6 @@ class LSM_DLL_LOCAL Ipc {
     Ipc(int fd);
 
     /**
-     * Constructor that takes a socket path
-     * @param socket_path   Unix domain socket
-     */
-    Ipc(std::string socket_path);
-
-    /**
      * Destructor
      */
     ~Ipc();

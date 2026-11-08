@@ -177,14 +177,6 @@ Ipc::Ipc() {}
 
 Ipc::Ipc(int fd) : t(fd) {}
 
-Ipc::Ipc(std::string socket_path) {
-    int e = 0;
-    int fd = Transport::socket_get(socket_path, e);
-    if (fd >= 0) {
-        t = Transport(fd);
-    }
-}
-
 Ipc::~Ipc() { t.close(); }
 
 void Ipc::requestSend(const std::string request, const Value &params,
