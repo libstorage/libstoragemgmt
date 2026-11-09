@@ -138,6 +138,11 @@ _good python3 "${src_dir}/test/test_daemon_conn_limit.py"
 # before running them.
 kill -s KILL "$LSM_TEST_LSMD_PID"
 sed -i '/max-connections-per-uid/d' "${LSM_TEST_CFG_DIR}/lsmd.conf"
+# Root is exempt from the per-second admission rate, but a non-root run of
+# these suites connects from the daemon's own uid, fast enough on a quick
+# machine to exhaust the default token bucket. Pass or fail must not depend
+# on the invoking uid, so disable the rate for the test daemon only.
+printf '%s\n' 'max-connections-per-second-per-uid = 0;' >> "${LSM_TEST_CFG_DIR}/lsmd.conf"
 lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
 lsm_test_c_unit_test_run "${LSM_TEST_WITHOUT_MEM_CHECK}" "${LSM_TEST_SIM_URI}"
@@ -149,6 +154,10 @@ lsm_test_cleanup
 echo "Round 2: Testing simc plugin and memory leak check if enabled"
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_C_PLUGINS_ONLY}"
+
+# Same reason as round 1: keep a non-root run of the C/CLI/plug-in suites
+# off the default per-second admission rate.
+printf '%s\n' 'max-connections-per-second-per-uid = 0;' >> "${LSM_TEST_CFG_DIR}/lsmd.conf"
 
 if [ "CHK${with_mem_leak_test}" == "CHKyes" ];then
     lsm_test_lsmd_start "${LSM_TEST_WITH_MEM_CHECK}"

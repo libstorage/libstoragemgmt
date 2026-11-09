@@ -47,7 +47,13 @@
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
 #define LSM_CONF_MAX_CONN_OPT_NAME     "max-connections-per-uid"
+#define LSM_CONF_MAX_RATE_OPT_NAME     "max-connections-per-second-per-uid"
 #define LSM_CONF_REG_TIMEOUT_OPT_NAME  "plugin-registration-timeout"
+
+/* Upper bound on "max-connections-per-second-per-uid". The token bucket does
+ * its arithmetic in long long, so this is about rejecting nonsense, not about
+ * overflow. */
+#define LSM_CONF_MAX_RATE_LIMIT 1000000
 
 /* Poll interval of the main event loop. Also the upper bound on how long an
  * exited plug-in lingers before child_cleanup() reaps it. */
@@ -79,11 +85,15 @@ int plugin_mem_debug = 0;
 int allow_root_plugin = 0;
 int has_root_plugin = 0;
 int max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+int max_conn_rate_per_uid = CONN_RATE_DEFAULT_PER_UID;
 int plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
 
 /* Client uid we could not determine; such a connection is never counted
- * against the per-uid cap. */
+ * against the per-uid cap or rate limit. */
 #define CLIENT_UID_UNKNOWN ((uid_t)(-1))
+
+/* Root is exempt from the fork rate limit; see admit_client(). */
+#define CLIENT_UID_ROOT ((uid_t)0)
 
 /**
  * Each item in plugin list contains this information
@@ -698,7 +708,7 @@ uid_t peer_uid(int client_fd) {
         /* Not expected to happen on a local AF_UNIX socket. Fail open: a
          * condition we don't understand is a poor reason to deny service. */
         warn("Unable to get client uid, getsockopt() error %d, per-uid "
-             "connection limit not applied\n",
+             "connection limits not applied\n",
              errno);
         return CLIENT_UID_UNKNOWN;
     }
@@ -711,15 +721,36 @@ uid_t peer_uid(int client_fd) {
  * @return 1 to serve the connection, 0 to drop it
  */
 int admit_client(uid_t client_uid) {
-    if (client_uid == CLIENT_UID_UNKNOWN || conn_limit_allow(client_uid)) {
+    if (client_uid == CLIENT_UID_UNKNOWN) {
         return 1;
     }
 
-    info("Refusing connection from uid %u: it already holds %u of the %d "
-         "permitted concurrent plug-in processes\n",
-         (unsigned)client_uid, conn_limit_count(client_uid),
-         conn_limit_get_max());
-    return 0;
+    if (!conn_limit_allow(client_uid)) {
+        if (conn_limit_table_full()) {
+            info("Refusing connection from uid %u: the connection tracking "
+                 "table is full (%d entries)\n",
+                 (unsigned)client_uid, CONN_LIMIT_TABLE_SIZE);
+        } else {
+            info("Refusing connection from uid %u: it already holds %u of "
+                 "the %d permitted concurrent plug-in processes\n",
+                 (unsigned)client_uid, conn_limit_count(client_uid),
+                 conn_limit_get_max());
+        }
+        return 0;
+    }
+
+    /* Root needs no shield from its own daemon: it can kill lsmd or rewrite
+     * lsmd.conf outright. Keeping uid 0 out of the rate limiter also stops
+     * the project's own test suites, which connect back-to-back as root, from
+     * being refused. */
+    if (client_uid != CLIENT_UID_ROOT && !conn_limit_rate_allow(client_uid)) {
+        info("Refusing connection from uid %u: more than %d new plug-in "
+             "processes per second\n",
+             (unsigned)client_uid, conn_limit_get_rate());
+        return 0;
+    }
+
+    return 1;
 }
 
 /**
@@ -911,9 +942,10 @@ void _serving(void) {
                     if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
                         if (p != NULL) {
-                            /* A cap of 0 disables this outright, down to
-                             * not asking who the peer is. */
-                            uid_t uid = (conn_limit_get_max() > 0)
+                            /* Both limits disabled means there is no reason
+                             * to ask who the peer is. */
+                            uid_t uid = (conn_limit_get_max() > 0 ||
+                                         conn_limit_get_rate() > 0)
                                             ? peer_uid(cfd)
                                             : CLIENT_UID_UNKNOWN;
                             if (admit_client(uid)) {
@@ -1048,21 +1080,51 @@ int main(int argc, char *argv[]) {
                     &allow_root_plugin);
     parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_CONN_OPT_NAME,
                    &max_conn_per_uid);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_RATE_OPT_NAME,
+                   &max_conn_rate_per_uid);
     parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_REG_TIMEOUT_OPT_NAME,
                    &plugin_registration_timeout);
     free(lsmd_conf_path);
 
+    /* A negative cap would otherwise be clamped to 0, i.e. unlimited: a typo
+     * must not quietly remove the protection. Anything above the table size
+     * can never be reached anyway. */
+    if (max_conn_per_uid < 0) {
+        warn("Ignoring negative %s value %d in %s, using default of %d\n",
+             LSM_CONF_MAX_CONN_OPT_NAME, max_conn_per_uid, LSMD_CONF_FILE,
+             CONN_LIMIT_DEFAULT_MAX_PER_UID);
+        max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+    } else if (max_conn_per_uid > CONN_LIMIT_TABLE_SIZE) {
+        warn("Clamping %s value %d in %s to %d\n", LSM_CONF_MAX_CONN_OPT_NAME,
+             max_conn_per_uid, LSMD_CONF_FILE, CONN_LIMIT_TABLE_SIZE);
+        max_conn_per_uid = CONN_LIMIT_TABLE_SIZE;
+    }
+
+    if (max_conn_rate_per_uid < 0) {
+        warn("Ignoring negative %s value %d in %s, using default of %d\n",
+             LSM_CONF_MAX_RATE_OPT_NAME, max_conn_rate_per_uid, LSMD_CONF_FILE,
+             CONN_RATE_DEFAULT_PER_UID);
+        max_conn_rate_per_uid = CONN_RATE_DEFAULT_PER_UID;
+    } else if (max_conn_rate_per_uid > LSM_CONF_MAX_RATE_LIMIT) {
+        warn("Clamping %s value %d in %s to %d\n", LSM_CONF_MAX_RATE_OPT_NAME,
+             max_conn_rate_per_uid, LSMD_CONF_FILE, LSM_CONF_MAX_RATE_LIMIT);
+        max_conn_rate_per_uid = LSM_CONF_MAX_RATE_LIMIT;
+    }
+
     conn_limit_set_max(max_conn_per_uid);
+    conn_limit_set_rate(max_conn_rate_per_uid);
     if (conn_limit_get_max() == 0) {
         info("Per-uid concurrent connection limit disabled\n");
     }
+    if (conn_limit_get_rate() == 0) {
+        info("Per-uid connection rate limit disabled\n");
+    }
 
-    /* Unlike the connection cap above, 0 (or negative) is not a valid way to
-     * disable this: an un-registered client could then pin a plug-in worker
-     * forever, which is the exact DoS this deadline exists to close. A very
-     * large value is the same thing in disguise, and is further than the
-     * plug-in's millisecond timeout arithmetic can be trusted, so bound it
-     * too. */
+    /* Unlike the limits above, 0 (or negative) is not a valid way to disable
+     * this: an un-registered client could then pin a plug-in worker forever,
+     * which is the exact DoS this deadline exists to close. A very large
+     * value is the same thing in disguise, and is further than the plug-in's
+     * millisecond timeout arithmetic can be trusted, so bound it too. */
     if (plugin_registration_timeout <= 0 ||
         plugin_registration_timeout > LSM_PLUGIN_MAX_RECV_TIMEOUT_SECONDS) {
         warn("Ignoring invalid %s value %d in %s, using default of %d "

@@ -48,7 +48,28 @@ and the client sees them as a failure to communicate with the daemon; existing
 connections are unaffected.
 
 The default is \fB64\fR, far above what any normal client needs. Set it to
-\fB0\fR for no limit.
+\fB0\fR for no limit. A negative value is ignored and the default is used.
+
+.TP
+\fBmax-connections-per-second-per-uid = 8;\fR
+
+Maximum rate at which \fBlsmd\fR will start new plugin processes on behalf of
+a single client user id.
+
+The concurrent limit above only counts plugin processes that are still
+alive. A client that connects and immediately hangs up never has more than a
+couple of processes outstanding, so on its own the concurrent limit does not
+stop it making \fBlsmd\fR fork and exec a plugin without bound. This rate
+limit bounds that churn; a client over the rate has its connection closed
+immediately, without a plugin process being started.
+
+A burst of four seconds' worth is allowed to start at once, and never less
+than \fBmax-connections-per-uid\fR, so a client permitted that many
+concurrent connections can still open all of them.
+
+The default is \fB8\fR new processes per second. Set it to \fB0\fR for no
+limit. A negative value is ignored and the default is used. The root user is
+not rate limited.
 
 .TP
 \fBplugin-registration-timeout = 30;\fR

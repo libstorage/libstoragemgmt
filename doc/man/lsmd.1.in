@@ -32,9 +32,10 @@ not by the socket files themselves. Connecting to a socket requires search
 
 By default the directory is created with mode \fB0775\fR and owner
 \fBroot:libstoragemgmt\fR, which lets any local user connect. Note that a
-client's uid is only inspected (via \fBSO_PEERCRED\fR) to decide whether a
-plug\-in may run with root privileges (see \fBlsmd.conf\fR(5)); it does not
-restrict who may connect.
+client's uid (read via \fBSO_PEERCRED\fR) does not restrict who may connect: it
+decides whether a plug\-in may run with root privileges (see
+\fBlsmd.conf\fR(5)) and which per\-uid limits, described below, a connection
+counts against.
 
 This matters on any machine with untrusted local users. \fBlsmd\fR forks and
 execs a plug\-in process for every connection it accepts, before the client has
@@ -46,10 +47,11 @@ flood stops. Restricting the socket directory as described below is what
 actually keeps an untrusted local user out.
 
 \fBlsmd\fR caps how many plug\-in processes it will run concurrently for one
-client uid (\fBmax-connections-per-uid\fR in \fBlsmd.conf\fR(5)). That keeps a
-single user to a slice of the daemon's process budget rather than all of it,
-but it does not stop a user who is permitted to connect from consuming their
-slice, so it is no substitute for the directory permissions.
+client uid (\fBmax-connections-per-uid\fR in \fBlsmd.conf\fR(5)) and how fast
+it will start new ones for that uid (\fBmax-connections-per-second-per-uid\fR).
+That keeps a single user to a slice of the daemon's process budget rather than
+all of it, but it does not stop a user who is permitted to connect from
+consuming their slice, so it is no substitute for the directory permissions.
 
 It also bounds how long a single worker in that slice can live before the
 client authenticates (\fBplugin-registration-timeout\fR in \fBlsmd.conf\fR(5)),
