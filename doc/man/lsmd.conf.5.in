@@ -47,6 +47,10 @@ Further connections from a user already at the limit are closed immediately,
 and the client sees them as a failure to communicate with the daemon; existing
 connections are unaffected.
 
+Refused connections, whether by this limit or by the rate limit below, are
+logged at most once every few seconds per user id, with a count of the
+refusals that were not logged in between.
+
 The default is \fB64\fR, far above what any normal client needs. Set it to
 \fB0\fR for no limit. A negative value is ignored and the default is used.
 

@@ -37,6 +37,16 @@
  * keeping, not which uids can connect. */
 #define CONN_RATE_TABLE_SIZE 128
 
+/* How often, at most, lsmd logs that it refused a connection from one uid.
+ * A refused client costs nothing to retry, so one line per refusal would let
+ * it write to the log as fast as it can connect. */
+#define CONN_REFUSAL_LOG_INTERVAL_SECONDS 5
+
+/* Number of client uids whose last refusal we remember. As with the rate
+ * table, a uid that finds no free slot evicts the least recently logged one;
+ * the worst that costs is a refusal logged sooner than the interval. */
+#define CONN_REFUSAL_LOG_TABLE_SIZE 32
+
 /*
  * Tracks which client uid each live plug-in process was forked for, so that
  * one uid cannot occupy every slot in the daemon's process budget, and bounds
@@ -105,6 +115,25 @@ int conn_limit_get_rate(void);
 int conn_limit_rate_allow(uid_t uid);
 
 /*
+ * Milliseconds on the monotonic clock, the time base of
+ * conn_limit_refusal_should_log().
+ */
+long long conn_limit_now_ms(void);
+
+/*
+ * Called for every connection refused from a uid, at time now_ms. Returns 1
+ * if the refusal should be logged, 0 if one was logged for this uid within
+ * the last CONN_REFUSAL_LOG_INTERVAL_SECONDS. When it returns 1, *suppressed
+ * is the number of refusals for this uid that went unlogged since the
+ * previous line, for the caller to report. That count only surfaces with the
+ * next logged refusal, so the tail of a burst that then stops is never
+ * reported. The time is a parameter so the unit tests need not sleep through
+ * the interval.
+ */
+int conn_limit_refusal_should_log(uid_t uid, long long now_ms,
+                                  unsigned int *suppressed);
+
+/*
  * Records a forked child. Returns 0 on success, -1 if the table is full, in
  * which case the child simply goes untracked and the caller should warn.
  * conn_limit_allow() refuses before this point once the table is full, so the
@@ -127,5 +156,10 @@ void conn_limit_reset(void);
  * Drops every rate bucket. Used by the unit tests to isolate cases.
  */
 void conn_limit_rate_reset(void);
+
+/*
+ * Forgets every logged refusal. Used by the unit tests to isolate cases.
+ */
+void conn_limit_refusal_log_reset(void);
 
 #endif

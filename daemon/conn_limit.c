@@ -33,12 +33,21 @@ struct rate_entry {
     int used;
 };
 
+struct refusal_entry {
+    uid_t uid;
+    long long logged_ms; /* when a refusal was last logged for this uid */
+    unsigned int suppressed;
+    int used;
+};
+
 static struct conn_entry entries[CONN_LIMIT_TABLE_SIZE];
 static unsigned int in_use = 0;
 static int max_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
 
 static struct rate_entry rate_entries[CONN_RATE_TABLE_SIZE];
 static int rate_per_uid = CONN_RATE_DEFAULT_PER_UID;
+
+static struct refusal_entry refusal_entries[CONN_REFUSAL_LOG_TABLE_SIZE];
 
 void conn_limit_set_max(int max) { max_per_uid = (max > 0) ? max : 0; }
 
@@ -122,7 +131,7 @@ void conn_limit_reset(void) {
     in_use = 0;
 }
 
-static long long monotonic_ms(void) {
+long long conn_limit_now_ms(void) {
     struct timespec now;
 
     if (-1 == clock_gettime(CLOCK_MONOTONIC, &now)) {
@@ -156,7 +165,7 @@ int conn_limit_rate_allow(uid_t uid) {
         return 1;
     }
 
-    now = monotonic_ms();
+    now = conn_limit_now_ms();
     full = rate_burst() * RATE_TOKEN_SCALE;
 
     for (i = 0; i < CONN_RATE_TABLE_SIZE; ++i) {
@@ -215,4 +224,60 @@ int conn_limit_rate_allow(uid_t uid) {
 
 void conn_limit_rate_reset(void) {
     memset(rate_entries, 0, sizeof(rate_entries));
+}
+
+int conn_limit_refusal_should_log(uid_t uid, long long now_ms,
+                                  unsigned int *suppressed) {
+    struct refusal_entry *entry = NULL;
+    struct refusal_entry *free_slot = NULL;
+    struct refusal_entry *oldest = NULL;
+    unsigned int i = 0;
+
+    *suppressed = 0;
+
+    for (i = 0; i < CONN_REFUSAL_LOG_TABLE_SIZE; ++i) {
+        struct refusal_entry *cur = &refusal_entries[i];
+
+        if (!cur->used) {
+            if (free_slot == NULL) {
+                free_slot = cur;
+            }
+            continue;
+        }
+
+        if (cur->uid == uid) {
+            entry = cur;
+            break;
+        }
+
+        if (oldest == NULL || cur->logged_ms < oldest->logged_ms) {
+            oldest = cur;
+        }
+    }
+
+    if (entry != NULL) {
+        long long elapsed = now_ms - entry->logged_ms;
+
+        /* A clock that went backwards is treated as no time having passed,
+         * the same call conn_limit_rate_allow() makes. */
+        if (elapsed < CONN_REFUSAL_LOG_INTERVAL_SECONDS * 1000LL) {
+            ++entry->suppressed;
+            return 0;
+        }
+        *suppressed = entry->suppressed;
+    } else {
+        /* First refusal we know of for this uid; always worth a line. The
+         * evicted uid, if any, loses its suppressed count with its slot. */
+        entry = (free_slot != NULL) ? free_slot : oldest;
+        entry->uid = uid;
+        entry->used = 1;
+    }
+
+    entry->logged_ms = now_ms;
+    entry->suppressed = 0;
+    return 1;
+}
+
+void conn_limit_refusal_log_reset(void) {
+    memset(refusal_entries, 0, sizeof(refusal_entries));
 }

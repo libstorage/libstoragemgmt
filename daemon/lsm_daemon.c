@@ -92,6 +92,9 @@ int plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
  * against the per-uid cap or rate limit. */
 #define CLIENT_UID_UNKNOWN ((uid_t)(-1))
 
+/* Room for the "N more refused" note appended to a refusal log line. */
+#define REFUSAL_NOTE_LEN 64
+
 /* Root is exempt from the fork rate limit; see admit_client(). */
 #define CLIENT_UID_ROOT ((uid_t)0)
 
@@ -716,25 +719,54 @@ uid_t peer_uid(int client_fd) {
 }
 
 /**
+ * Decides whether a refused connection is worth a log line; see
+ * conn_limit_refusal_should_log().
+ * @param client_uid    uid of the refused client
+ * @param note          output, text to append to the log line: empty, or
+ *                      how many refusals went unlogged since the last one
+ * @param note_len      size of note
+ * @return 1 to log the refusal, 0 to stay quiet
+ */
+static int refusal_should_log(uid_t client_uid, char *note, size_t note_len) {
+    unsigned int unlogged = 0;
+
+    note[0] = '\0';
+    if (!conn_limit_refusal_should_log(client_uid, conn_limit_now_ms(),
+                                       &unlogged)) {
+        return 0;
+    }
+    if (unlogged > 0) {
+        snprintf(note, note_len, " (%u more refused since the last message)",
+                 unlogged);
+    }
+    return 1;
+}
+
+/**
  * Decides whether an accepted connection gets a plug-in process.
  * @param client_uid    uid of the client, or CLIENT_UID_UNKNOWN
  * @return 1 to serve the connection, 0 to drop it
  */
 int admit_client(uid_t client_uid) {
+    char suppressed[REFUSAL_NOTE_LEN];
+
     if (client_uid == CLIENT_UID_UNKNOWN) {
         return 1;
     }
 
     if (!conn_limit_allow(client_uid)) {
+        if (!refusal_should_log(client_uid, suppressed, sizeof(suppressed))) {
+            return 0;
+        }
         if (conn_limit_table_full()) {
-            info("Refusing connection from uid %u: the connection tracking "
-                 "table is full (%d entries)\n",
-                 (unsigned)client_uid, CONN_LIMIT_TABLE_SIZE);
+            warn("Refusing connection from uid %u: the connection tracking "
+                 "table is full (%d entries)%s\n",
+                 (unsigned)client_uid, CONN_LIMIT_TABLE_SIZE, suppressed);
         } else {
-            info("Refusing connection from uid %u: it already holds %u of "
-                 "the %d permitted concurrent plug-in processes\n",
+            warn("Refusing connection from uid %u: it already holds %u of "
+                 "the %d permitted concurrent plug-in processes%s\n",
                  (unsigned)client_uid, conn_limit_count(client_uid),
-                 conn_limit_get_max());
+                 conn_limit_get_max(), suppressed);
         }
         return 0;
     }
@@ -744,9 +776,11 @@ int admit_client(uid_t client_uid) {
      * the project's own test suites, which connect back-to-back as root, from
      * being refused. */
     if (client_uid != CLIENT_UID_ROOT && !conn_limit_rate_allow(client_uid)) {
-        info("Refusing connection from uid %u: more than %d new plug-in "
-             "processes per second\n",
-             (unsigned)client_uid, conn_limit_get_rate());
+        if (refusal_should_log(client_uid, suppressed, sizeof(suppressed))) {
+            warn("Refusing connection from uid %u: more than %d new plug-in "
+                 "processes per second%s\n",
+                 (unsigned)client_uid, conn_limit_get_rate(), suppressed);
+        }
         return 0;
     }
 

@@ -337,6 +337,80 @@ START_TEST(test_rate_is_per_uid_and_disabled) {
 }
 END_TEST
 
+/* One refusal fed to conn_limit_refusal_should_log() and what it must say. */
+struct refusal_step {
+    uid_t uid;
+    long long at_ms;
+    int expect_log;
+    unsigned int expect_suppressed;
+};
+
+#define REFUSAL_INTERVAL_MS (CONN_REFUSAL_LOG_INTERVAL_SECONDS * 1000LL)
+
+START_TEST(test_refusal_log_throttle) {
+    /* The clock deliberately does not start at 0: a zeroed table must not
+     * read as "logged at time 0" for a uid it has never seen. */
+    const long long t0 = 10;
+    const struct refusal_step steps[] = {
+        /* The first refusal for a uid is always logged. */
+        {UID_A, t0, 1, 0},
+        /* A flood inside the interval is counted, not logged. */
+        {UID_A, t0 + 1, 0, 0},
+        {UID_A, t0 + REFUSAL_INTERVAL_MS - 1, 0, 0},
+        /* Another uid is not silenced by A's flood. */
+        {UID_B, t0 + 2, 1, 0},
+        /* Once the interval is up the next line owns up to what was hidden. */
+        {UID_A, t0 + REFUSAL_INTERVAL_MS, 1, 2},
+        /* ... and the count starts over, as does the interval. */
+        {UID_A, t0 + REFUSAL_INTERVAL_MS + 1, 0, 0},
+        {UID_A, t0 + 2 * REFUSAL_INTERVAL_MS, 1, 1},
+        /* A clock that steps backwards must not open the floodgates. */
+        {UID_A, t0, 0, 0},
+    };
+    unsigned int i = 0;
+
+    conn_limit_refusal_log_reset();
+
+    for (i = 0; i < sizeof(steps) / sizeof(steps[0]); ++i) {
+        unsigned int suppressed = 99;
+        int logged = conn_limit_refusal_should_log(steps[i].uid, steps[i].at_ms,
+                                                   &suppressed);
+
+        ck_assert_msg(logged == steps[i].expect_log,
+                      "step %u: logged %d, expected %d", i, logged,
+                      steps[i].expect_log);
+        ck_assert_msg(suppressed == steps[i].expect_suppressed,
+                      "step %u: suppressed %u, expected %u", i, suppressed,
+                      steps[i].expect_suppressed);
+    }
+
+    conn_limit_refusal_log_reset();
+}
+END_TEST
+
+START_TEST(test_refusal_log_table_is_bounded) {
+    unsigned int i = 0;
+    unsigned int suppressed = 0;
+
+    conn_limit_refusal_log_reset();
+
+    /* More uids than slots: each is new, so each is logged, and the oldest
+     * are evicted rather than the table overrunning. */
+    for (i = 0; i < CONN_REFUSAL_LOG_TABLE_SIZE + 1; ++i) {
+        ck_assert_int_eq(
+            conn_limit_refusal_should_log(UID_A + i, i, &suppressed), 1);
+    }
+
+    /* The most recent uid is still remembered, so it stays throttled. */
+    ck_assert_int_eq(conn_limit_refusal_should_log(
+                         UID_A + CONN_REFUSAL_LOG_TABLE_SIZE,
+                         CONN_REFUSAL_LOG_TABLE_SIZE + 1, &suppressed),
+                     0);
+
+    conn_limit_refusal_log_reset();
+}
+END_TEST
+
 static Suite *conn_limit_suite(void) {
     Suite *s = suite_create("conn_limit");
     TCase *tc = tcase_create("core");
@@ -348,6 +422,8 @@ static Suite *conn_limit_suite(void) {
     tcase_add_test(tc, test_rate_burst_then_refill);
     tcase_add_test(tc, test_rate_never_below_concurrent_cap);
     tcase_add_test(tc, test_rate_is_per_uid_and_disabled);
+    tcase_add_test(tc, test_refusal_log_throttle);
+    tcase_add_test(tc, test_refusal_log_table_is_bounded);
     suite_add_tcase(s, tc);
     return s;
 }
