@@ -232,8 +232,13 @@ def run_interrupted():
             return "the look-up never started"
         os.write(fd, b"\x03")
         # What is left, one command, as the line may hold what was typed.
-        if read_until(r"PROMPT> $") is None:
-            return "no prompt after Ctrl-C"
+        # Bash 5.3 clears the line and prints the prompt again, while 5.2
+        # leaves the line as it was with a ^C echoed at the end of it, so
+        # either is waited for. The echo only says the key got there, so the
+        # answer to the command below is what tells that the shell is back,
+        # and the look-up is what tells that it is not.
+        if read_until(r"(\^C|\x03|PROMPT> $)") is None:
+            return "no response to Ctrl-C"
         os.write(fd, b"\x15IFS=$' \\t\\n'; echo NC_$(shopt -q nocasematch && echo yes || echo no)"
                  b" VARS=$(compgen -v | grep -c '^_lsm')\n")
         seen = read_until(r"VARS=\d+\r?\n")
