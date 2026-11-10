@@ -5,238 +5,1350 @@
 # Bash completion for lsmcli. This may be far from ideal,
 # suggestions & improvements appreciated!
 
-potential_args=''
+# Value look-ups ('lsmcli list' for systems, pools, volumes, ...) can be slow
+# or hang depending on plugin and configuration, so they are off unless
+# LSMCLI_AUTO_COMPLETE_VALUE=1 is set in the environment. It is read on every
+# completion, so it can be exported or changed after this file is sourced.
+#
+# A look-up uses the URI given with -u on the command line, if there is one,
+# else what lsmcli is set up with in the shell. It is made only if the line is
+# understood, see _lsm_layout and _lsm_scan: an operator such as a redirection
+# anywhere in it, or text before the command that is not white space, means
+# there is none. What cannot be seen at all is a variable given to the command
+# alone, as in 'LSMCLI_URI=other lsmcli vd --vol <TAB>': bash 5.3 takes it off
+# COMP_LINE as well as COMP_WORDS, so the look-up is for the array of the
+# shell, not for 'other'. The same for the commands before this one in
+# 'cd /x && lsmcli ...', which are not there either, and are harmless. A
+# wrapper such as 'sudo lsmcli', 'env X=1 lsmcli' or 'nice lsmcli' gets here
+# through bash-completion's _command_offset, and the look-up is then run as the
+# current user with the current environment, not as the wrapped command would
+# be. If lsmcli is an alias or a function there is no look-up.
+#
+# Everything defined here is prefixed with _lsm so sourcing this file does not
+# clobber functions of the user's shell, eg. 'join'. The completion itself is
+# done in a subshell, see _lsm, so it changes nothing in the user's shell. The
+# helpers have 'local' scratch variables, so they are safe to call from
+# elsewhere too, and results come back through a variable whose name the caller
+# passes in, or, as noted for the ones that do, in a variable of _lsm_complete.
+#
+# Needs bash 4.0 or later, for mapfile and ${var,,}, and 4.2 for printf to know
+# \u and \U as $'...' in a word typed with one.
 
-# Skip value lookups by default
-NO_VALUE_LOOKUP=${LSMCLI_AUTO_COMPLETE_VALUE:=0}
+# Join the arguments with a separator. printf, as echo would take a leading
+# -n or -e for an option.
+# $1 The separator
+function _lsm_join { local IFS="$1"; shift; printf '%s\n' "$*"; }
 
-function join { local IFS="$1"; shift; echo "$*"; }
+# Note for the helpers taking the name of a variable, or of an array: the name
+# is used as the target of printf -v, or in an indirect expansion, and so must
+# never come from user or plugin data. Every caller passes a fixed name.
 
 # Linear search of an array of strings for the specified string
-function listcontains() {
-    declare -a the_list=("${!1}")
+# $1 Name of the array, with [@], eg. COMP_WORDS[@]
+# $2 String to look for
+function _lsm_listcontains()
+{
+    local -a _lsm_the_list=("${!1}")
+    local _lsm_word
 
-    for word in "${the_list[@]}" ; do
-        [[ ${word} == $2 ]] && return 0
+    for _lsm_word in "${_lsm_the_list[@]}" ; do
+        [[ ${_lsm_word} == "$2" ]] && return 0
     done
     return 1
 }
 
 # Given a list of what is possible and what is on the command line return
-# what is left.
+# what is left. An option that can be given again stays, whatever is on the
+# command line.
 # $1 What is possible
-# Results are returned in global string $potential_args
-function possible_args()
+# $2 What of that can be repeated
+# The result is left in $_lsm_potential_args, a variable of the caller, which
+# is _lsm_complete, in a subshell.
+function _lsm_possible_args()
 {
-    local l=()
+    local -a _lsm_left=() _lsm_possible=() _lsm_words=()
+    local _lsm_i
 
-    for i in $1
+    # The word being completed is what its own completion is made from, so it
+    # does not count as used: with --ag typed in full and the cursor right
+    # after it, --ag is still what is wanted.
+    _lsm_words=("${COMP_WORDS[@]}")
+    [[ -z ${COMP_CWORD-} ]] || unset "_lsm_words[${COMP_CWORD}]"
+
+    # read rather than an unquoted expansion, which would glob an entry
+    # containing * or ?. It fails at the end of its input, which is all of it
+    # here, and that must not stop a shell with set -e.
+    read -r -d '' -a _lsm_possible <<< "$1" || true
+    for _lsm_i in ${_lsm_possible[@]+"${_lsm_possible[@]}"}
     do
-        listcontains COMP_WORDS[@] "$i"
-        if [[ $? -eq 1 ]] ; then
-            l+=("$i")
+        if [[ " ${2-} " == *" ${_lsm_i} "* ]] ||
+                ! _lsm_listcontains "_lsm_words[@]" "$_lsm_i" ; then
+            _lsm_left+=("$_lsm_i")
         fi
     done
 
-    potential_args=$( join ' ', "${l[@]}" )
+    _lsm_potential_args=$( _lsm_join ' ' "${_lsm_left[@]}" )
 }
 
-# Returns the position of the value in the COMP_WORDS that contains $1, or
-# 255 if it doesn't exist
-function arg_index()
+# The character code of a character.
+# $1 The character
+# $2 Name of the variable to set to the code
+function _lsm_ordinal()
 {
-    count=0
-	for i in "${COMP_WORDS[@]}"
-	do
-		if [[ "$i" == "$1" ]] ; then
-			return ${count}
-		fi
-		let count+=1
-	done
-	return 255
+    printf -v "$2" '%d' "'$1" 2> /dev/null
 }
 
-function _lsm()
+# Turn the text between the quotes of a $'...' into what it stands for, as
+# bash does: \a \b \e \E \f \n \r \t \v \\ \' \" \? \nnn \xHH \cX \uHHHH and
+# \UHHHHHHHH. Anything else, including a backslash at the very end, is kept
+# as it is. Only digits, checked to be octal or hex, and the number of a
+# character, get into a printf format, so the text cannot be a format.
+# $1 The text, quotes not included
+# $2 Name of the variable to set
+function _lsm_ansi_c()
 {
-    local cur prev opts
-    sep='#'
+    local _lsm_in="$1"
+    local _lsm_out=''
+    local _lsm_len=${#_lsm_in}
+    local _lsm_c _lsm_next _lsm_digits _lsm_i _lsm_x _lsm_n _lsm_max
+
+    for (( _lsm_i = 0; _lsm_i < _lsm_len; _lsm_i++ )) ; do
+        _lsm_c="${_lsm_in:_lsm_i:1}"
+        if [[ ${_lsm_c} != '\' ]] ; then
+            _lsm_out+="${_lsm_c}"
+            continue
+        fi
+        _lsm_next="${_lsm_in:_lsm_i+1:1}"
+        case "${_lsm_next}" in
+            a) _lsm_out+=$'\a' ; (( ++_lsm_i )) ;;
+            b) _lsm_out+=$'\b' ; (( ++_lsm_i )) ;;
+            e|E) _lsm_out+=$'\e' ; (( ++_lsm_i )) ;;
+            f) _lsm_out+=$'\f' ; (( ++_lsm_i )) ;;
+            n) _lsm_out+=$'\n' ; (( ++_lsm_i )) ;;
+            r) _lsm_out+=$'\r' ; (( ++_lsm_i )) ;;
+            t) _lsm_out+=$'\t' ; (( ++_lsm_i )) ;;
+            v) _lsm_out+=$'\v' ; (( ++_lsm_i )) ;;
+            '\'|"'"|'"'|'?')
+                _lsm_out+="${_lsm_next}"
+                (( ++_lsm_i ))
+                ;;
+            x)
+                _lsm_digits="${_lsm_in:_lsm_i+2:2}"
+                _lsm_digits="${_lsm_digits%%[!0-9a-fA-F]*}"
+                if [[ -n ${_lsm_digits} ]] ; then
+                    printf -v _lsm_c "\\x${_lsm_digits}"
+                    if [[ -z ${_lsm_c} ]] ; then
+                        # A NUL, which bash stops the word at, as it cannot
+                        # be in a variable.
+                        break
+                    fi
+                    _lsm_out+="${_lsm_c}"
+                    (( _lsm_i += 1 + ${#_lsm_digits} ))
+                else
+                    _lsm_out+='\'
+                fi
+                ;;
+            u|U)
+                if [[ ${_lsm_next} == u ]] ; then
+                    _lsm_max=4
+                else
+                    _lsm_max=8
+                fi
+                _lsm_digits="${_lsm_in:_lsm_i+2:_lsm_max}"
+                _lsm_digits="${_lsm_digits%%[!0-9a-fA-F]*}"
+                if [[ -n ${_lsm_digits} ]] ; then
+                    printf -v _lsm_c "\\${_lsm_next}${_lsm_digits}"
+                    if [[ -z ${_lsm_c} ]] ; then
+                        break
+                    fi
+                    _lsm_out+="${_lsm_c}"
+                    (( _lsm_i += 1 + ${#_lsm_digits} ))
+                else
+                    _lsm_out+='\'
+                fi
+                ;;
+            c)
+                # Control-X is X with the top bits cleared, and \c? is DEL.
+                # An X that is not ASCII is left as typed.
+                _lsm_x="${_lsm_in:_lsm_i+2:1}"
+                if [[ -n ${_lsm_x} ]] && _lsm_ordinal "${_lsm_x}" _lsm_n \
+                        && (( _lsm_n < 128 )) ; then
+                    if [[ ${_lsm_x} == '?' ]] ; then
+                        _lsm_n=127
+                    else
+                        _lsm_n=$(( _lsm_n & 31 ))
+                    fi
+                    printf -v _lsm_c '%02x' "${_lsm_n}"
+                    printf -v _lsm_c "\\x${_lsm_c}"
+                    if [[ -z ${_lsm_c} ]] ; then
+                        break
+                    fi
+                    _lsm_out+="${_lsm_c}"
+                    (( _lsm_i += 2 ))
+                    # \c\\ is one control-\ , and bash does not see the second
+                    # backslash as the start of another escape.
+                    if [[ ${_lsm_x} == '\' && ${_lsm_in:_lsm_i+1:1} == '\' ]] ; then
+                        (( ++_lsm_i ))
+                    fi
+                else
+                    _lsm_out+='\'
+                fi
+                ;;
+            [0-7])
+                _lsm_digits="${_lsm_in:_lsm_i+1:3}"
+                _lsm_digits="${_lsm_digits%%[!0-7]*}"
+                printf -v _lsm_c "\\${_lsm_digits}"
+                if [[ -z ${_lsm_c} ]] ; then
+                    break
+                fi
+                _lsm_out+="${_lsm_c}"
+                (( _lsm_i += ${#_lsm_digits} ))
+                ;;
+            *) _lsm_out+='\' ;;
+        esac
+    done
+    printf -v "$2" '%s' "${_lsm_out}"
+}
+
+# Turn a word as the user typed it, which may be escaped or quoted, into the
+# value it stands for, the way the shell would read it but without evaluating
+# anything. Quoted and unquoted parts can follow each other, eg. 'a'"b"\ c.
+#   unquoted        a backslash escapes the next character, whatever it is
+#   "double quoted" a backslash escapes only \ " $ and `, else it is kept
+#   'single quoted' nothing is escaped
+#   $'ANSI-C'       what printf %q writes for a tab, newline and the like,
+#                   see _lsm_ansi_c. A backslash escapes a quote here too, so
+#                   the closing quote is the first one nothing escapes.
+# A quote left open is fine, as that is the word being completed, and so is
+# a backslash at the very end.
+# $1 The word
+# $2 Name of the variable to set
+# $3 Optional name of a variable to set to how the word ends, which is the
+#    quoting that the completion is to be written in: none, single, double
+#    or ansi
+# $4 Optional name of a variable to set to how many characters of the value
+#    were read before the quote that is left open, 0 if none is. Readline
+#    replaces only what follows that quote, and not the whole word, so that
+#    is what the completion has to leave out.
+function _lsm_unescape()
+{
+    local _lsm_in="$1"
+    local _lsm_out=''
+    local _lsm_state=none
+    local _lsm_len=${#_lsm_in}
+    local _lsm_c _lsm_next _lsm_i _lsm_j _lsm_piece
+    local _lsm_before=0
+
+    for (( _lsm_i = 0; _lsm_i < _lsm_len; _lsm_i++ )) ; do
+        _lsm_c="${_lsm_in:_lsm_i:1}"
+        _lsm_next="${_lsm_in:_lsm_i+1:1}"
+        case "${_lsm_state}" in
+        none)
+            case "${_lsm_c}" in
+                '\')
+                    _lsm_out+="${_lsm_next}"
+                    (( ++_lsm_i ))
+                    ;;
+                "'") _lsm_state=single ; _lsm_before=${#_lsm_out} ;;
+                '"') _lsm_state=double ; _lsm_before=${#_lsm_out} ;;
+                '$')
+                    if [[ ${_lsm_next} == "'" ]] ; then
+                        # Find the closing quote before decoding anything.
+                        for (( _lsm_j = _lsm_i + 2; _lsm_j < _lsm_len; _lsm_j++ )) ; do
+                            case "${_lsm_in:_lsm_j:1}" in
+                                '\') (( ++_lsm_j )) ;;
+                                "'") break ;;
+                            esac
+                        done
+                        (( _lsm_j > _lsm_len )) && _lsm_j=${_lsm_len}
+                        _lsm_ansi_c "${_lsm_in:_lsm_i+2:_lsm_j-_lsm_i-2}" _lsm_piece
+                        _lsm_before=${#_lsm_out}
+                        _lsm_out+="${_lsm_piece}"
+                        # Left open, this is the word being completed.
+                        (( _lsm_j >= _lsm_len )) && _lsm_state=ansi
+                        _lsm_i=${_lsm_j}
+                    else
+                        _lsm_out+='$'
+                    fi
+                    ;;
+                *) _lsm_out+="${_lsm_c}" ;;
+            esac
+            ;;
+        single)
+            if [[ ${_lsm_c} == "'" ]] ; then
+                _lsm_state=none
+            else
+                _lsm_out+="${_lsm_c}"
+            fi
+            ;;
+        double)
+            case "${_lsm_c}" in
+                '"') _lsm_state=none ;;
+                '\')
+                    case "${_lsm_next}" in
+                        '\'|'"'|'$'|'`')
+                            _lsm_out+="${_lsm_next}"
+                            (( ++_lsm_i ))
+                            ;;
+                        *) _lsm_out+='\' ;;
+                    esac
+                    ;;
+                *) _lsm_out+="${_lsm_c}" ;;
+            esac
+            ;;
+        esac
+    done
+    printf -v "$2" '%s' "${_lsm_out}"
+    [[ -z ${3-} ]] || printf -v "$3" '%s' "${_lsm_state}"
+    # Only a quote still open counts.
+    [[ ${_lsm_state} != none ]] || _lsm_before=0
+    [[ -z ${4-} ]] || printf -v "$4" '%d' "${_lsm_before}"
+}
+
+# Write a value the way the word being completed has to have it, so that the
+# shell reads that word back as the value. Readline puts what is offered where
+# the typed text was, inside any quote the user opened and without the quote
+# itself, so what is needed depends on the quote:
+#   none    backslash escapes, as printf %q has them
+#   double  a backslash in front of \ " $ and `, and nothing else, as inside
+#           a backslash escapes only those, and a ! as "'!'" for history
+#   single  a ' ends the quote, so it is written as '\'' to carry on
+#   ansi    inside $'...', the body of what printf %q writes for a value
+#           with a tab or the like, else \ and ' behind a backslash
+# $1 The value
+# $2 The quoting of the word, as _lsm_unescape gives it
+# $3 Name of the variable to set
+function _lsm_escape()
+{
+    local _lsm_v="$1" _lsm_q
+    local _lsm_bs='\' _lsm_dq='"' _lsm_sq="'" _lsm_bq='`' _lsm_dollar='$'
+
+    case "$2" in
+        double)
+            _lsm_v="${_lsm_v//"${_lsm_bs}"/"${_lsm_bs}${_lsm_bs}"}"
+            _lsm_v="${_lsm_v//"${_lsm_dq}"/"${_lsm_bs}${_lsm_dq}"}"
+            _lsm_v="${_lsm_v//"${_lsm_dollar}"/"${_lsm_bs}${_lsm_dollar}"}"
+            _lsm_v="${_lsm_v//"${_lsm_bq}"/"${_lsm_bs}${_lsm_bq}"}"
+            # History expansion goes on in double quotes, and a backslash does
+            # not stop it there without staying in the word, so the ! is
+            # put in single quotes, between the end of the double quote and
+            # the start of another, which is what readline adds at the end.
+            _lsm_v="${_lsm_v//!/"${_lsm_dq}${_lsm_sq}!${_lsm_sq}${_lsm_dq}"}"
+            ;;
+        single)
+            _lsm_v="${_lsm_v//"${_lsm_sq}"/"${_lsm_sq}${_lsm_bs}${_lsm_sq}${_lsm_sq}"}"
+            ;;
+        ansi)
+            printf -v _lsm_q '%q' "${_lsm_v}"
+            if [[ ${_lsm_q} == "${_lsm_dollar}${_lsm_sq}"*"${_lsm_sq}" ]] ; then
+                _lsm_v="${_lsm_q:2:${#_lsm_q}-3}"
+            else
+                _lsm_v="${_lsm_v//"${_lsm_bs}"/"${_lsm_bs}${_lsm_bs}"}"
+                _lsm_v="${_lsm_v//"${_lsm_sq}"/"${_lsm_bs}${_lsm_sq}"}"
+            fi
+            ;;
+        *) printf -v _lsm_v '%q' "${_lsm_v}" ;;
+    esac
+    printf -v "$3" '%s' "${_lsm_v}"
+}
+
+# Would the shell, reading a word, do more than take it for what it says. That
+# is an operator, < > | & ; ( ) anywhere that is not quoted or escaped, as what
+# follows is a file or another command and not an argument, and something that
+# depends on what is in the shell or on disk: a variable, a command
+# substitution, a ~, a glob, a brace expansion, or in an interactive shell a
+# history reference. Nothing is expanded or evaluated here. Quotes and
+# backslashes are read as _lsm_unescape does: single quotes and $'...' protect
+# all of it, double quotes all but $, a backtick and !. It is conservative, as a
+# ! or { that would have been left alone counts too.
+# $1 The word
+# Returns 0 if it would.
+function _lsm_expands()
+{
+    local _lsm_in="$1"
+    local _lsm_state=none
+    local _lsm_len=${#_lsm_in}
+    local _lsm_i _lsm_c
+
+    for (( _lsm_i = 0; _lsm_i < _lsm_len; _lsm_i++ )) ; do
+        _lsm_c="${_lsm_in:_lsm_i:1}"
+        case "${_lsm_state}" in
+        none)
+            case "${_lsm_c}" in
+                '\') (( ++_lsm_i )) ;;
+                "'") _lsm_state=single ;;
+                '"') _lsm_state=double ;;
+                '$')
+                    if [[ ${_lsm_in:_lsm_i+1:1} == "'" ]] ; then
+                        _lsm_state=ansi
+                        (( ++_lsm_i ))
+                    else
+                        return 0
+                    fi
+                    ;;
+                '<'|'>'|'|'|'&'|';'|'('|')'|'`'|'*'|'?'|'['|'{'|'!') return 0 ;;
+                '~') [[ ${_lsm_i} -ne 0 ]] || return 0 ;;
+            esac
+            ;;
+        single)
+            [[ ${_lsm_c} != "'" ]] || _lsm_state=none
+            ;;
+        ansi)
+            case "${_lsm_c}" in
+                '\') (( ++_lsm_i )) ;;
+                "'") _lsm_state=none ;;
+            esac
+            ;;
+        double)
+            case "${_lsm_c}" in
+                '\') (( ++_lsm_i )) ;;
+                '"') _lsm_state=none ;;
+                '$'|'`'|'!') return 0 ;;
+            esac
+            ;;
+        esac
+    done
+    return 1
+}
+
+# Would the shell read a word as this word alone, which every word before the
+# cursor has to be for the line to be what the words seem to say: no quote is
+# left open, as what follows it would be part of the word, and no backslash at
+# the end that is not itself escaped, as it would take the white space after it
+# into the word. The word being completed is not asked about, as an open quote
+# or a backslash at the end is how one is typed.
+# $1 The word, as typed
+function _lsm_whole_word()
+{
+    local _lsm_q=''
+    local _lsm_w="$1"
+    local _lsm_r="$1"
+    local _lsm_n=0
+
+    # Not _lsm_state, which _lsm_unescape has a local of its own.
+    _lsm_unescape "$1" _lsm_w _lsm_q
+    [[ ${_lsm_q} == none ]] || return 1
+    # A word that ends in backslashes is whole only when they pair up, as one
+    # on its own escapes what follows it, the next word or nothing at all.
+    # They are counted as typed, not as the shell reads them, as unescaping
+    # takes a hanging one off with it.
+    while [[ ${_lsm_r} == *'\' ]] ; do
+        _lsm_r="${_lsm_r%?}"
+        (( ++_lsm_n ))
+    done
+    (( _lsm_n % 2 == 0 ))
+}
+
+# Find out which words of COMP_WORDS follow the one before them with no white
+# space in between, using COMP_LINE, which is the line as typed. bash breaks
+# words at every character of COMP_WORDBREAKS that is in one, and that
+# includes the = of --uri=sim:// and the : of a URI, so that is the five words
+# --uri = sim : // and the words alone do not say where white space was. What
+# was typed is only trusted if the words are found in COMP_LINE one after the
+# other, else nothing is known about the layout and nothing that needs it is
+# to be relied on.
+#
+# That is also where the line is checked to be the words and nothing else, so
+# that what is passed to lsmcli is what they say: there is no text before the
+# first word, as an assignment of a variable would be, and no word is one that
+# the shell expands or that is an operator, see _lsm_expands, as an expansion
+# can be more words, including an option, and an operator is a redirection or
+# a command that is not part of this one, and no word starts a comment with
+# a #. The word being completed is not looked at when the cursor is at its
+# end, as it is what is typed, and replaced by what is completed, but it is
+# when the cursor is in front of the rest of it, which stays on the line. The
+# layout is still worked out for such a line, for the completion of
+# what is not a value, which only has to do its best.
+# Sets, as variables of the caller, which is _lsm_complete:
+#   _lsm_glue[i]      1 if word i follows word i-1 with no white space
+#   _lsm_layout_ok    0 if the line is not what the words say, in which case
+#                     there is to be no look-up of values
+# The cursor, COMP_POINT, is what tells if the empty word of an empty
+# position is glued to the word before, as in 'sim:<TAB>'.
+function _lsm_layout()
+{
+    local _lsm_i _lsm_pos=0 _lsm_end=-1 _lsm_start _lsm_w
+    local _lsm_line="${COMP_LINE-}"
+    local _lsm_total=${#_lsm_line}
+
+    _lsm_glue=()
+    _lsm_layout_ok=1
+    for (( _lsm_i = 0; _lsm_i < ${#COMP_WORDS[@]}; _lsm_i++ )) ; do
+        _lsm_w="${COMP_WORDS[_lsm_i]}"
+        _lsm_glue[_lsm_i]=0
+        if [[ -z ${_lsm_w} ]] ; then
+            # Only the word at the cursor can be empty.
+            if [[ ${_lsm_i} != "${COMP_CWORD-}" ]] ; then
+                _lsm_layout_ok=0
+                return 0
+            fi
+            if [[ ${COMP_POINT-} == "${_lsm_end}" ]] ; then
+                _lsm_glue[_lsm_i]=1
+            fi
+            continue
+        fi
+        while (( _lsm_pos < _lsm_total )) && \
+                [[ ${_lsm_line:_lsm_pos:1} == [[:blank:]] ]] ; do
+            (( ++_lsm_pos ))
+        done
+        _lsm_start=${_lsm_pos}
+        if [[ ${_lsm_line:_lsm_start:${#_lsm_w}} != "${_lsm_w}" ]] ; then
+            _lsm_layout_ok=0
+            return 0
+        fi
+        if (( _lsm_i > 0 && _lsm_start == _lsm_end )) ; then
+            _lsm_glue[_lsm_i]=1
+        fi
+        if { [[ ${_lsm_i} != "${COMP_CWORD-}" ]] || \
+             (( ${COMP_POINT-0} < _lsm_start + ${#_lsm_w} )) ; } && \
+                { _lsm_expands "${_lsm_w}" || \
+                  [[ ${_lsm_w} == '#'* && ${_lsm_glue[_lsm_i]} == 0 ]] ; } ; then
+            _lsm_layout_ok=0
+        fi
+        _lsm_pos=$(( _lsm_start + ${#_lsm_w} ))
+        _lsm_end=${_lsm_pos}
+    done
+    while (( _lsm_pos < _lsm_total )) && \
+            [[ ${_lsm_line:_lsm_pos:1} == [[:blank:]] ]] ; do
+        (( ++_lsm_pos ))
+    done
+    # Text left on the line after the last word, which COMP_WORDS has no word
+    # for, means the line is not what the words say.
+    (( _lsm_pos == _lsm_total )) || _lsm_layout_ok=0
+    return 0
+}
+
+# The word as the shell reads it that starts at a position of COMP_WORDS, which
+# is all the words that follow each other with no white space, so the five
+# words --uri = sim : // are the one word --uri=sim://.
+# $1 Position of the first word
+# $2 Name of the variable to set to the text of the word, as typed
+# $3 Name of the variable to set to the position of its last word
+# Returns 1 if that cannot be told, which is when the layout is not known. The
+# variables it sets are not named _lsm_rk or _lsm_rtext.
+function _lsm_run()
+{
+    local _lsm_rk=$1
+    local _lsm_rtext="${COMP_WORDS[_lsm_rk]}"
+
+    while (( _lsm_rk + 1 < ${#COMP_WORDS[@]} )) && \
+            (( ${_lsm_glue[_lsm_rk+1]:-0} )) ; do
+        (( ++_lsm_rk ))
+        _lsm_rtext+="${COMP_WORDS[_lsm_rk]}"
+    done
+    printf -v "$2" '%s' "${_lsm_rtext}"
+    printf -v "$3" '%d' "${_lsm_rk}"
+    (( _lsm_layout_ok ))
+}
+
+# Is a value one that lsmcli takes for an option rather than a value, so that
+# an option wanting a value is refused the whole line for? A negative number
+# is a value, and so is a lone -.
+# $1 The value, unescaped
+function _lsm_option_like()
+{
+    local _lsm_re='^-[0-9]+(\.[0-9]+)?$'
+
+    [[ $1 == -?* ]] || return 1
+    [[ $1 =~ ${_lsm_re} ]] && return 1
+    return 0
+}
+
+# Get the value that follows a flag on the command line, for use as a filter.
+# $1 The flag, eg. --ag
+# $2 Name of the variable to set to the value, unescaped
+# Returns 0 if the flag is present with a usable value. A missing value, an
+# empty one or one that looks like the next option is treated as if the flag
+# was not there, rather than passing garbage on to lsmcli, and that is 1. It
+# is 2 if the flag is there but what its value is cannot be told: the layout
+# of the line is not known, so a value with a : or = in it cannot be put back
+# together, or it is given as --flag=value in a word that is not quoted, or
+# the cursor is past the start of it, or it has something in it that the
+# shell would expand, such as a $ or a *. The caller is to take it that the
+# filter is not to be left out then.
+# The words are read as runs, as the shell reads them, so a flag that is
+# quoted or escaped, eg. '--ag' or "--f"s, is found too. When the flag is
+# given more than once the last one counts, so a last one that cannot be
+# used, with an earlier one that could, is 2 as well: the filter is there
+# and what it is is not known.
+# Uses _lsm_glue and _lsm_layout_ok, see _lsm_layout.
+function _lsm_flag_value()
+{
+    local _lsm_flag="$1"
+    local _lsm_i _lsm_end _lsm_text _lsm_next _lsm_try _lsm_value _lsm_vend
+    local _lsm_j _lsm_eq _lsm_val=''
+    local _lsm_last=absent _lsm_any_ok=0 _lsm_any_no=0
+
+    (( _lsm_layout_ok )) || return 2
+    # The words as runs, starting after the command itself, which may be
+    # more than one of them, eg. ./x:lsmcli.
+    _lsm_run 0 _lsm_text _lsm_end || true
+    _lsm_i=$(( _lsm_end + 1 ))
+    while (( _lsm_i < ${#COMP_WORDS[@]} )) ; do
+        _lsm_run "${_lsm_i}" _lsm_text _lsm_end || true
+        _lsm_next=$(( _lsm_end + 1 ))
+        # For every branch below, not only the ones that read a value.
+        _lsm_vend=${_lsm_end}
+        _lsm_unescape "${_lsm_text}" _lsm_try
+        if [[ ${_lsm_try} == "${_lsm_flag}" ]] ; then
+            # The flag as a word of its own, its value the next word.
+            if (( _lsm_next >= ${#COMP_WORDS[@]} )) ; then
+                # No value at all.
+                _lsm_last=absent
+            else
+                _lsm_run "${_lsm_next}" _lsm_value _lsm_vend || true
+                if (( _lsm_next <= COMP_CWORD && COMP_CWORD <= _lsm_vend )) ; then
+                    if (( COMP_CWORD == _lsm_next )) ; then
+                        # The value is the word being completed, at its
+                        # start.
+                        _lsm_last=absent
+                    else
+                        # The cursor is past the start of the value.
+                        _lsm_last=no
+                    fi
+                elif ! _lsm_whole_word "${_lsm_value}" ; then
+                    _lsm_last=no
+                elif _lsm_expands "${_lsm_value}" ; then
+                    _lsm_last=no
+                else
+                    _lsm_unescape "${_lsm_value}" _lsm_val
+                    if [[ -z ${_lsm_val} ]] || _lsm_option_like "${_lsm_val}" ; then
+                        _lsm_last=absent
+                    else
+                        _lsm_last=ok
+                    fi
+                fi
+            fi
+        elif [[ ${_lsm_try} == "${_lsm_flag}="* ]] ; then
+            # The value glued on after =.
+            if (( _lsm_end == _lsm_i )) ; then
+                # One word. bash makes --ag=x into --ag = x, so a word that
+                # is one is not how bash breaks them, and how it did is not
+                # known, unless it is quoted, which keeps a word one
+                # whatever the breaks are.
+                if [[ ${_lsm_text} != [\'\"]* ]] ; then
+                    _lsm_last=no
+                elif (( _lsm_i <= COMP_CWORD && COMP_CWORD <= _lsm_end )) || \
+                        ! _lsm_whole_word "${_lsm_text}" || \
+                        _lsm_expands "${_lsm_text}" ; then
+                    _lsm_last=no
+                else
+                    # The value came out of the quoted word, unescaped.
+                    _lsm_val="${_lsm_try#"${_lsm_flag}="}"
+                    if [[ -n ${_lsm_val} ]] ; then
+                        _lsm_last=ok
+                    else
+                        _lsm_last=absent
+                    fi
+                fi
+            else
+                # The = a word of its own, glued to the flag.
+                _lsm_eq=0
+                for (( _lsm_j = _lsm_i + 1 ; _lsm_j <= _lsm_end ; _lsm_j++ )) ; do
+                    if [[ ${COMP_WORDS[_lsm_j]} == '=' ]] ; then
+                        _lsm_eq=${_lsm_j}
+                        break
+                    fi
+                done
+                if (( ! _lsm_eq )) ; then
+                    _lsm_last=no
+                elif (( _lsm_i <= COMP_CWORD && COMP_CWORD <= _lsm_end )) ; then
+                    if (( COMP_CWORD == _lsm_eq + 1 )) ; then
+                        # The value is the word being completed, at its
+                        # start.
+                        _lsm_last=absent
+                    else
+                        _lsm_last=no
+                    fi
+                elif ! _lsm_whole_word "${_lsm_text}" || \
+                        _lsm_expands "${_lsm_text}" ; then
+                    _lsm_last=no
+                else
+                    _lsm_value=''
+                    for (( _lsm_j = _lsm_eq + 1 ; _lsm_j <= _lsm_end ; _lsm_j++ )) ; do
+                        _lsm_value+="${COMP_WORDS[_lsm_j]}"
+                    done
+                    _lsm_unescape "${_lsm_value}" _lsm_val
+                    if [[ -z ${_lsm_val} ]] || _lsm_option_like "${_lsm_val}" ; then
+                        _lsm_last=absent
+                    else
+                        _lsm_last=ok
+                    fi
+                fi
+            fi
+        else
+            # Not the flag; the last one that is counts, so nothing changes.
+            _lsm_i=$(( _lsm_end + 1 ))
+            continue
+        fi
+        [[ ${_lsm_last} == ok ]] && _lsm_any_ok=1
+        [[ ${_lsm_last} == no ]] && _lsm_any_no=1
+        _lsm_i=$(( _lsm_vend > _lsm_end ? _lsm_vend : _lsm_end + 1 ))
+    done
+
+    if [[ ${_lsm_last} == ok ]] ; then
+        printf -v "$2" '%s' "${_lsm_val}"
+        return 0
+    fi
+    if (( _lsm_any_ok || _lsm_any_no )) ; then
+        return 2
+    fi
+    return 1
+}
+
+# Is a word an option of a sub command, or of any sub command if the sub
+# command is not one lsmcli has, which is not for completion to tell.
+# $1 The option
+# $2 The sub command
+# Reads $_lsm_opts_cmds, which _lsm_complete sets.
+function _lsm_known_option()
+{
+    local _lsm_args _lsm_repeat _lsm_c
+
+    if _lsm_options "$2" ; then
+        [[ " ${_lsm_args} --force " == *" $1 "* ]]
+        return
+    fi
+    for _lsm_c in ${_lsm_opts_cmds} ; do
+        _lsm_options "${_lsm_c}" || continue
+        [[ " ${_lsm_args} --force " == *" $1 "* ]] && return 0
+    done
+    return 1
+}
+
+# Find the sub command, the first word that is not a global option or the
+# value of one, and the URI given with -u or --uri. The first word, the command
+# itself, is never looked at, which is what lets this work for
+# /usr/bin/lsmcli or ./lsmcli, and for a path with a word break character in
+# it, eg. ./lsm:cli, which is more than one of COMP_WORDS.
+#
+# The line is read as the shell reads it, as words of text that may be put
+# together from several of COMP_WORDS, see _lsm_layout, and all of it is read,
+# including what is after the cursor, as global options are accepted after
+# the sub command too, and the word under the cursor is on the line like any
+# other unless it is empty. Each word is read as it was typed and, when that
+# says nothing, again as the shell would read it, as an option or the sub
+# command may be quoted or escaped, eg. "-u" or --vo"l". A word before the
+# cursor that the shell would not read as that word alone, an open quote or a
+# hanging backslash, means the line is not what the words seem to say.
+# Only forms that are understood are: a global option, alone or as the last
+# of some short ones in one word, as argparse has them (-Hbu x, -Hbux), with
+# its value glued on or as the next word, or an option of the sub command,
+# whose value is the next word whatever it looks like and is not left for
+# this scan to take for a global option or the sub command. Anything else
+# could be another option with a value, which is also not seen as the sub
+# command, so it is not known.
+#
+# Which -u counts is what lsmcli does with it: an option given before the sub
+# command is the root one, and one after it the sub command's, and cmdline.py
+# copies the second over only when the first was not given. So the last -u
+# before the sub command wins if there is one, else the last one after it.
+# Wrong is worse than nothing here, as the look-up of values is then for
+# another array, so whenever what wins is not certain, that is empty, with a
+# =, a command or alias name or something the shell would expand in it, or
+# lsmcli or the shell would not leave the line as the words say it, the state
+# is bad and no look-up is to be made. That is also the value of any other
+# global option, -t, -w and the like, which lsmcli refuses when it is an
+# option itself and not a negative number, and which the shell would change
+# when it is a command or alias name or something it expands, and the value
+# of an option of the sub command, which lsmcli refuses just the same.
+#
+# The results are left in variables _lsm_complete has, as for
+# _lsm_possible_args:
+#   _lsm_cmd        the sub command, empty if there is none yet
+#   _lsm_in_value   1 if the word being completed is part of the value of a
+#                   global option, for which there is nothing to offer
+#   _lsm_uri        the URI, unescaped
+#   _lsm_uri_state  none if there is no URI on the line, ok, or bad if there
+#                   is one that cannot be reliably made out
+function _lsm_scan()
+{
+    local _lsm_i _lsm_end _lsm_text _lsm_name _lsm_value _lsm_next _lsm_vend
+    local _lsm_cmd_found=0 _lsm_seen_cmd=0 _lsm_side=pre _lsm_valid _lsm_attached
+    local _lsm_pre_state=none _lsm_pre_uri='' _lsm_post_state=none
+    local _lsm_post_uri='' _lsm_plain _lsm_vraw _lsm_try _lsm_unquoted
+    local _lsm_classified _lsm_separate
+    local -a _lsm_m
+
+    _lsm_cmd=''
+    _lsm_in_value=0
+    _lsm_uri=''
+    _lsm_uri_state=none
+    _lsm_layout
+
+    # The command itself may be more than one word, eg. ./x:lsmcli, as : and =
+    # are word breaks, so this starts after the words it is made of.
+    _lsm_run 0 _lsm_text _lsm_end || true
+    _lsm_i=$(( _lsm_end + 1 ))
+    while (( _lsm_i < ${#COMP_WORDS[@]} )) ; do
+        _lsm_run "${_lsm_i}" _lsm_text _lsm_end || true
+        _lsm_next=$(( _lsm_end + 1 ))
+
+        # A word before the cursor that the shell would not read as this word
+        # alone, see _lsm_whole_word, means the line is not what the words
+        # seem to say.
+        if (( ! ( _lsm_i <= COMP_CWORD && COMP_CWORD <= _lsm_end ) )) && \
+                ! _lsm_whole_word "${_lsm_text}" ; then
+            printf -v "_lsm_${_lsm_side}_state" '%s' bad
+            printf -v "_lsm_${_lsm_side}_uri" '%s' ''
+            _lsm_i=$(( _lsm_end + 1 ))
+            continue
+        fi
+
+        # The word is read as it was typed and, when that says nothing, again
+        # as the shell would read it, as an option or the sub command may be
+        # quoted or escaped, eg. "-u" or --vo"l".
+        _lsm_try="${_lsm_text}"
+        _lsm_unquoted=0
+        while true ; do
+            _lsm_name=''
+            _lsm_value=''
+            _lsm_vend=${_lsm_end}
+            _lsm_valid=1
+            _lsm_attached=0
+            _lsm_classified=0
+            _lsm_separate=0
+
+            # A short option of those with a value, with some without before
+            # it in the word, or a long one, and the value in the word after =.
+            if [[ ${_lsm_try} =~ ^-([PHefbs]*)([utw])(.*)$ ]] ; then
+                _lsm_m=("${BASH_REMATCH[@]}")
+                _lsm_name="-${_lsm_m[2]}"
+                _lsm_value="${_lsm_m[3]}"
+                if [[ -n ${_lsm_value} ]] ; then
+                    _lsm_attached=1
+                    # -u=x is x to the argparse of some versions of Python
+                    # and =x to those of others.
+                    [[ ${_lsm_value} != =* ]] || _lsm_valid=0
+                fi
+                _lsm_classified=1
+            elif [[ ${_lsm_try} =~ ^--(uri|terse|wait|fork_plugin)(=(.*))?$ ]] ; then
+                _lsm_m=("${BASH_REMATCH[@]}")
+                _lsm_name="--${_lsm_m[1]}"
+                _lsm_value="${_lsm_m[3]}"
+                [[ -z ${_lsm_m[2]} ]] || _lsm_attached=1
+                _lsm_classified=1
+            else
+                case "${_lsm_try}" in
+                    -v|--version|-P|--prompt|-H|--human|-e|--enum|-f|--force|\
+                    -b|-s|--script|--header|-h|--help)
+                        _lsm_classified=1
+                        ;;
+                    -*)
+                        # Some short ones, none with a value, or one of the
+                        # sub command, or it is not understood.
+                        if [[ ${_lsm_try} =~ ^-[PHefbs]+$ ]] ; then
+                            _lsm_classified=1
+                        elif (( _lsm_cmd_found )) && \
+                                _lsm_known_option "${_lsm_try%%=*}" "${_lsm_cmd}" ; then
+                            # An option of the sub command. With its value in
+                            # the word after = there is nothing to take off
+                            # the line, else the next word is its value,
+                            # whatever it looks like, and it is not left for
+                            # this scan to take for a global option or the
+                            # sub command, unless lsmcli refuses it, which is
+                            # a value that is an option itself and not a
+                            # negative number, or the shell would not read it
+                            # as this word alone, see _lsm_whole_word, or
+                            # would change it, as it does a command or alias
+                            # name.
+                            if [[ ${_lsm_try} != *=* ]] && \
+                                    (( _lsm_next < ${#COMP_WORDS[@]} )) ; then
+                                _lsm_run "${_lsm_next}" _lsm_value _lsm_vend || true
+                                if (( _lsm_next <= COMP_CWORD && \
+                                       COMP_CWORD <= _lsm_vend )) ; then
+                                    # The value is the word being completed.
+                                    _lsm_value=''
+                                    _lsm_vend=${_lsm_end}
+                                else
+                                    _lsm_unescape "${_lsm_value}" _lsm_plain
+                                    if _lsm_option_like "${_lsm_plain}" || \
+                                            [[ -n ${_lsm_plain} && \
+                                               " ${_lsm_opts_cmds} " == \
+                                               *" ${_lsm_plain} "* ]] || \
+                                            ! _lsm_whole_word "${_lsm_value}" ; then
+                                        printf -v "_lsm_${_lsm_side}_state" '%s' bad
+                                        printf -v "_lsm_${_lsm_side}_uri" '%s' ''
+                                    fi
+                                fi
+                            fi
+                            _lsm_classified=1
+                        elif (( _lsm_unquoted )) ; then
+                            # Not understood, so what the line is for is not
+                            # known.
+                            printf -v "_lsm_${_lsm_side}_state" '%s' bad
+                            printf -v "_lsm_${_lsm_side}_uri" '%s' ''
+                            _lsm_classified=1
+                        fi
+                        ;;
+                    '')
+                        # The empty word at the cursor, which is not on the
+                        # line.
+                        _lsm_classified=1
+                        ;;
+                    *)
+                        # The first word that is none of the above is the sub
+                        # command, whether it is complete or not, for the
+                        # side an option is on, and the one to complete the
+                        # options of if it is before the cursor.
+                        if (( _lsm_unquoted )) ; then
+                            _lsm_seen_cmd=1
+                            if (( ! _lsm_cmd_found && _lsm_end < COMP_CWORD )) ; then
+                                _lsm_cmd="${_lsm_try}"
+                                _lsm_cmd_found=1
+                            fi
+                            _lsm_classified=1
+                        fi
+                        ;;
+                esac
+            fi
+            if (( _lsm_classified )) ; then
+                break
+            fi
+            _lsm_unescape "${_lsm_text}" _lsm_try
+            _lsm_unquoted=1
+        done
+
+        if [[ -n ${_lsm_name} ]] ; then
+            if (( _lsm_attached )) ; then
+                # The word being completed is in the value.
+                if (( _lsm_i <= COMP_CWORD && COMP_CWORD <= _lsm_end )) ; then
+                    _lsm_in_value=1
+                    return 0
+                fi
+            elif (( _lsm_next >= ${#COMP_WORDS[@]} )) ; then
+                # No value at all, which lsmcli will not take.
+                _lsm_valid=0
+                _lsm_value=''
+            else
+                _lsm_run "${_lsm_next}" _lsm_value _lsm_vend || true
+                if (( _lsm_next <= COMP_CWORD && COMP_CWORD <= _lsm_vend )) ; then
+                    _lsm_in_value=1
+                    return 0
+                fi
+                _lsm_separate=1
+            fi
+
+            # The value as it was typed, and what the shell reads of it. One
+            # that came out of a quoted word is what the shell reads already,
+            # and what was typed is the whole word.
+            if (( _lsm_attached && _lsm_unquoted )) ; then
+                _lsm_plain="${_lsm_value}"
+                _lsm_vraw="${_lsm_text}"
+            else
+                _lsm_vraw="${_lsm_value}"
+                _lsm_unescape "${_lsm_value}" _lsm_plain
+            fi
+            # A separate value that is an option itself is one lsmcli
+            # refuses, so the line is not what the words seem to say. One
+            # glued on is taken however it looks.
+            if (( _lsm_separate )) && _lsm_option_like "${_lsm_plain}" ; then
+                _lsm_valid=0
+            fi
+
+            if [[ ${_lsm_name} == -u || ${_lsm_name} == --uri ]] ; then
+                if (( _lsm_valid && _lsm_layout_ok )) \
+                        && [[ -n ${_lsm_plain} ]] \
+                        && ! _lsm_expands "${_lsm_vraw}" \
+                        && [[ " ${_lsm_opts_cmds} " != *" ${_lsm_plain} "* ]] \
+                        && _lsm_whole_word "${_lsm_vraw}" ; then
+                    printf -v "_lsm_${_lsm_side}_state" '%s' ok
+                    printf -v "_lsm_${_lsm_side}_uri" '%s' "${_lsm_plain}"
+                else
+                    printf -v "_lsm_${_lsm_side}_state" '%s' bad
+                    printf -v "_lsm_${_lsm_side}_uri" '%s' ''
+                fi
+            elif ! (( _lsm_valid && _lsm_layout_ok )) \
+                    || _lsm_expands "${_lsm_vraw}" \
+                    || [[ " ${_lsm_opts_cmds} " == *" ${_lsm_plain} "* ]] \
+                    || ! _lsm_whole_word "${_lsm_vraw}" ; then
+                # The value of -t, -w or the like is not the URI, but the
+                # line is still not what the words seem to say when lsmcli
+                # would refuse it or the shell would change it.
+                printf -v "_lsm_${_lsm_side}_state" '%s' bad
+                printf -v "_lsm_${_lsm_side}_uri" '%s' ''
+            fi
+        fi
+        _lsm_i=$(( _lsm_vend + 1 ))
+        # Words after the sub command are the sub command's own.
+        if (( _lsm_seen_cmd )) ; then
+            _lsm_side=post
+        fi
+    done
+
+    # The one before the sub command is the one that is used if it is there.
+    if [[ ${_lsm_pre_state} != none ]] ; then
+        _lsm_uri_state=${_lsm_pre_state}
+        _lsm_uri=${_lsm_pre_uri}
+    else
+        _lsm_uri_state=${_lsm_post_state}
+        _lsm_uri=${_lsm_post_uri}
+    fi
+    return 0
+}
+
+# Fill COMPREPLY with the values of the requested column of a 'lsmcli list'.
+# $1 Value for --type
+# $2 Column number to use as the completion value, or 'all' to use every
+#    field of every line, for nfs_client_auth which prints one line of values
+# $@ Any remaining arguments are passed to lsmcli as-is
+# Reads $_lsm_cur, $_lsm_cur_start, $_lsm_sep, $_lsm_uri and $_lsm_uri_state,
+# which _lsm_complete and _lsm_scan set.
+#
+# The URI given on the command line, if any, is passed on, so the values are
+# those of the array the command is for rather than of the default one. When
+# the URI cannot be made out there is nothing to offer, as guessing could
+# list the wrong array. -P is never passed, as it would prompt for a password.
+#
+# Note: We cannot use 'compgen -W' here as it expands the word list, which
+# would execute command substitution, eg. $(...), embedded in a name returned
+# by a plugin, so do the prefix matching ourselves instead. As nothing
+# escapes the values for us they are escaped here, for the quote the word
+# being completed was started with, if any, so a name with a space in it
+# completes as one word and is read back as the name. With a quote open only
+# what follows it is replaced by readline, so the part of the value read
+# before the quote is left out of what is offered.
+function _lsm_values()
+{
+    local _lsm_list_type="$1"
+    local _lsm_column="$2"
+    local _lsm_item _lsm_plain _lsm_quote _lsm_skip _lsm_out _lsm_prog
+    local _lsm_prog_text _lsm_typed _lsm_bskip _lsm_ci _lsm_breaks
+    local -a _lsm_fields _lsm_items _lsm_uri_args=()
+    shift 2
+
+    # What was typed so far, minus any escaping or quoting, and which quote
+    # is left open.
+    _lsm_unescape "${_lsm_cur}" _lsm_plain _lsm_quote _lsm_skip
+
+    # Readline replaces only what follows the last word break character at or
+    # before the cursor, eg. a : in the middle of an iSCSI name or a WWPN,
+    # which is why such a value is more than one of COMP_WORDS, so what is
+    # before it stays on the line and what is offered has to start after it
+    # in the value. The word break characters are those of COMP_WORDBREAKS,
+    # which is what readline splits the words on, or the ones it comes with
+    # where the shell does not say.
+    if [[ ${_lsm_quote} == none ]] ; then
+        _lsm_breaks="${COMP_WORDBREAKS-}"
+        [[ -n ${_lsm_breaks} ]] || _lsm_breaks=$' \t\n"\'><=;|&(:'
+        # A quote at the start of the word opens one, which readline does not
+        # split on, and quotes are otherwise for _lsm_unescape above.
+        _lsm_breaks="${_lsm_breaks//[\'\"]}"
+        _lsm_typed=''
+        for (( _lsm_ci = _lsm_cur_start ; _lsm_ci < COMP_CWORD ; _lsm_ci++ )) ; do
+            _lsm_typed+="${COMP_WORDS[_lsm_ci]}"
+        done
+        _lsm_unescape "${_lsm_typed}" _lsm_typed
+        _lsm_bskip=${#_lsm_typed}
+        _lsm_typed="${COMP_WORDS[COMP_CWORD]}"
+        while [[ -n ${_lsm_typed} ]] && \
+                [[ ${_lsm_breaks} == *"${_lsm_typed:0:1}"* ]] ; do
+            (( ++_lsm_bskip ))
+            _lsm_typed="${_lsm_typed:1}"
+        done
+        (( _lsm_bskip > _lsm_skip )) && _lsm_skip=${_lsm_bskip}
+    fi
+
     COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts_short="-b -v -u -P -H -t -e -f -w -b"
-    opts_long=" --help --version --uri --prompt --human --terse --enum \
-              --force --wait --header --script "
-    opts_cmds="list job-status capabilities plugin-info volume-create \
-                volume-delete volume-resize volume-replicate \
-                volume-replicate-range volume-replicate-range-block-size \
-                volume-dependants volume-dependants-rm volume-access-group \
-                volume-mask volume-unmask access-group-create \
-                access-group-delete access-group-add access-group-remove \
-                volume-enable volume-disable iscsi-chap fs-create fs-delete \
-                fs-resize fs-export fs-unexport fs-clone fs-snap-create \
-                fs-snap-delete fs-snap-restore fs-dependants fs-dependants-rm \
-                file-clone ls lp lv ld la lf lt lb c p vc vd vr vm vi ve vi ac \
-                aa ar ad vri volume-raid-info pool-member-info pmi \
-                vrc volume-raid-create vrcc volume-raid-create-cap \
-                volume-phy-disk-cache-update vpdcu \
-                volume-read-cache-policy-update vrcpu \
-                volume-write-cache-policy-update vwcpu \
-                volume-cache-info vci volume-ident-led-on vilon \
-                volume-ident-led-off viloff local-disk-list ldl \
-                system-read-cache-pct-update srcpu \
-                local-disk-ident-led-on ldilon \
-                local-disk-ident-led-off ldiloff \
-                local-disk-fault-led-on ldflon \
-                local-disk-fault-led-off ldfloff"
+    # An option where the value is to be is not a value, and what lsmcli would
+    # make of the line is not known, eg. when it is a -u that is the word at
+    # the cursor.
+    [[ ${_lsm_cur} != -* && ${_lsm_cur} != '#'* ]] || return 0
+    # The line is not known to be what the words say, or the URI is not.
+    (( _lsm_layout_ok )) || return 0
+    [[ ${_lsm_uri_state} != bad ]] || return 0
+    [[ ${_lsm_uri_state} != ok ]] || _lsm_uri_args=(-u "${_lsm_uri}")
 
-    list_args="--type"
-    list_type_args="volumes pools fs snapshots exports nfs_client_auth \
+    # The program is the one that was typed, eg. ./lsmcli. An alias or a
+    # function of that name is not run, as it is not known what it adds to
+    # the line, eg. a -u of its own, and so which array the line is for.
+    # type -t tells a function, also one with a / in its name, and a builtin,
+    # but an alias only in a shell that expands them, so that is asked for on
+    # its own. The program may be more than one word, eg. ./x:lsmcli, as : and
+    # = are word breaks, see _lsm_layout.
+    _lsm_run 0 _lsm_prog_text _lsm_i || true
+    _lsm_unescape "${_lsm_prog_text}" _lsm_prog
+    if { alias -- "${_lsm_prog}" > /dev/null 2>&1 || \
+          [[ $(type -t -- "${_lsm_prog}") != file ]] ; } ; then
+        return 0
+    fi
+
+    # Not read from a process substitution, which would not be stopped by
+    # Ctrl-C and be left running. $(...) is not done until what it runs has
+    # closed its output, so a plugin that leaves a child with it open keeps
+    # the completion waiting for that child, even after Ctrl-C.
+    _lsm_out=$(command -- "${_lsm_prog}" list --type "${_lsm_list_type}" \
+        -t"${_lsm_sep}" ${_lsm_uri_args[@]+"${_lsm_uri_args[@]}"} "$@" \
+        < /dev/null 2>/dev/null) || true
+
+    # ${_lsm_sep} is not white space, so read splits the line on it alone and
+    # values keep any spaces they contain. A value with a newline in it would
+    # be split in two records, as the output is read a line at a time, but
+    # the plugins have no such name to return. Errors from lsmcli go nowhere as
+    # they would be written over the user's command line.
+    while IFS="${_lsm_sep}" read -r -a _lsm_fields ; do
+        if [[ ${_lsm_column} == all ]] ; then
+            _lsm_items=(${_lsm_fields[@]+"${_lsm_fields[@]}"})
+        else
+            _lsm_items=("${_lsm_fields[_lsm_column-1]:-}")
+        fi
+        for _lsm_item in ${_lsm_items[@]+"${_lsm_items[@]}"} ; do
+            if [[ -n ${_lsm_item} && ${_lsm_item} == "${_lsm_plain}"* ]] ; then
+                _lsm_escape "${_lsm_item:_lsm_skip}" "${_lsm_quote}" _lsm_item
+                COMPREPLY+=("${_lsm_item}")
+            fi
+        done
+    done <<< "${_lsm_out}"
+}
+
+# The options of a sub command, or of one of its aliases, that is the ones it
+# requires and the ones it allows, as cmdline.py has them. test_cmdline_drift.sh
+# compares the two, so keep them in step. --force is also offered where it
+# makes sense, though it is a global option.
+# $1 The sub command
+# Sets, as variables of the caller, which is _lsm_complete:
+#   _lsm_args    The options, in the order to offer them
+#   _lsm_repeat  The ones of those that can be given more than once, which
+#                are still offered after they are used
+# Returns 1 if the sub command is not one lsmcli has.
+function _lsm_options()
+{
+    _lsm_args=''
+    _lsm_repeat=''
+
+    case "$1" in
+        list) _lsm_args="--type ${_lsm_list_filter_args}" ;;
+        # These stand for 'list --type <something>'.
+        ls|lp|lv|ld|la|lf|lt|lb) _lsm_args="${_lsm_list_filter_args}" ;;
+        job-status) _lsm_args="--job" ;;
+        capabilities|c|volume-raid-create-cap|vrcc|\
+        volume-replicate-range-block-size)
+            _lsm_args="--sys"
+            ;;
+        volume-create|vc) _lsm_args="--name --size --pool --provisioning" ;;
+        volume-raid-create|vrc)
+            _lsm_args="--name --disk --raid-type --strip-size"
+            _lsm_repeat="--disk"
+            ;;
+        volume-delete|vd) _lsm_args="--vol --force" ;;
+        volume-resize|vr) _lsm_args="--vol --size --force" ;;
+        volume-replicate) _lsm_args="--vol --name --rep-type --pool" ;;
+        volume-replicate-range)
+            _lsm_args="--src-vol --dst-vol --rep-type --src-start --dst-start \
+--count --force"
+            _lsm_repeat="--src-start --dst-start --count"
+            ;;
+        volume-dependants|volume-dependants-rm|volume-access-group|\
+        volume-enable|volume-disable|ve|vi|volume-raid-info|vri|\
+        volume-cache-info|vci|volume-ident-led-on|vilon|\
+        volume-ident-led-off|viloff)
+            _lsm_args="--vol"
+            ;;
+        volume-mask|volume-unmask|vm|vu) _lsm_args="--vol --ag" ;;
+        volume-phy-disk-cache-update|vpdcu|volume-read-cache-policy-update|\
+        vrcpu|volume-write-cache-policy-update|vwcpu)
+            _lsm_args="--vol --policy"
+            ;;
+        system-read-cache-pct-update|srcpu) _lsm_args="--sys --read-pct" ;;
+        pool-member-info|pmi) _lsm_args="--pool" ;;
+        access-group-create|ac) _lsm_args="--name --init --sys" ;;
+        access-group-add|access-group-remove|aa|ar) _lsm_args="--ag --init" ;;
+        access-group-delete|ad|access-group-volumes) _lsm_args="--ag" ;;
+        iscsi-chap)
+            _lsm_args="--init --in-user --in-pass --out-user --out-pass"
+            ;;
+        fs-create) _lsm_args="--name --size --pool" ;;
+        fs-delete) _lsm_args="--fs --force" ;;
+        fs-resize) _lsm_args="--fs --size --force" ;;
+        fs-export)
+            _lsm_args="--fs --exportpath --anonuid --anongid --auth-type \
+--root-host --ro-host --rw-host"
+            _lsm_repeat="--root-host --ro-host --rw-host"
+            ;;
+        fs-unexport) _lsm_args="--export" ;;
+        fs-clone) _lsm_args="--src-fs --dst-name --backing-snapshot" ;;
+        fs-snap-create) _lsm_args="--name --fs" ;;
+        fs-snap-delete) _lsm_args="--snap --fs" ;;
+        fs-snap-restore)
+            _lsm_args="--snap --fs --file --fileas --force"
+            _lsm_repeat="--file --fileas"
+            ;;
+        fs-dependants|fs-dependants-rm)
+            _lsm_args="--fs --file"
+            _lsm_repeat="--file"
+            ;;
+        file-clone) _lsm_args="--fs --src --dst --backing-snapshot" ;;
+        local-disk-ident-led-on|ldilon|local-disk-ident-led-off|ldiloff|\
+        local-disk-fault-led-on|ldflon|local-disk-fault-led-off|ldfloff)
+            _lsm_args="--path"
+            ;;
+        local-led-slot-set) _lsm_args="--slot --state" ;;
+        # Commands that take nothing.
+        plugin-info|p|local-disk-list|ldl|local-led-slot-list) ;;
+        *) return 1 ;;
+    esac
+    return 0
+}
+
+function _lsm_complete()
+{
+    # The ASCII unit separator, made for this and not something a name has in
+    # it, unlike '#' or ' ', which split a value in two.
+    _lsm_sep=$'\x1f'
+    COMPREPLY=()
+    # There is no previous word for the command itself, and nothing to offer.
+    (( COMP_CWORD >= 1 )) || return 0
+
+    _lsm_opts_short="-v -u -P -H -t -e -f -w -b -s -h"
+    _lsm_opts_long=" --help --version --uri --prompt --human --terse --enum \
+              --force --wait --header --script "
+    _lsm_opts_cmds="list job-status capabilities plugin-info volume-create \
+                volume-raid-create volume-raid-create-cap volume-delete \
+                volume-resize volume-replicate volume-replicate-range \
+                volume-replicate-range-block-size volume-dependants \
+                volume-dependants-rm volume-access-group volume-mask \
+                volume-unmask volume-enable volume-disable volume-raid-info \
+                volume-ident-led-on volume-ident-led-off \
+                system-read-cache-pct-update pool-member-info \
+                access-group-create access-group-add access-group-remove \
+                access-group-delete access-group-volumes iscsi-chap fs-create \
+                fs-delete fs-resize fs-export fs-unexport fs-clone \
+                fs-snap-create fs-snap-delete fs-snap-restore fs-dependants \
+                fs-dependants-rm file-clone local-disk-list \
+                local-led-slot-list volume-cache-info \
+                volume-phy-disk-cache-update volume-read-cache-policy-update \
+                volume-write-cache-policy-update local-disk-ident-led-on \
+                local-disk-ident-led-off local-disk-fault-led-on \
+                local-disk-fault-led-off local-led-slot-set \
+                ls lp lv ld la lf lt lb c p vc vrc vrcc vd vr vm vu ve vi ac \
+                aa ar ad vri vilon viloff srcpu pmi ldl vci vpdcu vrcpu vwcpu \
+                ldilon ldiloff ldflon ldfloff"
+
+    _lsm_list_filter_args="--sys --pool --vol --disk --ag --fs --nfs-export --tgt"
+    _lsm_list_type_args="volumes pools fs snapshots exports nfs_client_auth \
                     access_groups systems disks plugins target_ports \
                     batteries"
+    # The choices of cmdline.py, which test_cmdline_drift.sh compares with.
+    _lsm_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC"
+    _lsm_range_rep_types="CLONE COPY"
+    _lsm_policies="ENABLE DISABLE"
+    _lsm_write_policies="WB AUTO WT"
+    _lsm_raid_types="RAID0 RAID1 RAID5 RAID6 RAID10 RAID50 RAID60"
+    _lsm_provisioning_types="DEFAULT THIN FULL"
+    _lsm_led_states="IDENT_ON IDENT_OFF FAULT_ON FAULT_OFF"
 
-    opts_filter="--sys --pool --vol --disk --ag --fs --nfs"
+    # What the sub command is, and the URI, wherever on the line they are.
+    _lsm_scan
+    # The value of a global option, eg. the URI, we know nothing about.
+    (( _lsm_in_value )) && return 0
 
-    cap_args="--sys"
-    volume_create_args="--name --size --pool"
-    volume_delete_args="--vol --force"  # Should force be here, to easy to tab through?"
-    volume_resize_args="--vol --size --force" # Should force be here, to easy to tab through?"
-
-    volume_replicate_args="--vol --name --rep-type"
-    # Hmmm, this looks like a bug with CLI, should support lower and upper case?
-    volume_rep_types="CLONE COPY MIRROR_ASYNC MIRROR_SYNC"
-
-    volume_replicate_range_args="--src-vol --dst-vol --rep-type --src-start \
-                                --dst-start --count --force" # Force ?
-
-    volume_replication_range_bs="--sys"
-    volume_dependants="--vol"
-
-    volume_access_group_args="--vol"
-    volume_masking_args="--vol --ag"
-
-    access_group_create_args="--name --init --sys"
-    access_group_delete_args="--ag"
-
-    access_group_add_remove_args="--ag --init"
-
-    volume_enable_disable_args="--vol"
-
-    volume_raidinfo_args="--vol"
-
-    iscsi_chap_args="--in-user --in-pass --out-user --out-pass"
-
-    fs_create_args="--name --size --pool"
-    fs_delete_args="--fs --force" # Force ?
-    fs_resize_args="--fs --size --force" # Force ?
-    fs_export_args="--fs --exportpath --anonuid --auth-type --root-host --ro-host --rw-host"
-    fs_unexport_args="--export"
-    fs_clone_args="--src-fs --dst-name"
-    fs_snap_create_args="--name --fs"
-    fs_snap_delete_args="--snap --fs"
-    fs_snap_restore_args="--snap --fs --file --fileas --force"
-    fs_dependants_args="--fs"
-    file_clone_args="--fs --src --dst --backing-snapshot"
-    pool_member_info_args="--pool"
-    volume_raid_create_args="--name --disk --raid-type --strip-size"
-    volume_raid_create_cap_args="--sys"
-    volume_phy_disk_cache_update_args="--vol --policy"
-    volume_read_cache_policy_update_args="--vol --policy"
-    volume_write_cache_policy_update_args="--vol --policy"
-    volume_cache_info_args="--vol"
-    volume_ident_led_on_off_args="--vol"
-    system_read_cache_pct_update_args="--vol --read-pct"
-    local_disk_led_args="--path"
+    # The word being completed is all the words of it up to the cursor put
+    # together, eg. an iSCSI name or a WWPN, which bash breaks at every :, so
+    # it is more than one of COMP_WORDS, see _lsm_layout, and the word before
+    # it is the whole word before that one, eg. --init. Readline replaces
+    # only what follows the last word break character at or before the
+    # cursor, so what is offered starts after what is before it in the value,
+    # which is for _lsm_values to take off, see _lsm_cur_start.
+    _lsm_cur_start=${COMP_CWORD}
+    while (( _lsm_cur_start > 0 )) && (( ${_lsm_glue[_lsm_cur_start]:-0} )) ; do
+        (( --_lsm_cur_start ))
+    done
+    _lsm_cur=''
+    for (( _lsm_ci = _lsm_cur_start ; _lsm_ci <= COMP_CWORD ; _lsm_ci++ )) ; do
+        _lsm_cur+="${COMP_WORDS[_lsm_ci]}"
+    done
+    _lsm_prev=''
+    if (( _lsm_cur_start > 0 )) ; then
+        _lsm_prev_start=$(( _lsm_cur_start - 1 ))
+        while (( _lsm_prev_start > 0 )) && \
+                (( ${_lsm_glue[_lsm_prev_start]:-0} )) ; do
+            (( --_lsm_prev_start ))
+        done
+        for (( _lsm_ci = _lsm_prev_start ; _lsm_ci < _lsm_cur_start ; \
+                _lsm_ci++ )) ; do
+            _lsm_prev+="${COMP_WORDS[_lsm_ci]}"
+        done
+    fi
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
-    if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
+    if [[ ${LSMCLI_AUTO_COMPLETE_VALUE:-0} == 1 ]] ; then
 
         # Check if we have somthing present that we can help the user with
-        case "${prev}" in
+        case "${_lsm_prev}" in
             --sys)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values systems 1
                 return 0
                 ;;
             --pool)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values pools 1
                 return 0
                 ;;
             --vol|--src-vol|--dst-vol)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values volumes 1
                 return 0
                 ;;
             --disk)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values disks 1
                 return 0
                 ;;
             --ag)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values access_groups 1
                 return 0
                 ;;
             --init)
-                arg_index "--ag"
-                i=$?
                 # We have an access group present on the command line so filter the intiators to it
-                if [[ ${i} -ne 255 ]]; then
-                    # It would be better if we filtered the result with the access group
-                    # if it's present on the command line already.
-                    local items=`lsmcli list --type access_groups -t${sep} --ag ${COMP_WORDS[${i}+1]} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                # A filter that is there but cannot be read is not to be left
+                # out, as that would offer the initiators of every group.
+                if _lsm_flag_value "--ag" _lsm_ag_value ; then
+                    _lsm_values access_groups 3 --ag "${_lsm_ag_value}"
+                elif (( $? == 2 )) ; then
+                    COMPREPLY=()
                 else
-                    local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                    _lsm_values access_groups 3
                 fi
+                return 0
                 ;;
             --nfs-export)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values exports 1
                 return 0
                 ;;
             --tgt)
-                # Is there a better way todo this?
-                local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values target_ports 1
                 return 0
                 ;;
             --fs|--src-fs)
-                local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values fs 1
                 return 0
                 ;;
             --export)
-                local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values exports 1
                 return 0
                 ;;
             --snap)
-                arg_index "--fs"
-                i=$?
-                # We have an access group present on the command line so filter the snapshots to it
-                if [[ ${i} -ne 255 ]]; then
-                    local items=`lsmcli list --type snapshots \
-                        --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
-                    return 0
+                # We have a file system present on the command line so filter the snapshots to it
+                if _lsm_flag_value "--fs" _lsm_fs_value ; then
+                    _lsm_values snapshots 1 --fs "${_lsm_fs_value}"
                 else
-                    COMPREPLY=( $(compgen -W "" -- ${cur}) )
-                    return 0
+                    COMPREPLY=()
                 fi
+                return 0
+                ;;
+            --backing-snapshot)
+                # Snapshots of the file system, the one given as --fs for
+                # file-clone and as --src-fs for fs-clone.
+                # One that cannot be read is nothing to go by, not the next one.
+                if _lsm_flag_value "--fs" _lsm_fs_value ; then
+                    _lsm_values snapshots 1 --fs "${_lsm_fs_value}"
+                elif (( $? == 1 )) && \
+                        _lsm_flag_value "--src-fs" _lsm_fs_value ; then
+                    _lsm_values snapshots 1 --fs "${_lsm_fs_value}"
+                else
+                    COMPREPLY=()
+                fi
+                return 0
                 ;;
             --auth-type)
-                local items=`lsmcli list --type nfs_client_auth -t ' '`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                _lsm_values nfs_client_auth all
                 return 0
                 ;;
             *)
@@ -245,252 +1357,129 @@ function _lsm()
     fi
 
     # Cases where we don't have to worry about look-up time
-    case "${prev}" in
+    case "${_lsm_prev}" in
         --type)
-            COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
+            COMPREPLY=( $(compgen -W "${_lsm_list_type_args}" -- "${_lsm_cur}") )
             return 0
             ;;
         --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
-            --out-user|--out-pass|--exportpath|--anonuid|--root-host|--ro-host|\
-            --rw-host|--dest-name|--file|--fileas|--src|--dst)
-            # These we cannot lookup, so don't offer any values
-            COMPREPLY=( $(compgen -W "" -- ${cur}) )
+            --out-user|--out-pass|--exportpath|--anonuid|--anongid|\
+            --root-host|--ro-host|--rw-host|--dst-name|--file|--fileas|--src|\
+            --dst|--job|--strip-size|--read-pct|--path|--slot|\
+            --backing-snapshot)
+            # These we cannot lookup, so don't offer any values. That is also
+            # --backing-snapshot when look-ups are off.
+            COMPREPLY=( $(compgen -W "" -- "${_lsm_cur}") )
             return 0
             ;;
         --rep-type)
-            COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
-            return 0
-            ;;
-        snapshots)
-            # Specific listing case where you need a fs too
-            if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
-                  ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
-                COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
-                return 0
+            # What volume-replicate-range takes is less than volume-replicate.
+            if [[ ${_lsm_cmd} == volume-replicate-range ]] ; then
+                COMPREPLY=( $(compgen -W "${_lsm_range_rep_types}" -- "${_lsm_cur}") )
+            else
+                COMPREPLY=( $(compgen -W "${_lsm_rep_types}" -- "${_lsm_cur}") )
             fi
+            return 0
+            ;;
+        --policy)
+            case "${_lsm_cmd}" in
+                volume-phy-disk-cache-update|vpdcu|\
+                volume-read-cache-policy-update|vrcpu)
+                    COMPREPLY=( $(compgen -W "${_lsm_policies}" -- "${_lsm_cur}") )
+                    ;;
+                volume-write-cache-policy-update|vwcpu)
+                    COMPREPLY=( $(compgen -W "${_lsm_write_policies}" -- "${_lsm_cur}") )
+                    ;;
+            esac
+            return 0
+            ;;
+        --raid-type)
+            COMPREPLY=( $(compgen -W "${_lsm_raid_types}" -- "${_lsm_cur}") )
+            return 0
+            ;;
+        --provisioning)
+            COMPREPLY=( $(compgen -W "${_lsm_provisioning_types}" -- "${_lsm_cur}") )
+            return 0
+            ;;
+        --state)
+            COMPREPLY=( $(compgen -W "${_lsm_led_states}" -- "${_lsm_cur}") )
+            return 0
             ;;
         *)
     esac
 
-    case "${COMP_WORDS[1]}" in
-        job-status)
-            possible_args "--job"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        list)
-            possible_args ${list_args}
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-create|vc)
-            possible_args "${volume_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-delete|vd)
-            possible_args "${volume_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-raid-info|vri)
-            possible_args "${volume_raidinfo_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-resize|vr)
-            possible_args "${volume_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-replicate)
-            possible_args "${volume_replicate_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-replicate-range)
-            possible_args "${volume_replicate_range_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-replicate-range-block-size)
-            possible_args "${volume_replication_range_bs}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-dependants|volume-dependants-rm)
-            possible_args "${volume_dependants}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-access-group)
-            possible_args "${volume_access_group_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-mask|volume-unmask|vm|vu)
-            possible_args "${volume_masking_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        access-group-create|ac)
-            possible_args "${access_group_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        access-group-delete|ad)
-            possible_args "${access_group_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        access-group-add|access-group-remove|aa|ar)
-            possible_args "${access_group_add_remove_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-enable|volume-disable|ve|vi)
-            possible_args "${volume_enable_disable_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        iscsi-chap)
-            possible_args "${iscsi_chap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-create)
-            possible_args "${fs_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-delete)
-            possible_args "${fs_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-resize)
-            possible_args "${fs_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-export)
-            possible_args "${fs_export_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-unexport)
-            possible_args "${fs_unexport_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-clone)
-            possible_args "${fs_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-snap-create)
-            possible_args "${fs_snap_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-snap-delete)
-            possible_args "${fs_snap_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-snap-restore)
-            possible_args "${fs_snap_restore_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        fs-dependants|fs-dependants-rm)
-            possible_args "${fs_dependants_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        file-clone)
-            possible_args "${file_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        capabilities|c)
-            possible_args "${cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        pool-member-info|pmi)
-            possible_args "${pool_member_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-raid-create|vrc)
-            possible_args "${volume_raid_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-raid-create-cap|vrcc)
-            possible_args "${volume_raid_create_cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-phy-disk-cache-update|vpdcu)
-            possible_args "${volume_phy_disk_cache_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-read-cache-policy-update|vrcpu)
-            possible_args "${volume_read_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-write-cache-policy-update|vwcpu)
-            possible_args "${volume_write_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-cache-info|vci)
-            possible_args "${volume_cache_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        volume-ident-led-on|volume-ident-led-off|vilon|viloff)
-            possible_args "${volume_ident_led_on_off_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        system-read-cache-pct-update|srcpu)
-            possible_args "${system_read_cache_pct_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        local-disk-ident-led-on|ldilon| \
-        local-disk-ident-led-off|ldiloff| \
-        local-disk-fault-led-on|ldflon| \
-        local-disk-fault-led-off|ldfloff)
-            possible_args "${local_disk_led_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
-            return 0
-            ;;
-        *)
-        ;;
-    esac
-
-    # Handle the case where we are starting out with nothing
-    if [[ ${prev} == 'lsmcli' ]] ; then
-        if [[ ${cur} == --* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_long}"  -- ${cur}) )
-            return 0
-        fi
-
-        if [[ ${cur} == -* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}"  -- ${cur}) )
-            return 0
-        fi
-
-        if [[ ${cur} == * ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}${opts_cmds}"  -- ${cur}) )
-            return 0
-        fi
+    # Specific listing case where you need a fs too. --type takes the name in
+    # either case, and the sub command is the one found, not a fixed position.
+    if (( COMP_CWORD >= 2 )) && [[ ${_lsm_prev,,} == snapshots && \
+            ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
+            ${_lsm_cmd} == list ]] ; then
+        COMPREPLY=( $(compgen -W "--fs" -- "${_lsm_cur}") )
+        return 0
     fi
+
+    # Whatever the sub command allows that is not on the line already.
+    if _lsm_options "${_lsm_cmd}" ; then
+        _lsm_possible_args "${_lsm_args}" "${_lsm_repeat}"
+        COMPREPLY=( $(compgen -W "${_lsm_potential_args}" -- "${_lsm_cur}") )
+        return 0
+    fi
+
+    # No sub command yet, so offer global options and the commands. Always,
+    # as the words typed before can be any global options, and with a value
+    # or without.
+    if [[ -z ${_lsm_cmd} ]] ; then
+        if [[ ${_lsm_cur} == --* ]] ; then
+            COMPREPLY=( $(compgen -W "${_lsm_opts_long}"  -- "${_lsm_cur}") )
+        elif [[ ${_lsm_cur} == -* ]] ; then
+            COMPREPLY=( $(compgen -W "${_lsm_opts_short}${_lsm_opts_long}"  -- "${_lsm_cur}") )
+        else
+            COMPREPLY=( $(compgen -W "${_lsm_opts_short}${_lsm_opts_long}${_lsm_opts_cmds}"  -- "${_lsm_cur}") )
+        fi
+        return 0
+    fi
+    return 0
+}
+
+# What the completion does must not depend on how the user has set up the
+# shell, and must leave it as it was, even when it is interrupted, as a look-up
+# that hangs is something that is to be interrupted. So it is all done in a
+# subshell, with nocasematch, which would make every case and [[ == ]] match
+# without regard to case, off, the IFS that word splitting here relies on, no
+# tracing or verbose logging, which would write over the output when
+# BASH_XTRACEFD says so, no -u, which an unset variable would then stop it at,
+# and no globbing, which would expand what is offered into file names, and only
+# the result comes back, a line to each. That is a subshell for each
+# completion, which is a millisecond or so.
+# A value with a newline in it would be two, and plugins have none. An entry
+# that is empty is one all the same, which command substitution would strip
+# with the trailing newlines, so it is told from nothing by a character after
+# the last entry that is taken off again.
+function _lsm()
+{
+    local _lsm_out _lsm_entry
+
+    COMPREPLY=()
+    # Not a process substitution, which would not be stopped by Ctrl-C.
+    _lsm_out=$(
+        set +x +v +u
+        set -f
+        shopt -u nocasematch
+        IFS=$' \t\n'
+        _lsm_complete
+        if (( ${#COMPREPLY[@]} )) ; then
+            printf '%s\n' "${COMPREPLY[@]}"
+        fi
+        printf 'X'
+    ) || true
+    _lsm_out=${_lsm_out%X}
+    if [[ -n ${_lsm_out} ]] ; then
+        COMPREPLY=()
+        # printf here rather than a here string, which would add a newline
+        # and with it an entry that is not one.
+        while IFS= read -r _lsm_entry ; do
+            COMPREPLY+=("${_lsm_entry}")
+        done < <(printf '%s' "${_lsm_out}")
+    fi
+    return 0
 }
 complete -F _lsm lsmcli
