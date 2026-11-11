@@ -12,6 +12,16 @@ API_MAN_PAGES = \
 	api_man/lsm_local_disk_fault_led_on.3 \
 	api_man/lsm_local_disk_fault_led_off.3 \
 	api_man/lsm_local_disk_led_status_get.3 \
+	api_man/lsm_led_handle_get.3 \
+	api_man/lsm_led_handle_free.3 \
+	api_man/lsm_led_slot_iterator_get.3 \
+	api_man/lsm_led_slot_iterator_free.3 \
+	api_man/lsm_led_slot_iterator_reset.3 \
+	api_man/lsm_led_slot_next.3 \
+	api_man/lsm_led_slot_status_get.3 \
+	api_man/lsm_led_slot_status_set.3 \
+	api_man/lsm_led_slot_id.3 \
+	api_man/lsm_led_slot_device.3 \
 	api_man/lsm_local_disk_link_speed_get.3 \
 	api_man/lsm_local_disk_health_status_get.3 \
 	api_man/lsm_system_record_copy.3 \
