@@ -587,8 +587,12 @@ class Completer(object):
             return []
 
         # These operations can potentially be slow and cause hangs depending
-        # on the plugin and configuration.
-        if self.auto_value and prev in _LOOKUPS:
+        # on the plugin and configuration. A value is looked up only when the
+        # environment asks for it, but a value is wanted either way, so there
+        # is nothing to offer without the look-up.
+        if prev in _LOOKUPS:
+            if not self.auto_value:
+                return []
             return self.values(*_LOOKUPS[prev])
 
         def match(words):

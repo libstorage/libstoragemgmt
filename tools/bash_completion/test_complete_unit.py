@@ -192,6 +192,12 @@ class Completing(unittest.TestCase):
         self.assertEqual(self.complete(line), ["vol-1", r"vol\ 2"])
         self.assertEqual(self.asked, [("volumes", None)])
 
+    def test_a_value_wanted_is_not_options_when_not_looked_up(self):
+        # --vol wants a value, so no option is offered in its place when the
+        # look-up is off, not even one the command still allows.
+        self.assertEqual(self.complete("lsmcli vm --vol ", auto=False), [])
+        self.assertEqual(self.asked, [])
+
     def test_no_look_up_for_an_alias_or_function(self):
         self.assertEqual(self.complete("lsmcli vd --vol ", lookup_ok=False),
                          [])
