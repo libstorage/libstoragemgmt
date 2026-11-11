@@ -347,6 +347,7 @@ fi
 %{python3_sitearch}/lsm/lsmcli/__pycache__/
 %{python3_sitearch}/lsm/lsmcli/data_display.*
 %{python3_sitearch}/lsm/lsmcli/cmdline.*
+%{python3_sitearch}/lsm/lsmcli/completion.*
 %{python3_sitearch}/lsm/_clib.*
 
 %dir %{python3_sitearch}/sim_plugin

@@ -48,6 +48,56 @@ except ImportError:
 LOCAL_DISK_LOOKUP = None
 
 
+def default_uri():
+    """
+    The URI lsmcli uses when none is given with --uri: the one in the config
+    file ~/.lsmcli, overridden by the environment variable LSMCLI_URI.
+    :return: The URI, None if there is none
+    """
+    uri = None
+    allowed_config_options = ("uri", )
+
+    config_path = os.path.expanduser("~") + "/.lsmcli"
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            for line in f:
+
+                if line.lstrip().startswith("#"):
+                    continue
+
+                try:
+                    name, val = [x.strip() for x in line.split("=", 1)]
+                    if name in allowed_config_options:
+                        uri = val
+                except ValueError:
+                    pass
+
+    if os.getenv('LSMCLI_URI') is not None:
+        uri = os.getenv('LSMCLI_URI')
+    return uri
+
+
+def _complete_arg_index(argv):
+    """
+    Find the hidden __complete argument, which is the first one but for the
+    options a wrapper script may put in front of lsmcli, eg. -u. It is never
+    taken from further on, where it can be the value of an option.
+    :return: Index in argv of it, None if it is not there
+    """
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg == '__complete':
+            return i
+        if arg in ('-u', '--uri', '--fork_plugin'):
+            i += 2
+        elif arg.startswith(('-u', '--uri=', '--fork_plugin=')):
+            i += 1
+        else:
+            break
+    return None
+
+
 # Wraps the invocation to the command line
 # @param    c   Object to invoke calls on (optional)
 def cmd_line_wrapper(c=None):
@@ -56,6 +106,13 @@ def cmd_line_wrapper(c=None):
     """
     err_exit = 0
     cli = None
+
+    # Hidden, for the bash completion: not parsed with the rest of the
+    # arguments, so it is in no usage or help text.
+    at = _complete_arg_index(sys.argv)
+    if at:
+        from lsm.lsmcli import completion
+        sys.exit(completion.main(sys.argv[1:at], sys.argv[at + 1:]))
 
     try:
         cli = CmdLine()
@@ -187,12 +244,15 @@ def _valid_ip6_address(address):
         return False
 
 
+LED_STATES = dict(IDENT_ON=Disk.LED_STATUS_IDENT_ON,
+                  IDENT_OFF=Disk.LED_STATUS_IDENT_OFF,
+                  FAULT_ON=Disk.LED_STATUS_FAULT_ON,
+                  FAULT_OFF=Disk.LED_STATUS_FAULT_OFF)
+
+
 def _check_led_state(state):
     # Make sure the state is in the correct form
-    valid_options = dict(IDENT_ON=Disk.LED_STATUS_IDENT_ON,
-                         IDENT_OFF=Disk.LED_STATUS_IDENT_OFF,
-                         FAULT_ON=Disk.LED_STATUS_FAULT_ON,
-                         FAULT_OFF=Disk.LED_STATUS_FAULT_OFF)
+    valid_options = LED_STATES
     t_states = state.upper().split(":")
     for s in t_states:
         if s not in valid_options.keys():
@@ -421,7 +481,7 @@ def _check_network_host(addr):
 class PluginFork:
     """Container for plugin fork data"""
 
-    def __init__(self, plugin_exe):
+    def __init__(self, plugin_exe, new_session=False):
         self.uds_dir = tempfile.mkdtemp(prefix="LSM_DEV_")
         self.uds_socket_file = os.path.join(self.uds_dir, "uds_path")
         self.client = None
@@ -447,7 +507,8 @@ class PluginFork:
                 pass_fds=[plugin_fd],
                 env=os.environ,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
+                stderr=subprocess.STDOUT,
+                start_new_session=new_session)
         except Exception as e:
             print("File: %s issue: %s" % (plugin_exe, str(e)))
             self.close()
@@ -496,10 +557,10 @@ class PluginFork:
             rc = self.thread.join()
 
 
-def _fork_exec_plugin(instance, plugin_exe):
+def _fork_exec_plugin(instance, plugin_exe, new_session=False):
     # Create a unix domain socket, fork and exec the plugin passing the FD for the socket
     # and setting env. LSMCLI_DEBUG_FD for the client library.
-    fdata = PluginFork(plugin_exe)
+    fdata = PluginFork(plugin_exe, new_session)
 
     # We set the FD in an env variable, yeah kind of hackish, but
     # we don't have to disturb the client API then.
@@ -2065,31 +2126,6 @@ class CmdLine(object):
         self._wait_for_it("fs-dependants-rm",
                           self.c.fs_child_dependency_rm(fs, args.file), None)
 
-    def _read_configfile(self):
-        """
-        Set uri from config file. Will be overridden by cmdline option or
-        env var if present.
-        """
-
-        allowed_config_options = ("uri", )
-
-        config_path = os.path.expanduser("~") + "/.lsmcli"
-        if not os.path.exists(config_path):
-            return
-
-        with open(config_path) as f:
-            for line in f:
-
-                if line.lstrip().startswith("#"):
-                    continue
-
-                try:
-                    name, val = [x.strip() for x in line.split("=", 1)]
-                    if name in allowed_config_options:
-                        setattr(self, name, val)
-                except ValueError:
-                    pass
-
     def is_connection_free_cmd(self):
         """
         Return True if current command is one of _CONNECTION_FREE_COMMANDS.
@@ -2117,9 +2153,7 @@ class CmdLine(object):
         if self.is_connection_free_cmd():
             return
 
-        self._read_configfile()
-        if os.getenv('LSMCLI_URI') is not None:
-            self.uri = os.getenv('LSMCLI_URI')
+        self.uri = default_uri()
         self.password = os.getenv('LSMCLI_PASSWORD')
         if self.args.uri is not None:
             self.uri = self.args.uri
