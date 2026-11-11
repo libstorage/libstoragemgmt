@@ -1,4 +1,25 @@
 version: 2.1
+
+commands:
+  collect-test-logs:
+    description: >
+      Keep the automake test logs as build artifacts so a failed run can be
+      examined after the fact, rather than only from what the job printed.
+    steps:
+      - run:
+          name: Collect test logs
+          # A failed 'make check' is exactly when these are wanted, and steps
+          # after a failing one are skipped unless told otherwise.
+          when: always
+          command: |
+            mkdir -p /tmp/test-logs
+            find . \( -name '*.log' -o -name '*.trs' \) \
+                -exec cp --parents {} /tmp/test-logs/ \; || true
+      - store_artifacts:
+          when: always
+          path: /tmp/test-logs
+          destination: test-logs
+
 jobs:
   fedora:
     docker:
@@ -11,6 +32,7 @@ jobs:
       - run:
          command: ./test/docker_ci_test.sh
          no_output_timeout: 20m
+      - collect-test-logs
 
   debian:
     docker:
@@ -23,6 +45,7 @@ jobs:
       - run:
          command: ./test/docker_ci_test.sh
          no_output_timeout: 20m
+      - collect-test-logs
 
 workflows:
   version: 2
