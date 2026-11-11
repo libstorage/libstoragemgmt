@@ -4,6 +4,7 @@
 #
 # Author: Tony Asleson <tasleson@redhat.com>
 
+import os
 import socket
 import traceback
 import sys
@@ -13,6 +14,59 @@ import errno
 
 from lsm._common import SocketEOF as _SocketEOF
 from lsm._transport import TransPort
+from lsm._transport import IoDeadlineExpired as _IoDeadlineExpired
+
+# Name of the environment variable lsmd sets (from "plugin-registration-timeout"
+# in lsmd.conf) before exec'ing a plug-in.  Kept consistent with
+# LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV in c_binding/lsm_ipc_timeout.h.
+_REGISTRATION_TIMEOUT_ENV_NAME = 'LSM_PLUGIN_REGISTRATION_TIMEOUT'
+
+# Default, in seconds.  Kept consistent with
+# LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS in c_binding/lsm_ipc_timeout.h.
+_REGISTRATION_TIMEOUT_DEFAULT = 30
+
+# Upper bound, matching LSM_PLUGIN_MAX_RECV_TIMEOUT_SECONDS in
+# c_binding/lsm_ipc_timeout.h and the guard in the C mirror,
+# registration_timeout_seconds() in c_binding/lsm_plugin_ipc.cpp.  A larger
+# value is indistinguishable from disabling the deadline, and in C it
+# overflows the millisecond timeout arithmetic, so both sides reject it and
+# fall back to the default.  (Without the check here, an absurdly large value
+# would also sail through as an arbitrary-precision int and only fail later,
+# inside set_io_deadline()'s time.monotonic() + seconds, as an uncaught
+# OverflowError on every single connection - the opposite of the safe
+# fallback this function exists to provide.)
+_REGISTRATION_TIMEOUT_MAX = 3600
+
+
+def _registration_timeout_from_env():
+    """
+    How long (seconds) a client has to complete plugin_register, so a
+    deployment with e.g. an array that is slow to authenticate can raise it
+    without a rebuild.  Falls back to the default if the environment
+    variable is absent, empty, not a plain integer, or not a positive
+    integer no greater than _REGISTRATION_TIMEOUT_MAX - which also covers
+    running a plug-in by hand, outside of lsmd.  Note int() strips leading
+    and trailing whitespace, so e.g. "30 " parses as 30 here while the C
+    mirror's strtol()-based registration_timeout_seconds() (in
+    c_binding/lsm_plugin_ipc.cpp) rejects it; lsmd itself never sets a value
+    with either, so this only matters for a hand-set variable.
+    """
+    env = os.environ.get(_REGISTRATION_TIMEOUT_ENV_NAME)
+    if env:
+        try:
+            value = int(env)
+            if 0 < value <= _REGISTRATION_TIMEOUT_MAX:
+                return value
+        except ValueError:
+            pass
+    return _REGISTRATION_TIMEOUT_DEFAULT
+
+
+# Turned into a single absolute deadline covering every read until
+# registration, so a peer cannot renew it by sending requests.  Cleared once
+# the client registers so slow post-registration operations are never
+# interrupted.
+REGISTRATION_TIMEOUT = _registration_timeout_from_env()
 
 
 def search_property(lsm_objs, search_key, search_value):
@@ -69,6 +123,20 @@ class PluginRunner(object):
             self.cmdline = True
             cmd_line_wrapper(plugin)
 
+    def _report_unhandled(self, msg_id):
+        """
+        Logs the exception being handled and makes a best effort to tell the
+        client the plug-in hit a bug.
+        """
+        error("Unhandled exception in plug-in!\n" + traceback.format_exc())
+
+        try:
+            self.tp.send_error(msg_id, ErrorNumber.PLUGIN_BUG,
+                               "Unhandled exception in plug-in",
+                               str(traceback.format_exc()))
+        except Exception:
+            pass
+
     def run(self):
         # Don't need to invoke this when running stand alone as a cmdline
         if self.cmdline:
@@ -76,6 +144,14 @@ class PluginRunner(object):
 
         need_shutdown = False
         msg_id = 0
+
+        # One absolute deadline for the whole registration handshake, armed
+        # before the first read: an un-registered client cannot stretch it by
+        # keeping the conversation alive with requests we reject, the way a
+        # per-message timeout let it.  It bounds our replies too, so a peer
+        # that chatters but never reads them cannot pin us inside sendall()
+        # either; both expiries arrive as IoDeadlineExpired.
+        self.tp.set_io_deadline(REGISTRATION_TIMEOUT)
 
         try:
             while True:
@@ -103,10 +179,19 @@ class PluginRunner(object):
                     else:
                         result = target(**msg['params'])
 
+                    if method == 'plugin_register':
+                        # Set before the reply goes out: the plug-in is
+                        # registered from here on, so it is owed a
+                        # plugin_unregister even if the client is gone by
+                        # the time we answer.
+                        need_shutdown = True
+
                     self.tp.send_resp(result)
 
                     if method == 'plugin_register':
-                        need_shutdown = True
+                        # Client has registered; drop the deadline so slow
+                        # operations are never interrupted.
+                        self.tp.set_io_deadline(None)
 
                     if method == 'plugin_unregister':
                         # This is a graceful plugin_unregister
@@ -123,6 +208,15 @@ class PluginRunner(object):
                 except LsmError as lsm_err:
                     self.tp.send_error(msg_id, lsm_err.code, lsm_err.msg,
                                        lsm_err.data)
+        except _IoDeadlineExpired:
+            # Client connected but did not complete plugin_register within the
+            # allotted time; give up rather than block this worker.  This is
+            # the transport's own exception rather than socket.timeout, which
+            # a registered plug-in's backend calls raise too (it is the
+            # builtin TimeoutError); those are plug-in bugs and belong to the
+            # handlers below.  Note this must precede the socket.error
+            # handler as it is a subclass of it.
+            error('Client failed to register in time, exiting plug-in')
         except _SocketEOF:
             # Client went away and didn't meet our expectations for protocol,
             # this error message should not be seen as it shouldn't be
@@ -133,17 +227,12 @@ class PluginRunner(object):
             if se.errno == errno.EPIPE:
                 error('Client went away, exiting plug-in')
             else:
-                error("Unhandled exception in plug-in!\n" +
-                      traceback.format_exc())
+                # Not necessarily the client socket: an OSError out of the
+                # plug-in's own code lands here as well, and the client is
+                # still there to be told.
+                self._report_unhandled(msg_id)
         except Exception:
-            error("Unhandled exception in plug-in!\n" + traceback.format_exc())
-
-            try:
-                self.tp.send_error(msg_id, ErrorNumber.PLUGIN_BUG,
-                                   "Unhandled exception in plug-in",
-                                   str(traceback.format_exc()))
-            except Exception:
-                pass
+            self._report_unhandled(msg_id)
 
         finally:
             if need_shutdown:

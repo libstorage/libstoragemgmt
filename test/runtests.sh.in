@@ -29,7 +29,7 @@ export INCLUDE_SMISPY="@WITH_SMISPY@"
 source "${src_dir}"/test/test_include.sh
 
 # Constant check: check whether python constants matched with C constants.
-perl "${src_dir}"/tools/utility/check_const.pl || exit 1
+perl "${src_dir}"/tools/utility/check_const.pl --build-dir "${build_dir}" || exit 1
 
 echo "build_dir = ${build_dir}"
 echo "src_dir = ${src_dir}"
@@ -39,11 +39,18 @@ echo "Starting in dir =  $(pwd)"
 # Standalone Python unit tests (no daemon, no C extension required)
 echo "Running standalone Python unit tests"
 _good python3 -m pytest "${src_dir}/test/test_megaraid.py" -v
-_good python3 -m pytest "${src_dir}/test/test_transport.py" -v
+# These intentionally share one interpreter: lsm_stub exists to make this
+# collection order safe, so separate pytest processes would not test it.
+_good python3 -m pytest "${src_dir}/test/test_transport.py" \
+    "${src_dir}/test/test_pluginrunner.py" -v
 
 # Standalone C++ IPC wire-protocol unit tests (no daemon required)
 echo "Running standalone C++ IPC unit tests"
 _good "${build_dir}/test/test_ipc"
+
+# Standalone daemon connection limit unit tests (no daemon required)
+echo "Running standalone connection limit unit tests"
+_good "${build_dir}/test/test_conn_limit"
 
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
@@ -117,6 +124,25 @@ echo "Round 1: Testing sim plugin"
 lsm_test_base_install \
     "${test_base_dir}" "${build_dir}" "${src_dir}" "${LSM_TEST_INSTALL_PY_PLUGINS_ONLY}"
 
+# Keep this deliberately small so the daemon admission test can exercise the
+# configured (not merely default) limit without starting dozens of workers.
+printf '%s\n' 'max-connections-per-uid = 2;' >> "${LSM_TEST_CFG_DIR}/lsmd.conf"
+lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
+
+_good python3 "${src_dir}/test/test_daemon_conn_limit.py"
+
+# The admission test's daemon is done with the tight cap: the C/CLI/plug-in
+# suites below open and close connections back-to-back much faster than
+# child_cleanup() can reap each exited worker, so a cap of 2 starts refusing
+# their (perfectly serial) connections too. Restart with the default cap
+# before running them.
+kill -s KILL "$LSM_TEST_LSMD_PID"
+sed -i '/max-connections-per-uid/d' "${LSM_TEST_CFG_DIR}/lsmd.conf"
+# Root is exempt from the per-second admission rate, but a non-root run of
+# these suites connects from the daemon's own uid, fast enough on a quick
+# machine to exhaust the default token bucket. Pass or fail must not depend
+# on the invoking uid, so disable the rate for the test daemon only.
+printf '%s\n' 'max-connections-per-second-per-uid = 0;' >> "${LSM_TEST_CFG_DIR}/lsmd.conf"
 lsm_test_lsmd_start "${LSM_TEST_WITHOUT_MEM_CHECK}"
 
 lsm_test_c_unit_test_run "${LSM_TEST_WITHOUT_MEM_CHECK}" "${LSM_TEST_SIM_URI}"
@@ -128,6 +154,10 @@ lsm_test_cleanup
 echo "Round 2: Testing simc plugin and memory leak check if enabled"
 lsm_test_base_install \
     "$test_base_dir" "$build_dir" "$src_dir" "${LSM_TEST_INSTALL_C_PLUGINS_ONLY}"
+
+# Same reason as round 1: keep a non-root run of the C/CLI/plug-in suites
+# off the default per-second admission rate.
+printf '%s\n' 'max-connections-per-second-per-uid = 0;' >> "${LSM_TEST_CFG_DIR}/lsmd.conf"
 
 if [ "CHK${with_mem_leak_test}" == "CHKyes" ];then
     lsm_test_lsmd_start "${LSM_TEST_WITH_MEM_CHECK}"

@@ -34,6 +34,9 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include "conn_limit.h"
+#include "lsm_ipc_timeout.h"
+
 #define BASE_DIR                       "/run/lsm"
 #define SOCKET_DIR                     BASE_DIR "/ipc"
 #define PLUGIN_DIR                     "/usr/bin"
@@ -43,6 +46,18 @@
 #define LSMD_CONF_FILE                 "lsmd.conf"
 #define LSM_CONF_ALLOW_ROOT_OPT_NAME   "allow-plugin-root-privilege"
 #define LSM_CONF_REQUIRE_ROOT_OPT_NAME "require-root-privilege"
+#define LSM_CONF_MAX_CONN_OPT_NAME     "max-connections-per-uid"
+#define LSM_CONF_MAX_RATE_OPT_NAME     "max-connections-per-second-per-uid"
+#define LSM_CONF_REG_TIMEOUT_OPT_NAME  "plugin-registration-timeout"
+
+/* Upper bound on "max-connections-per-second-per-uid". The token bucket does
+ * its arithmetic in long long, so this is about rejecting nonsense, not about
+ * overflow. */
+#define LSM_CONF_MAX_RATE_LIMIT 1000000
+
+/* Poll interval of the main event loop. Also the upper bound on how long an
+ * exited plug-in lingers before child_cleanup() reaps it. */
+#define SELECT_TIMEOUT_SECONDS 1
 
 #define max(a, b)                                                              \
     ({                                                                         \
@@ -69,6 +84,19 @@ int plugin_mem_debug = 0;
 
 int allow_root_plugin = 0;
 int has_root_plugin = 0;
+int max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+int max_conn_rate_per_uid = CONN_RATE_DEFAULT_PER_UID;
+int plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
+
+/* Client uid we could not determine; such a connection is never counted
+ * against the per-uid cap or rate limit. */
+#define CLIENT_UID_UNKNOWN ((uid_t)(-1))
+
+/* Room for the "N more refused" note appended to a refusal log line. */
+#define REFUSAL_NOTE_LEN 64
+
+/* Root is exempt from the fork rate limit; see admit_client(). */
+#define CLIENT_UID_ROOT ((uid_t)0)
 
 /**
  * Each item in plugin list contains this information
@@ -452,6 +480,46 @@ void parse_conf_bool(const char *conf_path, const char *key_name, int *value) {
 }
 
 /**
+ * Parse config and seeking provided key name int, same semantics as
+ * parse_conf_bool().
+ * @param conf_path     config file path
+ * @param key_name      string, searching key
+ * @param value         int, output, value of this config key
+ */
+
+void parse_conf_int(const char *conf_path, const char *key_name, int *value) {
+    if (access(conf_path, F_OK) == -1) {
+        /* file not exist. */
+        return;
+    }
+    config_t *cfg = (config_t *)malloc(sizeof(config_t));
+    if (cfg) {
+        config_init(cfg);
+        if (CONFIG_TRUE == config_read_file(cfg, conf_path)) {
+            if (CONFIG_FALSE == config_lookup_int(cfg, key_name, value) &&
+                NULL != config_lookup(cfg, key_name)) {
+                /* Present, but not an integer (quoted, or written as a
+                 * float): say so rather than leave the administrator
+                 * wondering why the setting has no effect. */
+                warn("Ignoring %s in %s: the value is not an integer, using "
+                     "default of %d\n",
+                     key_name, conf_path, *value);
+            }
+        } else {
+            log_and_exit("configure %s parsing failed: %s at line %d\n",
+                         conf_path, config_error_text(cfg),
+                         config_error_line(cfg));
+        }
+    } else {
+        log_and_exit(
+            "malloc failure while trying to allocate memory for config_t\n");
+    }
+
+    config_destroy(cfg);
+    free(cfg);
+}
+
+/**
  * Load plugin config for root privilege setting.
  * If config not found, return 0 for no root privilege required.
  * @param plugin_name plugin name.
@@ -579,6 +647,7 @@ void child_cleanup(void) {
             if (0 == rc && si.si_pid == 0) {
                 break;
             } else {
+                conn_limit_remove(si.si_pid);
                 if (si.si_code == CLD_EXITED && si.si_status != 0) {
                     info("Plug-in process %d exited with %d\n", si.si_pid,
                          si.si_status);
@@ -629,13 +698,105 @@ struct plugin *plugin_lookup(int fd) {
 }
 
 /**
+ * Retrieves the uid of the peer on an accepted connection.
+ * @param client_fd     Client connected file descriptor
+ * @return uid of the client, or CLIENT_UID_UNKNOWN if it can't be determined
+ */
+uid_t peer_uid(int client_fd) {
+    struct ucred cred;
+    socklen_t cred_len = sizeof(cred);
+
+    if (-1 ==
+        getsockopt(client_fd, SOL_SOCKET, SO_PEERCRED, &cred, &cred_len)) {
+        /* Not expected to happen on a local AF_UNIX socket. Fail open: a
+         * condition we don't understand is a poor reason to deny service. */
+        warn("Unable to get client uid, getsockopt() error %d, per-uid "
+             "connection limits not applied\n",
+             errno);
+        return CLIENT_UID_UNKNOWN;
+    }
+    return cred.uid;
+}
+
+/**
+ * Decides whether a refused connection is worth a log line; see
+ * conn_limit_refusal_should_log().
+ * @param client_uid    uid of the refused client
+ * @param note          output, text to append to the log line: empty, or
+ *                      how many refusals went unlogged since the last one
+ * @param note_len      size of note
+ * @return 1 to log the refusal, 0 to stay quiet
+ */
+static int refusal_should_log(uid_t client_uid, char *note, size_t note_len) {
+    unsigned int unlogged = 0;
+
+    note[0] = '\0';
+    if (!conn_limit_refusal_should_log(client_uid, conn_limit_now_ms(),
+                                       &unlogged)) {
+        return 0;
+    }
+    if (unlogged > 0) {
+        snprintf(note, note_len, " (%u more refused since the last message)",
+                 unlogged);
+    }
+    return 1;
+}
+
+/**
+ * Decides whether an accepted connection gets a plug-in process.
+ * @param client_uid    uid of the client, or CLIENT_UID_UNKNOWN
+ * @return 1 to serve the connection, 0 to drop it
+ */
+int admit_client(uid_t client_uid) {
+    char suppressed[REFUSAL_NOTE_LEN];
+
+    if (client_uid == CLIENT_UID_UNKNOWN) {
+        return 1;
+    }
+
+    if (!conn_limit_allow(client_uid)) {
+        if (!refusal_should_log(client_uid, suppressed, sizeof(suppressed))) {
+            return 0;
+        }
+        if (conn_limit_table_full()) {
+            warn("Refusing connection from uid %u: the connection tracking "
+                 "table is full (%d entries)%s\n",
+                 (unsigned)client_uid, CONN_LIMIT_TABLE_SIZE, suppressed);
+        } else {
+            warn("Refusing connection from uid %u: it already holds %u of "
+                 "the %d permitted concurrent plug-in processes%s\n",
+                 (unsigned)client_uid, conn_limit_count(client_uid),
+                 conn_limit_get_max(), suppressed);
+        }
+        return 0;
+    }
+
+    /* Root needs no shield from its own daemon: it can kill lsmd or rewrite
+     * lsmd.conf outright. Keeping uid 0 out of the rate limiter also stops
+     * the project's own test suites, which connect back-to-back as root, from
+     * being refused. */
+    if (client_uid != CLIENT_UID_ROOT && !conn_limit_rate_allow(client_uid)) {
+        if (refusal_should_log(client_uid, suppressed, sizeof(suppressed))) {
+            warn("Refusing connection from uid %u: more than %d new plug-in "
+                 "processes per second%s\n",
+                 (unsigned)client_uid, conn_limit_get_rate(), suppressed);
+        }
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
  * Does the actual fork and exec of the plug-in
  * @param plugin        Full filename and path of plug-in to exec.
  * @param client_fd     Client connected file descriptor
  * @param require_root  int, indicate whether this plugin require root
  *                      privilege or not
+ * @param client_uid    uid of the connecting client, or CLIENT_UID_UNKNOWN
  */
-void exec_plugin(char *plugin, int client_fd, int require_root) {
+void exec_plugin(char *plugin, int client_fd, int require_root,
+                 uid_t client_uid) {
     int err = 0;
 
     info("Exec'ing plug-in = %s\n", plugin);
@@ -649,6 +810,15 @@ void exec_plugin(char *plugin, int client_fd, int require_root) {
         return;
     } else if (process > 0) {
         /* Parent */
+        /* Count this worker against its client's uid. Done here rather than
+         * before the fork so a failed fork cannot leak an entry. */
+        if (client_uid != CLIENT_UID_UNKNOWN &&
+            -1 == conn_limit_add(process, client_uid)) {
+            warn("Connection tracking table full, plug-in process %d for "
+                 "uid %u is not counted against the per-uid limit\n",
+                 (int)process, (unsigned)client_uid);
+        }
+
         int rc = close(client_fd);
         if (-1 == rc) {
             err = errno;
@@ -762,7 +932,7 @@ void _serving(void) {
         FD_ZERO(&readfds);
         nfds = 0;
 
-        tmo.tv_sec = 15;
+        tmo.tv_sec = SELECT_TIMEOUT_SECONDS;
         tmo.tv_usec = 0;
 
         LIST_FOREACH(plug, &head, pointers) {
@@ -790,7 +960,15 @@ void _serving(void) {
                 err = errno;
                 log_and_exit("Error on selecting Plugin: %s", strerror(err));
             }
-        } else if (ready > 0) {
+        }
+
+        /* Reap before admitting anyone: a worker that has already exited
+         * must not still be counted against its uid's cap when the next
+         * connection is judged. This is also the only reap in the loop, so
+         * it runs once per pass whether select() timed out or not. */
+        child_cleanup();
+
+        if (ready > 0) {
             int fd = 0;
             for (fd = 0; fd < nfds; fd++) {
                 if (FD_ISSET(fd, &readfds)) {
@@ -798,7 +976,18 @@ void _serving(void) {
                     if (-1 != cfd) {
                         struct plugin *p = plugin_lookup(fd);
                         if (p != NULL) {
-                            exec_plugin(p->file_path, cfd, p->require_root);
+                            /* Both limits disabled means there is no reason
+                             * to ask who the peer is. */
+                            uid_t uid = (conn_limit_get_max() > 0 ||
+                                         conn_limit_get_rate() > 0)
+                                            ? peer_uid(cfd)
+                                            : CLIENT_UID_UNKNOWN;
+                            if (admit_client(uid)) {
+                                exec_plugin(p->file_path, cfd, p->require_root,
+                                            uid);
+                            } else {
+                                close(cfd);
+                            }
                         } else {
                             info("plugin_lookup failed for fd %d", fd);
                             close(cfd);
@@ -810,7 +999,6 @@ void _serving(void) {
                 }
             }
         }
-        child_cleanup();
     }
     clean_up();
 }
@@ -924,7 +1112,73 @@ int main(int argc, char *argv[]) {
     char *lsmd_conf_path = path_form(conf_dir, LSMD_CONF_FILE);
     parse_conf_bool(lsmd_conf_path, (char *)LSM_CONF_ALLOW_ROOT_OPT_NAME,
                     &allow_root_plugin);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_CONN_OPT_NAME,
+                   &max_conn_per_uid);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_MAX_RATE_OPT_NAME,
+                   &max_conn_rate_per_uid);
+    parse_conf_int(lsmd_conf_path, (char *)LSM_CONF_REG_TIMEOUT_OPT_NAME,
+                   &plugin_registration_timeout);
     free(lsmd_conf_path);
+
+    /* A negative cap would otherwise be clamped to 0, i.e. unlimited: a typo
+     * must not quietly remove the protection. Anything above the table size
+     * can never be reached anyway. */
+    if (max_conn_per_uid < 0) {
+        warn("Ignoring negative %s value %d in %s, using default of %d\n",
+             LSM_CONF_MAX_CONN_OPT_NAME, max_conn_per_uid, LSMD_CONF_FILE,
+             CONN_LIMIT_DEFAULT_MAX_PER_UID);
+        max_conn_per_uid = CONN_LIMIT_DEFAULT_MAX_PER_UID;
+    } else if (max_conn_per_uid > CONN_LIMIT_TABLE_SIZE) {
+        warn("Clamping %s value %d in %s to %d\n", LSM_CONF_MAX_CONN_OPT_NAME,
+             max_conn_per_uid, LSMD_CONF_FILE, CONN_LIMIT_TABLE_SIZE);
+        max_conn_per_uid = CONN_LIMIT_TABLE_SIZE;
+    }
+
+    if (max_conn_rate_per_uid < 0) {
+        warn("Ignoring negative %s value %d in %s, using default of %d\n",
+             LSM_CONF_MAX_RATE_OPT_NAME, max_conn_rate_per_uid, LSMD_CONF_FILE,
+             CONN_RATE_DEFAULT_PER_UID);
+        max_conn_rate_per_uid = CONN_RATE_DEFAULT_PER_UID;
+    } else if (max_conn_rate_per_uid > LSM_CONF_MAX_RATE_LIMIT) {
+        warn("Clamping %s value %d in %s to %d\n", LSM_CONF_MAX_RATE_OPT_NAME,
+             max_conn_rate_per_uid, LSMD_CONF_FILE, LSM_CONF_MAX_RATE_LIMIT);
+        max_conn_rate_per_uid = LSM_CONF_MAX_RATE_LIMIT;
+    }
+
+    conn_limit_set_max(max_conn_per_uid);
+    conn_limit_set_rate(max_conn_rate_per_uid);
+    if (conn_limit_get_max() == 0) {
+        info("Per-uid concurrent connection limit disabled\n");
+    }
+    if (conn_limit_get_rate() == 0) {
+        info("Per-uid connection rate limit disabled\n");
+    }
+
+    /* Unlike the limits above, 0 (or negative) is not a valid way to disable
+     * this: an un-registered client could then pin a plug-in worker forever,
+     * which is the exact DoS this deadline exists to close. A very large
+     * value is the same thing in disguise, and is further than the plug-in's
+     * millisecond timeout arithmetic can be trusted, so bound it too. */
+    if (plugin_registration_timeout <= 0 ||
+        plugin_registration_timeout > LSM_PLUGIN_MAX_RECV_TIMEOUT_SECONDS) {
+        warn("Ignoring invalid %s value %d in %s, using default of %d "
+             "seconds\n",
+             LSM_CONF_REG_TIMEOUT_OPT_NAME, plugin_registration_timeout,
+             LSMD_CONF_FILE, LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS);
+        plugin_registration_timeout = LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS;
+    }
+
+    /* Every plug-in lsmd execs inherits this from our environment; see
+     * LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV in c_binding/lsm_ipc_timeout.h. */
+    char reg_timeout_str[16];
+    snprintf(reg_timeout_str, sizeof(reg_timeout_str), "%d",
+             plugin_registration_timeout);
+    if (-1 == setenv(LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, reg_timeout_str, 1)) {
+        warn("Failed to set %s in the environment: %s; plug-ins will fall "
+             "back to their compiled-in default of %d seconds\n",
+             LSM_PLUGIN_REGISTRATION_TIMEOUT_ENV, strerror(errno),
+             LSM_PLUGIN_INITIAL_RECV_TIMEOUT_SECONDS);
+    }
 
     /* Check to see if we want to check plugin for memory errors */
     if (getenv("LSM_VALGRIND")) {

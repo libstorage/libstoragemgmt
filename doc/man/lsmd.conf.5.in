@@ -35,6 +35,74 @@ plugins as root user:
     2. "require-root-privilege = true;" in plugin config
     3. API connection (or lsmcli) has root privileges
 
+.TP
+\fBmax-connections-per-uid = 64;\fR
+
+Maximum number of plugin processes \fBlsmd\fR will run concurrently on behalf
+of a single client user id.
+
+\fBlsmd\fR forks a plugin process for every connection it accepts, so without
+a limit a single local user can occupy the daemon's entire process budget.
+Further connections from a user already at the limit are closed immediately,
+and the client sees them as a failure to communicate with the daemon; existing
+connections are unaffected.
+
+Refused connections, whether by this limit or by the rate limit below, are
+logged at most once every few seconds per user id, with a count of the
+refusals that were not logged in between.
+
+The default is \fB64\fR, far above what any normal client needs. Set it to
+\fB0\fR for no limit. A negative value is ignored and the default is used.
+
+.TP
+\fBmax-connections-per-second-per-uid = 8;\fR
+
+Maximum rate at which \fBlsmd\fR will start new plugin processes on behalf of
+a single client user id.
+
+The concurrent limit above only counts plugin processes that are still
+alive. A client that connects and immediately hangs up never has more than a
+couple of processes outstanding, so on its own the concurrent limit does not
+stop it making \fBlsmd\fR fork and exec a plugin without bound. This rate
+limit bounds that churn; a client over the rate has its connection closed
+immediately, without a plugin process being started.
+
+A burst of four seconds' worth is allowed to start at once, and never less
+than \fBmax-connections-per-uid\fR, so a client permitted that many
+concurrent connections can still open all of them.
+
+The default is \fB8\fR new processes per second. Set it to \fB0\fR for no
+limit. A negative value is ignored and the default is used. The root user is
+not rate limited.
+
+.TP
+\fBplugin-registration-timeout = 30;\fR
+
+Seconds a client has to complete \fBplugin_register\fR (the authenticating
+first call, carrying the URI and password) before the plugin process gives
+up on it and exits. Once registration succeeds this deadline no longer
+applies, so slow post-registration operations are never interrupted.
+
+\fBlsmd\fR forks a plugin process per connection and hands it the client
+socket before the client has proven itself in any way, so without a bound a
+connection that never completes registration would wedge that worker
+indefinitely.
+
+The deadline is only enforced while the plugin is waiting on the client, so
+a \fBplugin_register\fR that is already running when it passes is allowed to
+finish, and is answered if it succeeds. One that fails after the deadline
+ends the connection: the client gets the error but no second attempt on it.
+
+The default is \fB30\fR seconds, generous for a normal login exchange.
+Raise it if clients are slow to send \fBplugin_register\fR, or if a
+plugin's array is slow enough to reject a login that clients need to be able
+to retry on the same connection. The largest accepted
+value is \fB3600\fR seconds. Unlike \fBmax-connections-per-uid\fR, \fB0\fR
+does not disable this timeout, and neither does a very large value: anything
+outside \fB1\fR to \fB3600\fR is ignored and the default is used instead,
+since disabling it would reopen the connect-and-stall exposure this option
+exists to close.
+
 .SH Plugin OPTIONS
 .TP
 \fBrequire-root-privilege = true;\fR
