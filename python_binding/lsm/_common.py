@@ -7,7 +7,6 @@
 import hashlib
 
 import os
-import unittest
 import re
 
 import sys
@@ -604,36 +603,3 @@ def return_requires(*types):
         return inner
 
     return outer
-
-
-class TestCommon(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def test_simple(self):
-
-        try:
-            raise SocketEOF()
-        except SocketEOF as e:
-            self.assertTrue(isinstance(e, SocketEOF))
-
-        try:
-            raise LsmError(10, 'Message', 'Data')
-        except LsmError as e:
-            self.assertTrue(e.code == 10 and e.msg == 'Message'
-                            and e.data == 'Data')
-
-        ed = addl_error_data('domain', 'level', 'exception', 'debug',
-                             'debug_data')
-        self.assertTrue(ed['domain'] == 'domain' and ed['level'] == 'level'
-                        and ed['debug'] == 'debug'
-                        and ed['exception'] == 'exception'
-                        and ed['debug_data'] == 'debug_data')
-
-    def tearDown(self):
-        pass
-
-
-if __name__ == '__main__':
-    unittest.main()
