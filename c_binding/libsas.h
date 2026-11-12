@@ -33,7 +33,16 @@ extern "C" {
  *  sas_addr is the SAS address of the disk.
  *  link_speed != NULL
  * Return:
- *  LSM_ERR_XXX
+ *  LSM_ERR_OK
+ *      *link_speed is the negotiated speed in Mbps of the phy whose SAS
+ *      address is sas_addr.
+ *  LSM_ERR_NO_SUPPORT
+ *      The device did not return the Phy Control And Discover subpage (e.g.
+ *      it answered with the short-format page 0x19), or no phy in it has
+ *      sas_addr. Not a library bug.
+ *  LSM_ERR_LIB_BUG
+ *      The matching phy reports a link rate code that is not a known speed.
+ *  *link_speed is LSM_DISK_LINK_SPEED_UNKNOWN on any non-OK return.
  */
 LSM_DLL_LOCAL int _sas_cur_speed_get(char *err_msg, uint8_t *mode_sense_data,
                                      const char *sas_addr,
