@@ -29,12 +29,12 @@ test_conn_limit_LDADD = $(LIBCHECK_LIBS)
 test_conn_limit_SOURCES = test_conn_limit.c ../daemon/conn_limit.c \
 	../daemon/conn_limit.h
 
-# libsg.c's sense data helpers are LSM_DLL_LOCAL, so they are compiled in
-# directly (with the utils.c and libata.c it calls) rather than reached through
-# libstoragemgmt.la.
+# libsg.c's sense data helpers and libsas.c are LSM_DLL_LOCAL, so they are
+# compiled in directly (with the utils.c and libata.c they call) rather than
+# reached through libstoragemgmt.la.
 test_libsg_CFLAGS = $(LIBCHECK_CFLAGS) -I$(top_srcdir)/c_binding
 test_libsg_LDADD = $(LIBCHECK_LIBS)
 test_libsg_SOURCES = test_libsg.c ../c_binding/libsg.c ../c_binding/libsg.h \
 	../c_binding/utils.c ../c_binding/utils.h ../c_binding/libata.c \
-	../c_binding/libata.h
+	../c_binding/libata.h ../c_binding/libsas.c ../c_binding/libsas.h
 endif
