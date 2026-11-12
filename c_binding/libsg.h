@@ -31,6 +31,11 @@ extern "C" {
 /* SPL-4 rev5 4.2.4 SAS address. */
 #define _SG_T10_SPL_SAS_ADDR_LEN_BITS 8
 
+#define _SCSI_MODE_SENSE_PSP_PAGE_CODE 0x19
+/* ^ SCSI MODE SENSE page 19h Protocol Specific Port */
+#define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE 0x01
+/* ^ SCSI MODE SENSE SPL-4: Phy Control And Discover subpage 01h */
+
 #define _SG_T10_SPC_VPD_UNIT_SN            0x80
 #define _SG_T10_SPC_VPD_DI                 0x83
 #define _SG_T10_SPC_VPD_DI_NAA_235_ID_LEN  8
