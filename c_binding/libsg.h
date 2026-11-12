@@ -83,6 +83,26 @@ extern "C" {
 #define _T10_SPC_REQUEST_SENSE_MAX_LEN 0xff
 /* ^ SPC-5 rev07 6.35 REQUEST SENSE command */
 
+/* SPC-5 rev 07 4.4.2.1 Descriptor format sense data overview
+ * Quote:
+ * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
+ * bytes that follow. The additional sense length shall be less than or equal to
+ * 244 (i.e., limiting the total length of the sense data to 252 bytes).
+ */
+#define _T10_SPC_SENSE_DATA_MAX_LENGTH 252
+
+/* SPC-5 rev 07 Table 49 - ASC and ASCQ assignments */
+#define _T10_SPC_ASC_WARNING           0x0b
+#define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
+
+/*
+ * SPC-5 rev 07 Table 27 - Sense data response codes
+ */
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED 0x70
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED  0x71
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP    0x72
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP     0x73
+
 #pragma pack(push, 1)
 
 /*
@@ -215,6 +235,16 @@ LSM_DLL_LOCAL int _sg_tp_sas_addr_of_disk(char *err_msg, int fd,
  */
 LSM_DLL_LOCAL int _sg_request_sense(char *err_msg, int fd,
                                     uint8_t *returned_sense_data);
+
+/*
+ * The ADDITIONAL SENSE CODE sits at a different offset in each of the two
+ * sense data formats, so the response code has to be consulted first.
+ * Preconditions:
+ *  sense_data is uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH]
+ *  asc != NULL
+ * Return 0 on success, -1 if the response code is not a known format.
+ */
+LSM_DLL_LOCAL int _sense_data_asc_get(uint8_t *sense_data, uint8_t *asc);
 
 /*
  * Preconditions:

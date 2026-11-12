@@ -48,14 +48,6 @@
 /* SPC-5 rev 07 - REQUEST SENSE command */
 #define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET 4
 
-/* SPC-5 rev 07 4.4.2.1 Descriptor format sense data overview
- * Quote:
- * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
- * bytes that follow. The additional sense length shall be less than or equal to
- * 244 (i.e., limiting the total length of the sense data to 252 bytes).
- */
-#define _T10_SPC_SENSE_DATA_MAX_LENGTH 252
-
 /* The max length of char[] required to hold hex dump of sense data */
 #define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH                                     \
     (_T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1)
@@ -73,21 +65,11 @@
 #define MRIE_REPORT_INFO_EXCEP_ON_REQUEST 0x6
 
 /* SPC-5 rev 07 Table 49 - ASC and ASCQ assignments */
-#define _T10_SPC_ASC_WARNING           0x0b
-#define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
-#define _T10_SPC_ASCQ_ATA_PASSTHROUGH  0x1d
+#define _T10_SPC_ASCQ_ATA_PASSTHROUGH 0x1d
 
 /* SAT-4 rev 06 Table 176 - ATA Status Return sense data descriptor */
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_DP_CODE 0x09
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_LEN     0x0c
-
-/*
- * SPC-5 rev 07 Table 27 - Sense data response codes
- */
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED 0x70
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED  0x71
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP    0x72
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP     0x73
 
 /*
  * SPC-5 rev 07 Table 48 - Sense key descriptions
@@ -357,16 +339,6 @@ static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
  */
 static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
                          uint8_t sub_page_code, uint8_t *data);
-
-/*
- * The ADDITIONAL SENSE CODE sits at a different offset in each of the two
- * sense data formats, so the response code has to be consulted first.
- * Preconditions:
- *  sense_data is uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH]
- *  asc != NULL
- * Return 0 on success, -1 if the response code is not a known format.
- */
-static int _sense_data_asc_get(uint8_t *sense_data, uint8_t *asc);
 
 static int _sg_io_v3(int fd, uint8_t *cdb, uint8_t cdb_len, uint8_t *data,
                      ssize_t data_len, uint8_t *sense_data, int direction) {
@@ -1367,7 +1339,7 @@ out:
     return rc;
 }
 
-static int _sense_data_asc_get(uint8_t *sense_data, uint8_t *asc) {
+int _sense_data_asc_get(uint8_t *sense_data, uint8_t *asc) {
     struct _sg_t10_sense_header *sense_hdr = NULL;
 
     assert(sense_data != NULL);
