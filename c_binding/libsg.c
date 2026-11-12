@@ -462,6 +462,14 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
 
     memset(sense_err_msg, 0, sizeof(sense_err_msg));
 
+    /* Callers hand us the full sized buffer but we only ever ask the device
+     * for 'data_len' bytes of it, and the parsers trust the page length the
+     * device reports. Zero the whole thing so whatever the device leaves
+     * untouched reads back as zero rather than as whatever the caller had on
+     * its stack.
+     */
+    memset(data, 0, _SG_T10_SPC_VPD_MAX_LEN);
+
     switch (page_code) {
     case _SG_T10_SPC_VPD_ATA_INFO:
         data_len = _T10_SAT_ATA_INFO_VPD_PAGE_MAX_LEN;
@@ -1294,6 +1302,12 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
 
     memset(sense_err_msg, 0, sizeof(sense_err_msg));
     memset(cdb, 0, _T10_SPC_LOG_SENSE_CMD_LEN);
+
+    /* We only copy out the log parameters the device actually returned, so
+     * zero the rest of the caller's buffer instead of leaving it holding
+     * whatever was on the stack.
+     */
+    memset(data, 0, _T10_SPC_LOG_SENSE_MAX_LEN);
 
     cdb[0] = LOG_SENSE;
     cdb[2] = (PAGE_CONTROL_CUMULATIVE_VALS << 6) | (page_code & 0x3f);
