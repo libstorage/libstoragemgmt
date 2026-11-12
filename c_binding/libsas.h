@@ -12,6 +12,14 @@
 #include "libstoragemgmt/libstoragemgmt_common.h"
 #include <stdint.h>
 
+/* SPL-4 Table "NEGOTIATED LOGICAL LINK RATE field" */
+#define _SAS_SPEED_UNKNOWN 0x0
+#define _SAS_SPEED_1_5     0x8
+#define _SAS_SPEED_3_0     0x9
+#define _SAS_SPEED_6_0     0xa
+#define _SAS_SPEED_12_0    0xb
+#define _SAS_SPEED_22_5    0xc
+
 #ifdef __cplusplus
 extern "C" {
 #endif
