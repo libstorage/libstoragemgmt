@@ -3781,18 +3781,80 @@ START_TEST(test_local_disk_health_status_get) {
     int rc = 0;
     int32_t health_status = LSM_DISK_HEALTH_STATUS_UNKNOWN;
     lsm_error *lsm_err = NULL;
+    lsm_string_list *disk_paths = NULL;
+    lsm_disk_link_type link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+    const char *disk_path = NULL;
+    uint32_t i = 0;
+    uint32_t count = 0;
+    int link_rc = 0;
 
-    rc = lsm_local_disk_health_status_get("/dev/sda", &health_status, &lsm_err);
-    if (rc == LSM_ERR_OK) {
-        ck_assert_msg(health_status == LSM_DISK_HEALTH_STATUS_UNKNOWN,
-                      "lsm_local_disk_health_status_get(): "
-                      "Expecting health_status to be "
-                      "LSM_DISK_HEALTH_STATUS_UNKNOWN "
-                      "when rc == LSM_ERR_OK and the disk "
-                      "type is unknown");
-    } else {
-        lsm_error_free(lsm_err);
+    if (is_simc_plugin == 1) {
+        /* silently skip on simc, no need for duplicate test. */
+        return;
     }
+
+    rc = lsm_local_disk_list(&disk_paths, &lsm_err);
+    if (lsm_err)
+        lsm_error_free(lsm_err);
+    ck_assert_msg(rc == LSM_ERR_OK, "lsm_local_disk_list() failed as %d", rc);
+    ck_assert_msg(disk_paths != NULL, "lsm_local_disk_list() return NULL for "
+                                      "disk_paths");
+
+    /*
+     * What each disk reports depends on its link type and on whether we are
+     * allowed to open it, so only the invariant is asserted: success carries
+     * a defined status and no error, failure carries UNKNOWN and an error.
+     * UNKNOWN is also a legitimate answer on success, e.g. an ATA disk whose
+     * SMART status reads as neither good nor bad. No disks at all is fine.
+     */
+    count = lsm_string_list_size(disk_paths);
+    for (i = 0; i < count; i++) {
+        disk_path = lsm_string_list_elem_get(disk_paths, i);
+        ck_assert_msg(disk_path != NULL,
+                      "lsm_string_list_elem_get() returned NULL for index %u",
+                      i);
+
+        link_type = LSM_DISK_LINK_TYPE_UNKNOWN;
+        lsm_err = NULL;
+        link_rc = lsm_local_disk_link_type_get(disk_path, &link_type, &lsm_err);
+        if (link_rc != LSM_ERR_OK)
+            lsm_error_free(lsm_err);
+
+        health_status = LSM_DISK_HEALTH_STATUS_UNKNOWN;
+        lsm_err = NULL;
+        rc = lsm_local_disk_health_status_get(disk_path, &health_status,
+                                              &lsm_err);
+
+        printf("%s: link_type=%d (rc=%d) health rc=%d health_status=%d\n",
+               disk_path, link_rc == LSM_ERR_OK ? (int)link_type : -1, link_rc,
+               rc, health_status);
+
+        if (rc == LSM_ERR_OK) {
+            ck_assert_msg(
+                health_status == LSM_DISK_HEALTH_STATUS_UNKNOWN ||
+                    health_status == LSM_DISK_HEALTH_STATUS_FAIL ||
+                    health_status == LSM_DISK_HEALTH_STATUS_WARN ||
+                    health_status == LSM_DISK_HEALTH_STATUS_GOOD,
+                "lsm_local_disk_health_status_get(%s): invalid health_status "
+                "%d on success",
+                disk_path, health_status);
+            ck_assert_msg(lsm_err == NULL,
+                          "lsm_local_disk_health_status_get(%s): expecting "
+                          "lsm_err to be NULL on success",
+                          disk_path);
+        } else {
+            ck_assert_msg(health_status == LSM_DISK_HEALTH_STATUS_UNKNOWN,
+                          "lsm_local_disk_health_status_get(%s): expecting "
+                          "LSM_DISK_HEALTH_STATUS_UNKNOWN on error %d, got %d",
+                          disk_path, rc, health_status);
+            ck_assert_msg(lsm_err != NULL,
+                          "lsm_local_disk_health_status_get(%s): expecting "
+                          "lsm_err to be set on error %d",
+                          disk_path, rc);
+            lsm_error_free(lsm_err);
+        }
+    }
+    lsm_string_list_free(disk_paths);
 
     /* Test disk that does not exist */
     rc = lsm_local_disk_health_status_get(NOT_EXIST_SD_PATH, &health_status,
