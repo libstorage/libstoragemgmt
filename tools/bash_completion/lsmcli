@@ -2,12 +2,18 @@
 #
 # Copyright (C) 2015-2023 Red Hat, Inc.,  Tony Asleson <tasleson@redhat.com>
 #
+# shellcheck shell=bash
+#
 # Bash completion for lsmcli. This may be far from ideal,
 # suggestions & improvements appreciated!
 
 potential_args=''
 
-# Skip value lookups by default
+# Value lookups run lsmcli, which contacts the array with the user's
+# credentials, so they are off by default.  LSMCLI_AUTO_COMPLETE_VALUE turns
+# them on only if it is a non-zero decimal integer (1, 2, 01); anything else,
+# such as 0, empty, false or junk, leaves them off.  It is checked with string
+# patterns only, never arithmetic, so the value is never evaluated.
 NO_VALUE_LOOKUP=${LSMCLI_AUTO_COMPLETE_VALUE:=0}
 
 function join { local IFS="$1"; shift; echo "$*"; }
@@ -17,9 +23,22 @@ function listcontains() {
     declare -a the_list=("${!1}")
 
     for word in "${the_list[@]}" ; do
-        [[ ${word} == $2 ]] && return 0
+        [[ ${word} == "$2" ]] && return 0
     done
     return 1
+}
+
+# Run 'lsmcli list' for a value lookup.  Completion must not hand lsmcli the
+# terminal: a prompt (password) would read from the user's tty, and error text
+# from the array or plugin, which it can influence, would be written onto the
+# prompt line.
+# The column output pads every field with trailing spaces, even with a
+# separator, so strip the padding in front of each separator and at the end of
+# the line.  A name that really ends in a space is therefore offered without it.
+function lsm_lookup()
+{
+    lsmcli list "$@" </dev/null 2>/dev/null |
+        awk -v sep="${sep}" '{ gsub(" +" sep, sep); sub(/ +$/, ""); print }'
 }
 
 # Given a list of what is possible and what is on the command line return
@@ -41,6 +60,70 @@ function possible_args()
     potential_args=$( join ' ', "${l[@]}" )
 }
 
+# Populate COMPREPLY with the words in $1 that start with $2.  Do not use
+# compgen -W for this: it expands the words it is given, so a value from
+# 'lsmcli list' containing $(...) would be executed when the user presses TAB.
+# The values are quoted on the way out with %q, but that is not sufficient on
+# its own.  If the user typed an opening quote before pressing TAB, readline
+# keeps it and appends a closing one around the already quoted match.  For a
+# value with a control character %q emits the $'...' form, which does not
+# escape $(, so the surrounding double quotes would let it run.  Two checks
+# close this:
+#  - A prefix containing ' or " is never completed; offer nothing.
+#  - Values are only offered if made entirely of VALUE_CHARS_ALLOWED
+#    characters, which cannot carry shell syntax.
+# $1 Values.  Option names are whitespace separated.  Looked-up values are
+#    one per line, so a name with a space in it stays one candidate; a value
+#    with leading or trailing space is not offered, to keep this simple.
+# $2 Prefix to match, may be empty
+# $3 If non-empty $1 holds values, not option names: skip words starting
+#    with '-'. lsmcli (argparse) would parse such a completed word as an
+#    option, both in the secondary lookups below and when the command line
+#    is eventually run.  Also skip words with a character outside
+#    VALUE_CHARS_ALLOWED.  A word that is empty or only spaces is not offered.
+function set_compreply()
+{
+    # Characters allowed in a value, used in a bracket expression with '-'
+    # last.  Every letter and digit is spelled out rather than given as a
+    # range, since ranges depend on the locale and globasciiranges.  Case
+    # insensitive matching (nocasematch) would still let characters that fold
+    # to an ASCII letter through, such as U+0130 or the Kelvin sign, so it is
+    # switched off while the list is applied and restored before returning.
+    local VALUE_CHARS_ALLOWED=' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.:/@+=,-'
+    local word had_noglob=0 had_nocasematch=0
+    # Set explicitly, whatever the caller's IFS is.
+    local IFS=$' \t\n'
+    [[ -z "${3}" ]] || IFS=$'\n'
+
+    COMPREPLY=()
+    if [[ "${2}" == *[\'\"]* ]] ; then
+        return
+    fi
+
+    # Keep pathname expansion away from the values we were given.
+    case $- in *f*) had_noglob=1 ;; esac
+    set -f
+    shopt -q nocasematch && had_nocasematch=1
+    shopt -u nocasematch
+
+    for word in $1
+    do
+        if [[ ${word} == "${2}"* ]] ; then
+            if [[ -n "${3}" ]] ; then
+                if [[ ${word} == -* || ${word} == ' '* || ${word} == *' ' ||
+                      ${word} == *[^${VALUE_CHARS_ALLOWED}]* ]] ; then
+                    continue
+                fi
+            fi
+            printf -v word '%q' "${word}"
+            COMPREPLY+=("${word}")
+        fi
+    done
+
+    [[ ${had_noglob} -eq 1 ]] || set +f
+    [[ ${had_nocasematch} -eq 0 ]] || shopt -s nocasematch
+}
+
 # Returns the position of the value in the COMP_WORDS that contains $1, or
 # 255 if it doesn't exist
 function arg_index()
@@ -51,14 +134,14 @@ function arg_index()
 		if [[ "$i" == "$1" ]] ; then
 			return ${count}
 		fi
-		let count+=1
+		(( count += 1 ))
 	done
 	return 255
 }
 
 function _lsm()
 {
-    local cur prev opts
+    local cur prev
     sep='#'
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -93,8 +176,6 @@ function _lsm()
     list_type_args="volumes pools fs snapshots exports nfs_client_auth \
                     access_groups systems disks plugins target_ports \
                     batteries"
-
-    opts_filter="--sys --pool --vol --disk --ag --fs --nfs"
 
     cap_args="--sys"
     volume_create_args="--name --size --pool"
@@ -148,38 +229,47 @@ function _lsm()
     local_disk_led_args="--path"
 
     # These operations can potentially be slow and cause hangs depending on plugin and configuration
-    if [[ ${NO_VALUE_LOOKUP} -ne 0 ]] ; then
+    # Test as a string pattern: [[ -ne ]] evaluates its operands as arithmetic
+    # expressions, which would execute command substitutions embedded in the
+    # environment variable.  See NO_VALUE_LOOKUP above for what is accepted.
+    if [[ ${NO_VALUE_LOOKUP} == *[123456789]* &&
+          ${NO_VALUE_LOOKUP} != *[!0123456789]* ]] ; then
 
         # Check if we have somthing present that we can help the user with
         case "${prev}" in
             --sys)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type systems -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type systems -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --pool)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type pools -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type pools -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --vol|--src-vol|--dst-vol)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type volumes -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type volumes -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --disk)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type disks -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type disks -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --ag)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type access_groups -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --init)
@@ -189,35 +279,41 @@ function _lsm()
                 if [[ ${i} -ne 255 ]]; then
                     # It would be better if we filtered the result with the access group
                     # if it's present on the command line already.
-                    local items=`lsmcli list --type access_groups -t${sep} --ag ${COMP_WORDS[${i}+1]} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    local items
+                    items=$(lsm_lookup --type access_groups -t${sep} --ag="${COMP_WORDS[${i}+1]}" | awk -F ${sep} '{print $3}')
+                    set_compreply "${items}" "${cur}" value
                     return 0
                 else
-                    local items=`lsmcli list --type access_groups -t${sep} | awk -F ${sep} '{print $3}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    local items
+                    items=$(lsm_lookup --type access_groups -t${sep} | awk -F ${sep} '{print $3}')
+                    set_compreply "${items}" "${cur}" value
                     return 0
                 fi
                 ;;
             --nfs-export)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type exports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type exports  -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --tgt)
                 # Is there a better way todo this?
-                local items=`lsmcli list --type target_ports  -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type target_ports  -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --fs|--src-fs)
-                local items=`lsmcli list --type fs -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type fs -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --export)
-                local items=`lsmcli list --type exports -t${sep} | awk -F ${sep} '{print $1}'`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type exports -t${sep} | awk -F ${sep} '{print $1}')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             --snap)
@@ -225,18 +321,20 @@ function _lsm()
                 i=$?
                 # We have an access group present on the command line so filter the snapshots to it
                 if [[ ${i} -ne 255 ]]; then
-                    local items=`lsmcli list --type snapshots \
-                        --fs ${COMP_WORDS[${i}+1]} -t${sep} | awk -F ${sep} '{print $1}'`
-                    COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                    local items
+                    items=$(lsm_lookup --type snapshots \
+                        --fs="${COMP_WORDS[${i}+1]}" -t${sep} | awk -F ${sep} '{print $1}')
+                    set_compreply "${items}" "${cur}" value
                     return 0
                 else
-                    COMPREPLY=( $(compgen -W "" -- ${cur}) )
+                    set_compreply "" "${cur}"
                     return 0
                 fi
                 ;;
             --auth-type)
-                local items=`lsmcli list --type nfs_client_auth -t ' '`
-                COMPREPLY=( $(compgen -W "${items}" -- ${cur}) )
+                local items
+                items=$(lsm_lookup --type nfs_client_auth -t $'\n')
+                set_compreply "${items}" "${cur}" value
                 return 0
                 ;;
             *)
@@ -247,25 +345,25 @@ function _lsm()
     # Cases where we don't have to worry about look-up time
     case "${prev}" in
         --type)
-            COMPREPLY=( $(compgen -W "${list_type_args}" -- ${cur}) )
+            set_compreply "${list_type_args}" "${cur}"
             return 0
             ;;
         --size|--count|--src-start|--dst-start|--name|--in-user|--in-pass|\
             --out-user|--out-pass|--exportpath|--anonuid|--root-host|--ro-host|\
             --rw-host|--dest-name|--file|--fileas|--src|--dst)
             # These we cannot lookup, so don't offer any values
-            COMPREPLY=( $(compgen -W "" -- ${cur}) )
+            set_compreply "" "${cur}"
             return 0
             ;;
         --rep-type)
-            COMPREPLY=( $(compgen -W "${volume_rep_types}" -- ${cur}) )
+            set_compreply "${volume_rep_types}" "${cur}"
             return 0
             ;;
         snapshots)
             # Specific listing case where you need a fs too
             if [[ ${COMP_WORDS[COMP_CWORD-2]} == '--type' && \
                   ${COMP_WORDS[COMP_CWORD-3]} == 'list' ]] ; then
-                COMPREPLY=( $(compgen -W "--fs" -- ${cur}) )
+                set_compreply "--fs" "${cur}"
                 return 0
             fi
             ;;
@@ -275,192 +373,192 @@ function _lsm()
     case "${COMP_WORDS[1]}" in
         job-status)
             possible_args "--job"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         list)
             possible_args ${list_args}
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-create|vc)
             possible_args "${volume_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-delete|vd)
             possible_args "${volume_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-raid-info|vri)
             possible_args "${volume_raidinfo_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-resize|vr)
             possible_args "${volume_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-replicate)
             possible_args "${volume_replicate_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-replicate-range)
             possible_args "${volume_replicate_range_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-replicate-range-block-size)
             possible_args "${volume_replication_range_bs}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-dependants|volume-dependants-rm)
             possible_args "${volume_dependants}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-access-group)
             possible_args "${volume_access_group_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-mask|volume-unmask|vm|vu)
             possible_args "${volume_masking_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         access-group-create|ac)
             possible_args "${access_group_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         access-group-delete|ad)
             possible_args "${access_group_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         access-group-add|access-group-remove|aa|ar)
             possible_args "${access_group_add_remove_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-enable|volume-disable|ve|vi)
             possible_args "${volume_enable_disable_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         iscsi-chap)
             possible_args "${iscsi_chap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-create)
             possible_args "${fs_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-delete)
             possible_args "${fs_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-resize)
             possible_args "${fs_resize_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-export)
             possible_args "${fs_export_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-unexport)
             possible_args "${fs_unexport_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-clone)
             possible_args "${fs_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-snap-create)
             possible_args "${fs_snap_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-snap-delete)
             possible_args "${fs_snap_delete_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-snap-restore)
             possible_args "${fs_snap_restore_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         fs-dependants|fs-dependants-rm)
             possible_args "${fs_dependants_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         file-clone)
             possible_args "${file_clone_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         capabilities|c)
             possible_args "${cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         pool-member-info|pmi)
             possible_args "${pool_member_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-raid-create|vrc)
             possible_args "${volume_raid_create_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-raid-create-cap|vrcc)
             possible_args "${volume_raid_create_cap_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-phy-disk-cache-update|vpdcu)
             possible_args "${volume_phy_disk_cache_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-read-cache-policy-update|vrcpu)
             possible_args "${volume_read_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-write-cache-policy-update|vwcpu)
             possible_args "${volume_write_cache_policy_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-cache-info|vci)
             possible_args "${volume_cache_info_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         volume-ident-led-on|volume-ident-led-off|vilon|viloff)
             possible_args "${volume_ident_led_on_off_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         system-read-cache-pct-update|srcpu)
             possible_args "${system_read_cache_pct_update_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         local-disk-ident-led-on|ldilon| \
@@ -468,7 +566,7 @@ function _lsm()
         local-disk-fault-led-on|ldflon| \
         local-disk-fault-led-off|ldfloff)
             possible_args "${local_disk_led_args}"
-            COMPREPLY=( $(compgen -W "${potential_args}" -- ${cur}) )
+            set_compreply "${potential_args}" "${cur}"
             return 0
             ;;
         *)
@@ -478,17 +576,17 @@ function _lsm()
     # Handle the case where we are starting out with nothing
     if [[ ${prev} == 'lsmcli' ]] ; then
         if [[ ${cur} == --* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_long}"  -- ${cur}) )
+            set_compreply "${opts_long}" "${cur}"
             return 0
         fi
 
         if [[ ${cur} == -* ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}"  -- ${cur}) )
+            set_compreply "${opts_short}${opts_long}" "${cur}"
             return 0
         fi
 
         if [[ ${cur} == * ]] ; then
-            COMPREPLY=( $(compgen -W "${opts_short}${opts_long}${opts_cmds}"  -- ${cur}) )
+            set_compreply "${opts_short}${opts_long}${opts_cmds}" "${cur}"
             return 0
         fi
     fi

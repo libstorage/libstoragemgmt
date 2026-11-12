@@ -8,6 +8,16 @@ jobs:
          command:  dnf install -y git dnf-plugins-core
          no_output_timeout: 5m
       - checkout
+      - run: &completion_test
+         name: lsmcli bash completion tests
+         command: |
+           set -o pipefail
+           mkdir -p /tmp/lsm-test-logs
+           ./tools/bash_completion/test_lsmcli_completion.sh 2>&1 | \
+               tee /tmp/lsm-test-logs/lsmcli-completion.log
+         no_output_timeout: 5m
+      - store_artifacts: &completion_artifacts
+         path: /tmp/lsm-test-logs
       - run:
          command: ./test/docker_ci_test.sh
          no_output_timeout: 20m
@@ -20,6 +30,8 @@ jobs:
          command: apt-get update -q && apt-get install -y git
          no_output_timeout: 5m
       - checkout
+      - run: *completion_test
+      - store_artifacts: *completion_artifacts
       - run:
          command: ./test/docker_ci_test.sh
          no_output_timeout: 20m
