@@ -52,6 +52,10 @@ _good "${build_dir}/test/test_ipc"
 echo "Running standalone connection limit unit tests"
 _good "${build_dir}/test/test_conn_limit"
 
+# Standalone sense data parsing unit tests (no daemon, no hardware required)
+echo "Running standalone libsg unit tests"
+_good "${build_dir}/test/test_libsg"
+
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
 if [ "CHK${arch}" != "CHKppc64" ] && [ "${src_dir}" == "${build_dir}" ] && [ "$EUID" -eq 0 ] ; then
