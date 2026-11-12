@@ -17,13 +17,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#define _SAS_SPEED_UNKNOWN 0x0
-#define _SAS_SPEED_1_5     0x8
-#define _SAS_SPEED_3_0     0x9
-#define _SAS_SPEED_6_0     0xa
-#define _SAS_SPEED_12_0    0xb
-#define _SAS_SPEED_22_5    0xc
-
 #pragma pack(push, 1)
 struct _sas_phy_ctrl_dicov_hdr {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
