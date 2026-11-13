@@ -1766,8 +1766,11 @@ char *wwpn_convert(const char *wwpn) {
     char *rc = NULL;
 
     if (LSM_ERR_OK == wwpn_validate(wwpn)) {
-        rc = (char *)calloc(24, 1);
         size_t len = strlen(wwpn);
+
+        rc = (char *)calloc(24, 1);
+        if (rc == NULL)
+            return NULL;
 
         if (wwpn[1] == 'x' || wwpn[1] == 'X') {
             i = 2;
