@@ -1,5 +1,23 @@
 News for libStorageMgmt
 
+1.12.0: Nov 13 2026
+    * daemon/IPC hardening: cap concurrent plug-in processes per client uid,
+      rate limit per-uid plug-in forks (fail closed on a full table), auth-gated
+      registration deadline to limit local DoS, log throttling for refused
+      connections, prompt reaping of exited plug-ins, systemd resource limits
+      for the lsmd service, runtime-configurable plug-in registration timeout
+    * libsg: validate sense data format on REQUEST SENSE reads, zero the whole
+      caller buffer before VPD and LOG SENSE reads, export sense-data ASC
+      parsing for testing
+    * libsas: return NO_SUPPORT when the device reports no SAS phy info
+    * bash completion: hardened against hostile values, no longer fails under
+      `set -u`, new completion test suite run in CI
+    * treewide: use canonical /run/lsm paths (UDS default now /run/lsm/ipc)
+    * targetd: drop Python 2 SSL compat, cache the SSL context
+    * packaging: restore home dir for sysusers libstoragemgmt account
+    * Test suite: unit tests for sense-data parsing and SAS speed lookup,
+      local disk health status contract check
+
 1.11.0: Sep 18 2026
     * New feature: NVMe and EUI-64 support for disk/VPD83 identification
       (local_disk, hpsa plugin); relaxed vpd83 format validation
