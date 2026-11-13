@@ -8,6 +8,12 @@
 # returns hostile values (command substitutions, glob characters, words
 # starting with '-') to check they are neither executed nor offered as
 # option names.
+#
+# Runs with 'set -u': the completion file is sourced into the user's
+# interactive shell, where 'set -u' may be in effect and every completion
+# would fail with "$3: unbound variable" otherwise.
+
+set -u
 
 script_dir=$( cd "$(dirname "${BASH_SOURCE[0]}")" && pwd ) || exit 1
 srcdir=$( cd "${srcdir:-${script_dir}}" && pwd ) || exit 1
@@ -172,6 +178,20 @@ assert_eq "hostile fs value spliced with = form" "--fs=-force" \
     "$(grep -x -- '--fs=-force' "${args_log}" || true)"
 assert_eq "hostile fs value not a separate argument" "" \
     "$(grep -x -- '-force' "${args_log}" || true)"
+
+# The option whose value filters the lookup may itself be the word being
+# completed: its value is not on the command line yet, and reading past the
+# end of COMP_WORDS would fail under 'set -u'.  The unfiltered lookup runs
+# (logged below) and nothing is offered: the option-like word being completed
+# matches no value.
+rm -f "${args_log}"
+run_complete lsmcli access-group-add --init --ag
+assert_eq "initiator completion, --ag being completed" "" "$(reply)"
+assert_eq "unfiltered initiator lookup ran" "1" \
+    "$([[ -s ${args_log} ]] && echo 1 || echo 0)"
+
+run_complete lsmcli fs-snap-delete --snap --fs
+assert_eq "snapshot completion, --fs being completed" "" "$(reply)"
 
 # --- Allowlist: value mode only offers letters, digits, space and _.:/@+=,- ---
 
