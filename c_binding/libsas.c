@@ -111,8 +111,8 @@ int _sas_cur_speed_get(char *err_msg, uint8_t *mode_sense_data,
 
     len = be16toh(phy_header->len_be);
     if (len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN - 4) {
-        _lsm_err_msg_set(err_msg,
-                         "Got invalid SAS phy page length %" PRIu16, len);
+        _lsm_err_msg_set(err_msg, "Got invalid SAS phy page length %" PRIu16,
+                         len);
         return LSM_ERR_LIB_BUG;
     }
 

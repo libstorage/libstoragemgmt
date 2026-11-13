@@ -19,7 +19,6 @@ import struct
 import sys
 import time
 
-
 # lsmd's SELECT_TIMEOUT_SECONDS: how long its event loop sleeps when no
 # connection arrives, and so how long an exited worker can go unreaped.
 LSMD_IDLE_TICK_SECONDS = 1

@@ -94,8 +94,7 @@ class TestPluginRunner(unittest.TestCase):
     @staticmethod
     def _start_runner(plugin_sock, plugin=FakePlugin):
         runner = PluginRunner(
-            plugin,
-            ["fake_plugin", str(plugin_sock.fileno())])
+            plugin, ["fake_plugin", str(plugin_sock.fileno())])
 
         def run():
             try:
@@ -144,8 +143,7 @@ class TestPluginRunner(unittest.TestCase):
                                                      socket.SOCK_STREAM)
         try:
             thread = self._start_runner(plugin_sock, plugin)
-            TransPort(client_sock).send_req('plugin_register',
-                                            REGISTER_PARAMS)
+            TransPort(client_sock).send_req('plugin_register', REGISTER_PARAMS)
             client_sock.close()
 
             thread.join(timeout=3)
@@ -167,8 +165,8 @@ class TestPluginRunner(unittest.TestCase):
                               OSError(errno.EIO, 'backend i/o error')):
             del self.logged[:]
             plugin = _plugin_class(backend_error=backend_error)
-            plugin_sock, client_sock = socket.socketpair(socket.AF_UNIX,
-                                                         socket.SOCK_STREAM)
+            plugin_sock, client_sock = socket.socketpair(
+                socket.AF_UNIX, socket.SOCK_STREAM)
             client_sock.settimeout(5)
             try:
                 thread = self._start_runner(plugin_sock, plugin)
