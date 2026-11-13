@@ -311,6 +311,38 @@ START_TEST(test_sas_cur_speed_get_not_phy_subpage) {
 }
 END_TEST
 
+/* Pages whose header passes the subpage check but whose lengths do not hold
+ * what the header claims: the length field overflows the buffer, or the phy
+ * count runs past the data the length covers. Both are corrupted replies.
+ */
+START_TEST(test_sas_cur_speed_get_corrupted) {
+    static uint8_t buf[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    uint32_t speed = 0;
+    int rc = 0;
+
+    /* Length field at least as large as the whole buffer */
+    sas_phy_page_build(buf, two_phys, 2);
+    buf[2] = (_SG_T10_SPC_MODE_SENSE_MAX_LEN - 4) >> 8;
+    buf[3] = (_SG_T10_SPC_MODE_SENSE_MAX_LEN - 4) & UINT8_MAX;
+    rc = _sas_cur_speed_get(err_msg, buf, SAS_ADDR_A, &speed);
+    ck_assert_msg(rc == LSM_ERR_LIB_BUG, "overflowing length: rc %d (%s)", rc,
+                  err_msg);
+    ck_assert_msg(speed == LSM_DISK_LINK_SPEED_UNKNOWN,
+                  "overflowing length: speed %" PRIu32 " on error", speed);
+
+    /* Two phys claimed, but the length only covers the first descriptor */
+    sas_phy_page_build(buf, two_phys, 2);
+    buf[2] = 0;
+    buf[3] = SAS_PHY_PAGE_LEN_FIXED + SAS_PHY_DESC_LEN;
+    rc = _sas_cur_speed_get(err_msg, buf, SAS_ADDR_B, &speed);
+    ck_assert_msg(rc == LSM_ERR_LIB_BUG, "truncated phys: rc %d (%s)", rc,
+                  err_msg);
+    ck_assert_msg(speed == LSM_DISK_LINK_SPEED_UNKNOWN,
+                  "truncated phys: speed %" PRIu32 " on error", speed);
+}
+END_TEST
+
 static Suite *libsg_suite(void) {
     Suite *s = suite_create("libsg");
     TCase *tc = tcase_create("sense_data");
@@ -322,6 +354,7 @@ static Suite *libsg_suite(void) {
     tc = tcase_create("sas_speed");
     tcase_add_test(tc, test_sas_cur_speed_get);
     tcase_add_test(tc, test_sas_cur_speed_get_not_phy_subpage);
+    tcase_add_test(tc, test_sas_cur_speed_get_corrupted);
     suite_add_tcase(s, tc);
     return s;
 }

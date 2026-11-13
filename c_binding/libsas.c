@@ -110,22 +110,27 @@ int _sas_cur_speed_get(char *err_msg, uint8_t *mode_sense_data,
     }
 
     len = be16toh(phy_header->len_be);
-    if (len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN - 4)
-        /* Corrupted MODE SENSE data */
-        return rc;
+    if (len >= _SG_T10_SPC_MODE_SENSE_MAX_LEN - 4) {
+        _lsm_err_msg_set(err_msg,
+                         "Got invalid SAS phy page length %" PRIu16, len);
+        return LSM_ERR_LIB_BUG;
+    }
 
     end_p = mode_sense_data + len + 4;
 
     for (i = 0; i < phy_header->num_of_phys; ++i) {
-        if (mode_sense_data + sizeof(struct _sas_phy_ctrl_dicov_hdr) +
-                sizeof(struct _sas_phy_mode_dp) * i >=
-            end_p)
-            /* Corrupted MODE SENSE data */
-            return rc;
         phy_dp =
             (struct _sas_phy_mode_dp *)(mode_sense_data +
                                         sizeof(struct _sas_phy_ctrl_dicov_hdr) +
                                         sizeof(struct _sas_phy_mode_dp) * i);
+        if ((uint8_t *)(phy_dp + 1) > end_p) {
+            /* Corrupted MODE SENSE data */
+            _lsm_err_msg_set(err_msg,
+                             "SAS phy page claims %" PRIu8 " phy(s) but only "
+                             "%" PRIu16 " byte(s) of data",
+                             phy_header->num_of_phys, len);
+            return LSM_ERR_LIB_BUG;
+        }
         _be_raw_to_hex(phy_dp->sas_addr, _SG_T10_SPL_SAS_ADDR_LEN_BITS,
                        cur_sas_addr);
         if (strcmp(sas_addr, cur_sas_addr) == 0) {
