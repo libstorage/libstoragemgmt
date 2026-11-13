@@ -340,6 +340,18 @@ START_TEST(test_sas_cur_speed_get_corrupted) {
                   err_msg);
     ck_assert_msg(speed == LSM_DISK_LINK_SPEED_UNKNOWN,
                   "truncated phys: speed %" PRIu32 " on error", speed);
+
+    /* Two phys claimed, the length covers the first descriptor and half of
+     * the second: the second one starts inside the data, so only the check
+     * on where each descriptor ends catches it.
+     */
+    sas_phy_page_build(buf, two_phys, 2);
+    buf[3] = SAS_PHY_PAGE_LEN_FIXED + SAS_PHY_DESC_LEN + SAS_PHY_DESC_LEN / 2;
+    rc = _sas_cur_speed_get(err_msg, buf, SAS_ADDR_B, &speed);
+    ck_assert_msg(rc == LSM_ERR_LIB_BUG, "half descriptor: rc %d (%s)", rc,
+                  err_msg);
+    ck_assert_msg(speed == LSM_DISK_LINK_SPEED_UNKNOWN,
+                  "half descriptor: speed %" PRIu32 " on error", speed);
 }
 END_TEST
 
