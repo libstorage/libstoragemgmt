@@ -74,11 +74,6 @@
  *   format is '0x<hex_addr>\0'
  */
 
-#define _SCSI_MODE_SENSE_PSP_PAGE_CODE 0x19
-/* ^ SCSI MODE SENSE page 19h Protocol Specific Port */
-#define _SCSI_MODE_SENSE_SAS_PHY_SUB_PAGE_CODE 0x01
-/* ^ SCSI MODE SENSE SPL-4: Phy Control And Discover subpage 01h */
-
 #define _SCSI_MODE_SENSE_SUB_PAGE_FMT 0x01
 /* ^ SPC-5 rev12 Table 458 - Sub_page mode page format Protocol Specific Port
  *   mode page

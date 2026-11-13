@@ -93,7 +93,9 @@ function set_compreply()
     local word had_noglob=0 had_nocasematch=0
     # Set explicitly, whatever the caller's IFS is.
     local IFS=$' \t\n'
-    [[ -z "${3}" ]] || IFS=$'\n'
+    # ${3:-}: this function is often called with only two arguments, which
+    # must not fail when the sourcing shell has 'set -u' in effect.
+    [[ -z "${3:-}" ]] || IFS=$'\n'
 
     COMPREPLY=()
     if [[ "${2}" == *[\'\"]* ]] ; then
@@ -109,7 +111,7 @@ function set_compreply()
     for word in $1
     do
         if [[ ${word} == "${2}"* ]] ; then
-            if [[ -n "${3}" ]] ; then
+            if [[ -n "${3:-}" ]] ; then
                 if [[ ${word} == -* || ${word} == ' '* || ${word} == *' ' ||
                       ${word} == *[^${VALUE_CHARS_ALLOWED}]* ]] ; then
                     continue
@@ -276,7 +278,9 @@ function _lsm()
                 arg_index "--ag"
                 i=$?
                 # We have an access group present on the command line so filter the intiators to it
-                if [[ ${i} -ne 255 ]]; then
+                # ${COMP_WORDS[${i}+1]-}: the access group may be the word being
+                # completed, so its value is not on the command line yet.
+                if [[ ${i} -ne 255 && -n "${COMP_WORDS[${i}+1]-}" ]]; then
                     # It would be better if we filtered the result with the access group
                     # if it's present on the command line already.
                     local items
@@ -319,8 +323,10 @@ function _lsm()
             --snap)
                 arg_index "--fs"
                 i=$?
-                # We have an access group present on the command line so filter the snapshots to it
-                if [[ ${i} -ne 255 ]]; then
+                # We have a file system present on the command line so filter the snapshots to it
+                # ${COMP_WORDS[${i}+1]-}: the file system may be the word being
+                # completed, so its value is not on the command line yet.
+                if [[ ${i} -ne 255 && -n "${COMP_WORDS[${i}+1]-}" ]]; then
                     local items
                     items=$(lsm_lookup --type snapshots \
                         --fs="${COMP_WORDS[${i}+1]}" -t${sep} | awk -F ${sep} '{print $1}')

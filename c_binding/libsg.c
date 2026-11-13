@@ -48,14 +48,6 @@
 /* SPC-5 rev 07 - REQUEST SENSE command */
 #define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET 4
 
-/* SPC-5 rev 07 4.4.2.1 Descriptor format sense data overview
- * Quote:
- * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
- * bytes that follow. The additional sense length shall be less than or equal to
- * 244 (i.e., limiting the total length of the sense data to 252 bytes).
- */
-#define _T10_SPC_SENSE_DATA_MAX_LENGTH 252
-
 /* The max length of char[] required to hold hex dump of sense data */
 #define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH                                     \
     (_T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1)
@@ -73,21 +65,11 @@
 #define MRIE_REPORT_INFO_EXCEP_ON_REQUEST 0x6
 
 /* SPC-5 rev 07 Table 49 - ASC and ASCQ assignments */
-#define _T10_SPC_ASC_WARNING           0x0b
-#define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
-#define _T10_SPC_ASCQ_ATA_PASSTHROUGH  0x1d
+#define _T10_SPC_ASCQ_ATA_PASSTHROUGH 0x1d
 
 /* SAT-4 rev 06 Table 176 - ATA Status Return sense data descriptor */
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_DP_CODE 0x09
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_LEN     0x0c
-
-/*
- * SPC-5 rev 07 Table 27 - Sense data response codes
- */
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED 0x70
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED  0x71
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP    0x72
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP     0x73
 
 /*
  * SPC-5 rev 07 Table 48 - Sense key descriptions
@@ -461,6 +443,14 @@ int _sg_io_vpd(char *err_msg, int fd, uint8_t page_code, uint8_t *data) {
     assert(data != NULL);
 
     memset(sense_err_msg, 0, sizeof(sense_err_msg));
+
+    /* Callers hand us the full sized buffer but we only ever ask the device
+     * for 'data_len' bytes of it, and the parsers trust the page length the
+     * device reports. Zero the whole thing so whatever the device leaves
+     * untouched reads back as zero rather than as whatever the caller had on
+     * its stack.
+     */
+    memset(data, 0, _SG_T10_SPC_VPD_MAX_LEN);
 
     switch (page_code) {
     case _SG_T10_SPC_VPD_ATA_INFO:
@@ -1295,6 +1285,12 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
     memset(sense_err_msg, 0, sizeof(sense_err_msg));
     memset(cdb, 0, _T10_SPC_LOG_SENSE_CMD_LEN);
 
+    /* We only copy out the log parameters the device actually returned, so
+     * zero the rest of the caller's buffer instead of leaving it holding
+     * whatever was on the stack.
+     */
+    memset(data, 0, _T10_SPC_LOG_SENSE_MAX_LEN);
+
     cdb[0] = LOG_SENSE;
     cdb[2] = (PAGE_CONTROL_CUMULATIVE_VALS << 6) | (page_code & 0x3f);
     cdb[3] = sub_page_code & UINT8_MAX;
@@ -1341,6 +1337,28 @@ static int _sg_log_sense(char *err_msg, int fd, uint8_t page_code,
 out:
 
     return rc;
+}
+
+int _sense_data_asc_get(uint8_t *sense_data, uint8_t *asc) {
+    struct _sg_t10_sense_header *sense_hdr = NULL;
+
+    assert(sense_data != NULL);
+    assert(asc != NULL);
+
+    sense_hdr = (struct _sg_t10_sense_header *)sense_data;
+
+    switch (sense_hdr->response_code) {
+    case _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED:
+    case _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED:
+        *asc = ((struct _sg_t10_sense_fixed *)sense_data)->asc;
+        return 0;
+    case _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP:
+    case _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP:
+        *asc = ((struct _sg_t10_sense_dp *)sense_data)->asc;
+        return 0;
+    default:
+        return -1;
+    }
 }
 
 int _sg_request_sense(char *err_msg, int fd, uint8_t *returned_sense_data) {
@@ -1420,7 +1438,7 @@ int _sg_sas_health_status(char *err_msg, int fd, int32_t *health_status) {
     uint8_t info_excep_log_page[_T10_SPC_LOG_SENSE_MAX_LEN];
     uint8_t asc = 0;
     uint8_t requested_sense[_T10_SPC_SENSE_DATA_MAX_LENGTH];
-    struct _sg_t10_sense_fixed *sense_fixed = NULL;
+    struct _sg_t10_sense_header *sense_hdr = NULL;
     struct _sg_t10_info_excep_mode_page_0_hdr *ie_mode_hdr = NULL;
     struct _sg_t10_info_excep_general_log_hdr *ie_log_hdr = NULL;
 
@@ -1432,8 +1450,21 @@ int _sg_sas_health_status(char *err_msg, int fd, int32_t *health_status) {
 
     if (ie_mode_hdr->mrie == MRIE_REPORT_INFO_EXCEP_ON_REQUEST) {
         _good(_sg_request_sense(err_msg, fd, requested_sense), rc, out);
-        sense_fixed = (struct _sg_t10_sense_fixed *)requested_sense;
-        asc = sense_fixed->asc;
+        /* The response code decides how to read this: in descriptor format
+         * (response code 0x72+) the ADDITIONAL SENSE CODE is nowhere near
+         * where the fixed format keeps it.  Descriptor format is handled
+         * defensively only: we request fixed format (DESC=0) and no drive
+         * has been observed answering in descriptor format anyway.
+         */
+        if (_sense_data_asc_get(requested_sense, &asc) != 0) {
+            sense_hdr = (struct _sg_t10_sense_header *)requested_sense;
+            rc = LSM_ERR_NO_SUPPORT;
+            _lsm_err_msg_set(err_msg,
+                             "Got SCSI REQUEST SENSE data with unknown "
+                             "response code 0x%02x",
+                             sense_hdr->response_code);
+            goto out;
+        }
     } else {
         _good(_sg_log_sense(err_msg, fd, _T10_SPC_INFO_EXCEP_PAGE_CODE, 0,
                             info_excep_log_page),
