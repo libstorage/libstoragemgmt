@@ -1450,9 +1450,11 @@ int _sg_sas_health_status(char *err_msg, int fd, int32_t *health_status) {
 
     if (ie_mode_hdr->mrie == MRIE_REPORT_INFO_EXCEP_ON_REQUEST) {
         _good(_sg_request_sense(err_msg, fd, requested_sense), rc, out);
-        /* Drives with D_SENSE set answer in descriptor format, where the
-         * ADDITIONAL SENSE CODE is nowhere near where the fixed format keeps
-         * it, so the response code decides how to read this.
+        /* The response code decides how to read this: in descriptor format
+         * (response code 0x72+) the ADDITIONAL SENSE CODE is nowhere near
+         * where the fixed format keeps it.  Descriptor format is handled
+         * defensively only: we request fixed format (DESC=0) and no drive
+         * has been observed answering in descriptor format anyway.
          */
         if (_sense_data_asc_get(requested_sense, &asc) != 0) {
             sense_hdr = (struct _sg_t10_sense_header *)requested_sense;

@@ -41,7 +41,9 @@ extern "C" {
  *      it answered with the short-format page 0x19), or no phy in it has
  *      sas_addr. Not a library bug.
  *  LSM_ERR_LIB_BUG
- *      The matching phy reports a link rate code that is not a known speed.
+ *      The matching phy reports a link rate code that is not a known speed,
+ *      or the mode page data is corrupted (a page length that overflows the
+ *      buffer, or a phy count that runs past the data the length covers).
  *  *link_speed is LSM_DISK_LINK_SPEED_UNKNOWN on any non-OK return.
  */
 LSM_DLL_LOCAL int _sas_cur_speed_get(char *err_msg, uint8_t *mode_sense_data,
