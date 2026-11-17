@@ -221,6 +221,36 @@ LSM_DLL_LOCAL int _sg_request_sense(char *err_msg, int fd,
                                     uint8_t *returned_sense_data);
 
 /*
+ * Exported for unit testing.
+ * The 'sense_key' is the output pointer.
+ * Return 0 if sense_key is _T10_SPC_SENSE_KEY_NO_SENSE or
+ * _T10_SPC_SENSE_KEY_RECOVERED_ERROR, return -1 otherwise.
+ * Preconditions:
+ *  sense_data != NULL
+ *  sense_data is uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH]
+ *  sense_key != NULL
+ *  sense_err_msg should be char[_LSM_ERR_MSG_LEN / 2]
+ */
+LSM_DLL_LOCAL int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
+                                    uint8_t *sense_key);
+
+/*
+ * Exported for unit testing.
+ * Pulls the ATA STATUS RETURN descriptor (SAT-4 rev 04 Table 176) out of
+ * descriptor-format sense data (SPC-5 rev 16 Table 28).
+ * Preconditions:
+ *  err_msg != NULL
+ *  sense_data != NULL
+ *  sense_data is uint8_t[_T10_SPC_SENSE_DATA_MAX_LENGTH]
+ *  status != NULL
+ *  lba_mid != NULL
+ *  lba_high != NULL
+ */
+LSM_DLL_LOCAL int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
+                                          uint8_t *status, uint8_t *lba_mid,
+                                          uint8_t *lba_high);
+
+/*
  * Preconditions:
  *  None
  */

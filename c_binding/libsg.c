@@ -336,19 +336,6 @@ static int _sg_io_open(char *err_msg, const char *disk_path, int *fd,
                        int oflag);
 
 /*
- * The 'sense_key' is the output pointer.
- * Return 0 if sense_key is _T10_SPC_SENSE_KEY_NO_SENSE or
- * _T10_SPC_SENSE_KEY_RECOVERED_ERROR, return -1 otherwise.
- * sense_err_msg should be char[_LSM_ERR_MSG_LEN / 2]
- */
-static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
-                             uint8_t *sense_key);
-
-static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
-                                   uint8_t *status, uint8_t *lba_mid,
-                                   uint8_t *lba_high);
-
-/*
  * Preconditions:
  *  err_msg != NULL
  *  fd >= 0
@@ -797,8 +784,8 @@ out:
     return rc;
 }
 
-static int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
-                             uint8_t *sense_key) {
+int _check_sense_data(char *sense_err_msg, uint8_t *sense_data,
+                      uint8_t *sense_key) {
     int rc = -1;
     struct _sg_t10_sense_header *sense_hdr = NULL;
     struct _sg_t10_sense_fixed *sense_fixed = NULL;
@@ -1205,9 +1192,8 @@ out:
     return rc;
 }
 
-static int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data,
-                                   uint8_t *status, uint8_t *lba_mid,
-                                   uint8_t *lba_high) {
+int _extract_ata_sense_data(char *err_msg, uint8_t *sense_data, uint8_t *status,
+                            uint8_t *lba_mid, uint8_t *lba_high) {
     struct _sg_t10_sense_dp *sense_dp = NULL;
     struct _sg_t10_sense_data_dp_hdr *cur_dp = NULL;
     struct _sg_t10_ata_status_sense_dp *ata_dp = NULL;
