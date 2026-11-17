@@ -83,12 +83,78 @@ START_TEST(test_undersized_message_accepted) {
 }
 END_TEST
 
+/*
+ * Regression test for 6aeed0f2 ("ipc: Propagate correct read error
+ * reason").  string_read() used to throw EOFException for *any* non-clean
+ * read, discarding whatever error_code a non-EOF failure (e.g. EBADF from
+ * wait_ready()'s POLLNVAL check) had set; Ipc::readRequest() therefore
+ * could never report it as LSM_ERR_TRANSPORT_COMMUNICATION and misreported
+ * a bad descriptor the same way it reports a clean peer disconnect. Closing
+ * our own end of the fd before handing it to Ipc gives wait_ready() an
+ * invalid descriptor without ever blocking: poll() reports POLLNVAL
+ * immediately, regardless of the (here unbounded) timeout.
+ */
+START_TEST(test_bad_fd_gives_transport_error_not_eof) {
+    int fds[2];
+    ck_assert_int_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+    close(fds[1]);
+    close(fds[0]); /* Now an invalid descriptor: reading it gives EBADF. */
+
+    Ipc ipc(fds[0]);
+    bool caught_transport = false;
+
+    try {
+        ipc.readRequest();
+    } catch (const LsmException &e) {
+        caught_transport =
+            (e.error_code == (int)LSM_ERR_TRANSPORT_COMMUNICATION);
+    } catch (const EOFException &) {
+        ck_assert_msg(false, "a bad file descriptor was misreported as a "
+                             "clean EOF rather than a transport error");
+    }
+
+    ck_assert_msg(caught_transport,
+                  "Expected LsmException(LSM_ERR_TRANSPORT_COMMUNICATION) "
+                  "for a read failure that is not EOF");
+}
+END_TEST
+
+/*
+ * The other half of the same fix: an actual peer disconnect (recv()
+ * returning 0) must still surface as EOFException, not get folded into the
+ * same transport-error path.
+ */
+START_TEST(test_peer_close_still_gives_eof) {
+    int fds[2];
+    ck_assert_int_eq(socketpair(AF_UNIX, SOCK_STREAM, 0, fds), 0);
+    close(fds[1]); /* Peer disconnects cleanly before sending anything. */
+
+    Ipc ipc(fds[0]);
+    bool caught_eof = false;
+
+    try {
+        ipc.readRequest();
+    } catch (const EOFException &) {
+        caught_eof = true;
+    } catch (const LsmException &e) {
+        ck_assert_msg(false,
+                      "Unexpected LsmException(%d) for a clean peer close",
+                      e.error_code);
+    }
+
+    ck_assert_msg(caught_eof,
+                  "Expected EOFException for a cleanly closed peer");
+}
+END_TEST
+
 static Suite *ipc_suite(void) {
     Suite *s = suite_create("ipc");
     TCase *tc = tcase_create("core");
 
     tcase_add_test(tc, test_oversized_message_rejected);
     tcase_add_test(tc, test_undersized_message_accepted);
+    tcase_add_test(tc, test_bad_fd_gives_transport_error_not_eof);
+    tcase_add_test(tc, test_peer_close_still_gives_eof);
     suite_add_tcase(s, tc);
     return s;
 }
