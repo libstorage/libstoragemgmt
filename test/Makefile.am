@@ -3,11 +3,9 @@ AM_CPPFLAGS = \
 	-I@srcdir@/c_binding/include
 
 EXTRA_DIST=cmdtest.py plugin_test.py test_include.sh runtests.sh.in integration.sh \
-	test_transport.py test_rpc_dispatch.py lsm_stub.py
+	test_transport.py test_rpc_dispatch.py lsm_stub.py test_nfs_clib.py
 
 if WITH_TEST
-all: tester test_ipc test_libsg test_plugin_ipc
-
 check_PROGRAMS = tester test_ipc test_libsg test_plugin_ipc
 tester_CFLAGS = $(LIBCHECK_CFLAGS)
 tester_LDADD = ../c_binding/libstoragemgmt.la $(LIBCHECK_LIBS)
@@ -53,6 +51,20 @@ test_plugin_ipc_SOURCES = test_plugin_ipc.cpp \
 	../c_binding/lsm_convert.cpp ../c_binding/lsm_convert.hpp \
 	../c_binding/lsm_datatypes.cpp ../c_binding/lsm_datatypes.hpp \
 	../c_binding/lsm_ipc.cpp ../c_binding/lsm_ipc.hpp
+
+if WITH_NFS
+check_PROGRAMS += test_nfs_clib_py_in_list
+
+# py_in_list() is 'static' in nfs_clib.c, so this #includes that file
+# directly (see test_nfs_clib_py_in_list.c) rather than linking against
+# nfs_plugin's nfs_clib.la; it embeds the interpreter (Py_Initialize())
+# instead of being loaded by it, hence PYTHON_EMBED_* rather than the
+# PYTHON_* flags used to build nfs_clib.la itself.
+test_nfs_clib_py_in_list_CFLAGS = $(PYTHON_EMBED_CFLAGS) \
+	-I$(top_srcdir)/c_binding/include
+test_nfs_clib_py_in_list_LDADD = $(PYTHON_EMBED_LIBS)
+test_nfs_clib_py_in_list_SOURCES = test_nfs_clib_py_in_list.c
+endif
 
 all: $(check_PROGRAMS)
 # Built directly against the plug-in-side IPC sources (rather than

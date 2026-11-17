@@ -214,6 +214,23 @@ if test -e "/etc/debian_version"; then
     AC_MSG_NOTICE(["Applying workaround for debian bug 839064: $pythondir"])
 fi
 
+dnl Flags for embedding the interpreter (Py_Initialize()) rather than just
+dnl building an extension module loaded by it - only used by the standalone
+dnl test/test_nfs_clib_py_in_list test harness.  Python >= 3.8's
+dnl python3-config requires --embed to pull in -lpythonX.Y (an extension
+dnl module gets those symbols from the host interpreter instead, so plain
+dnl --libs omits them); older python3-config has no --embed flag at all and
+dnl already includes it in plain --libs.
+PKG_CHECK_MODULES([PYTHON_EMBED], [python3-embed], [],
+                  [PYTHON_EMBED_CFLAGS=`python3-config --embed --cflags 2>/dev/null`
+                   PYTHON_EMBED_LIBS=`python3-config --embed --libs 2>/dev/null`
+                   if test "x${PYTHON_EMBED_LIBS}" = "x"; then
+                       PYTHON_EMBED_CFLAGS=`python3-config --cflags`
+                       PYTHON_EMBED_LIBS=`python3-config --libs`
+                   fi
+                   AC_SUBST(PYTHON_EMBED_CFLAGS)
+                   AC_SUBST(PYTHON_EMBED_LIBS)])
+
 AC_SUBST(PY_VERSION, 3)
 AC_SUBST(LSM_PYSO_DIR, [$pyexecdir])
 
@@ -316,6 +333,7 @@ AC_ARG_WITH([nfs],
     [with_nfs=yes])
 
 AM_CONDITIONAL([WITH_NFS], [test "x$with_nfs" = "xyes"])
+AC_SUBST(WITH_NFS, [$with_nfs])
 
 dnl ==========================================================================
 dnl Check for libconfig as it is needed for lsmd daemon

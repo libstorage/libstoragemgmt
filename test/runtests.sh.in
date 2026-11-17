@@ -25,6 +25,7 @@ build_dir=$(readlink -f "$(pwd)")
 src_dir=$(readlink -f "@abs_top_srcdir@")
 with_mem_leak_test="@WITH_MEM_LEAK_TEST@"
 export INCLUDE_SMISPY="@WITH_SMISPY@"
+with_nfs="@WITH_NFS@"
 
 source "${src_dir}"/test/test_include.sh
 
@@ -54,6 +55,16 @@ _good "${build_dir}/test/test_plugin_ipc"
 # Standalone sense data parsing unit tests (no daemon, no hardware required)
 echo "Running standalone libsg unit tests"
 _good "${build_dir}/test/test_libsg"
+
+# Standalone nfs_clib unit tests (no daemon required); the nfs plug-in,
+# and nfs_clib with it, can be disabled at configure time.
+if [ "CHK${with_nfs}" == "CHKyes" ]; then
+    echo "Running standalone nfs_clib unit tests"
+    _good "${build_dir}/test/test_nfs_clib_py_in_list"
+    _good python3 -m pytest "${src_dir}/test/test_nfs_clib.py" -v
+else
+    echo "Skipping nfs_clib unit tests (NFS plug-in disabled)"
+fi
 
 # Fetch and test the golang module to ensure we didn't break it
 arch=$(uname -m)
