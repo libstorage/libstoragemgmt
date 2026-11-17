@@ -38,7 +38,10 @@ echo "Starting in dir =  $(pwd)"
 
 # Standalone Python unit tests (no daemon, no C extension required)
 echo "Running standalone Python unit tests"
-_good python3 -m pytest "${src_dir}/test/test_transport.py" -v
+# These intentionally share one interpreter: lsm_stub exists to make this
+# collection order safe, so separate pytest processes would not test it.
+_good python3 -m pytest "${src_dir}/test/test_transport.py" \
+    "${src_dir}/test/test_rpc_dispatch.py" -v
 
 # Standalone C++ IPC wire-protocol unit tests (no daemon required)
 echo "Running standalone C++ IPC unit tests"
