@@ -44,6 +44,10 @@ echo "Running standalone Python unit tests"
 _good python3 -m pytest "${src_dir}/test/test_transport.py" \
     "${src_dir}/test/test_rpc_dispatch.py" -v
 
+# Packaging (systemd unit) regression tests - pure source/text checks, no
+# daemon or build artifact required.
+_good python3 -m pytest "${src_dir}/test/test_packaging.py" -v
+
 # Standalone C++ IPC wire-protocol unit tests (no daemon required)
 echo "Running standalone C++ IPC unit tests"
 _good "${build_dir}/test/test_ipc"
