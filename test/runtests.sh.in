@@ -47,6 +47,10 @@ _good python3 -m pytest "${src_dir}/test/test_transport.py" \
 echo "Running standalone C++ IPC unit tests"
 _good "${build_dir}/test/test_ipc"
 
+# Standalone plug-in-side IPC handler unit tests (no daemon required)
+echo "Running standalone plug-in IPC handler unit tests"
+_good "${build_dir}/test/test_plugin_ipc"
+
 # Standalone sense data parsing unit tests (no daemon, no hardware required)
 echo "Running standalone libsg unit tests"
 _good "${build_dir}/test/test_libsg"
