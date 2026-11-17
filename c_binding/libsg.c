@@ -73,14 +73,6 @@
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_LEN     0x0c
 
 /*
- * SPC-5 rev 07 Table 27 - Sense data response codes
- */
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED 0x70
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED  0x71
-#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP    0x72
-#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP     0x73
-
-/*
  * SPC-5 rev 07 Table 48 - Sense key descriptions
  */
 #define _T10_SPC_SENSE_KEY_NO_SENSE        0x0
