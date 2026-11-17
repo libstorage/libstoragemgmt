@@ -24,9 +24,11 @@ test_ipc_SOURCES = test.cpp ../c_binding/lsm_ipc.cpp ../c_binding/lsm_ipc.hpp
 # reached through libstoragemgmt.la.
 # ioctl is wrapped so the SG_IO paths (_sg_io_vpd, _sg_io_mode_sense,
 # _sg_request_sense, ...) can be driven with canned device responses instead
-# of real hardware.
-test_libsg_CFLAGS = $(LIBCHECK_CFLAGS) -I$(top_srcdir)/c_binding
-test_libsg_LDFLAGS = -Wl,--wrap=ioctl
+# of real hardware. -fsanitize=address instruments libsg.c/libsas.c/libata.c
+# (compiled in directly) so buffer overruns on canned responses are caught.
+test_libsg_CFLAGS = $(LIBCHECK_CFLAGS) -I$(top_srcdir)/c_binding \
+	-fsanitize=address
+test_libsg_LDFLAGS = -fsanitize=address -Wl,--wrap=ioctl
 test_libsg_LDADD = $(LIBCHECK_LIBS)
 test_libsg_SOURCES = test_libsg.c ../c_binding/libsg.c ../c_binding/libsg.h \
 	../c_binding/utils.c ../c_binding/utils.h ../c_binding/libata.c \
