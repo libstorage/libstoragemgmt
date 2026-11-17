@@ -149,11 +149,108 @@ START_TEST(test_parse_vpd_80) {
 }
 END_TEST
 
+/* f3c7fe3e + f2675e29: _sg_parse_vpd_83() must reject a designation
+ * descriptor (SPC-5 rev 7 Table 590) whose DESIGNATOR LENGTH runs past the
+ * end of the page data (f3c7fe3e), and a page too short to hold even the
+ * 4-byte descriptor header (f2675e29), rather than trusting either and
+ * walking (and later memcpy-ing) past where the page actually ends.
+ */
+#define VPD83_PAGE_CODE_OFFSET 1
+#define VPD83_PAGE_LEN_OFFSET  2
+#define VPD83_HDR_LEN          4 /* dev type/qualifier, page code, length */
+#define VPD83_DP_OFFSET        VPD83_HDR_LEN
+#define VPD83_DP_HDR_LEN       4 /* code_set/.../piv, reserved, desig_len */
+#define VPD83_DP_DESIGNATOR_LEN_OFFSET                                         \
+    3 /* relative to the descriptor start                                      \
+       */
+
+#define VPD83_GUARD_LEN  24
+#define VPD83_GUARD_BYTE 0xcc
+
+static void vpd83_page_build(uint8_t *page, uint16_t page_len,
+                             uint8_t designator_len) {
+    memset(page, 0, _SG_T10_SPC_VPD_MAX_LEN);
+    page[VPD83_PAGE_CODE_OFFSET] = _SG_T10_SPC_VPD_DI;
+    page[VPD83_PAGE_LEN_OFFSET] = (page_len >> 8) & UINT8_MAX;
+    page[VPD83_PAGE_LEN_OFFSET + 1] = page_len & UINT8_MAX;
+    page[VPD83_DP_OFFSET + VPD83_DP_DESIGNATOR_LEN_OFFSET] = designator_len;
+    /* Data past the page (VPD83_HDR_LEN + page_len) is not part of this
+     * page at all; mark it so a read that strays past the page boundary is
+     * unmistakable in the parsed designator.
+     */
+    ck_assert_uint_le(VPD83_HDR_LEN + page_len + VPD83_GUARD_LEN,
+                      _SG_T10_SPC_VPD_MAX_LEN);
+    memset(page + VPD83_HDR_LEN + page_len, VPD83_GUARD_BYTE, VPD83_GUARD_LEN);
+}
+
+struct vpd83_case {
+    const char *name;
+    uint16_t page_len;
+    uint8_t designator_len;
+};
+
+static const struct vpd83_case vpd83_cases[] = {
+    /* 4-byte descriptor header + 6 bytes of data, but DESIGNATOR LENGTH
+     * claims far more than page_len allows.
+     */
+    {"designator_len past page data", 10, 20},
+    /* Page data too short to hold even the 4-byte descriptor header. */
+    {"partial descriptor header", 2, 0},
+};
+
+START_TEST(test_parse_vpd_83_bounds) {
+    static uint8_t page[_SG_T10_SPC_VPD_MAX_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    const struct vpd83_case *c = NULL;
+    struct _sg_t10_vpd83_dp **dps = NULL;
+    uint16_t dp_count = 0xffff;
+    int rc = 0;
+    size_t i = 0;
+
+    for (i = 0; i < sizeof(vpd83_cases) / sizeof(vpd83_cases[0]); i++) {
+        c = &vpd83_cases[i];
+        vpd83_page_build(page, c->page_len, c->designator_len);
+
+        memset(err_msg, 0, sizeof(err_msg));
+        dps = NULL;
+        dp_count = 0xffff;
+        rc = _sg_parse_vpd_83(err_msg, page, &dps, &dp_count);
+
+        ck_assert_msg(rc == LSM_ERR_LIB_BUG,
+                      "%s: rc %d, dp_count %" PRIu16 " (%s)", c->name, rc,
+                      dp_count, err_msg);
+        ck_assert_msg(dps == NULL, "%s: dps not NULL", c->name);
+        ck_assert_msg(dp_count == 0, "%s: dp_count %" PRIu16, c->name,
+                      dp_count);
+    }
+
+    /* Belt and suspenders: even if a future change let an oversized
+     * designator_len through, the guard bytes placed past the page must
+     * never surface in a designator.
+     */
+    vpd83_page_build(page, vpd83_cases[0].page_len,
+                     vpd83_cases[0].designator_len);
+    rc = _sg_parse_vpd_83(err_msg, page, &dps, &dp_count);
+    if (rc == LSM_ERR_OK && dp_count > 0) {
+        for (i = 0; i < dps[0]->header.designator_len; i++)
+            ck_assert_msg(dps[0]->designator[i] != VPD83_GUARD_BYTE,
+                          "designator[%zu] leaked a byte past the page "
+                          "(0x%02x)",
+                          i, dps[0]->designator[i]);
+        _sg_t10_vpd83_dp_array_free(dps, dp_count);
+    }
+}
+END_TEST
+
 static Suite *libsg_suite(void) {
     Suite *s = suite_create("libsg");
     TCase *tc = tcase_create("vpd80");
 
     tcase_add_test(tc, test_parse_vpd_80);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("vpd83");
+    tcase_add_test(tc, test_parse_vpd_83_bounds);
     suite_add_tcase(s, tc);
     return s;
 }
