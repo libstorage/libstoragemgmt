@@ -6,9 +6,9 @@ EXTRA_DIST=cmdtest.py plugin_test.py test_include.sh runtests.sh.in integration.
 	test_transport.py test_rpc_dispatch.py lsm_stub.py
 
 if WITH_TEST
-all: tester test_ipc test_libsg
+all: tester test_ipc test_libsg test_plugin_ipc
 
-check_PROGRAMS = tester test_ipc test_libsg
+check_PROGRAMS = tester test_ipc test_libsg test_plugin_ipc
 tester_CFLAGS = $(LIBCHECK_CFLAGS)
 tester_LDADD = ../c_binding/libstoragemgmt.la $(LIBCHECK_LIBS)
 tester_SOURCES = tester.c
@@ -32,4 +32,48 @@ test_libsg_LDADD = $(LIBCHECK_LIBS)
 test_libsg_SOURCES = test_libsg.c ../c_binding/libsg.c ../c_binding/libsg.h \
 	../c_binding/utils.c ../c_binding/utils.h ../c_binding/libata.c \
 	../c_binding/libata.h ../c_binding/libsas.c ../c_binding/libsas.h
+
+# Built directly against the plug-in-side IPC sources (rather than
+# libstoragemgmt.la) for two reasons: __wrap_strdup (below) only intercepts
+# calls made from object files linked into this binary, not calls already
+# resolved inside the shared library; and AddressSanitizer's leak detector
+# needs every allocation on the path it is checking instrumented the same
+# way. -Wl,--wrap=strdup lets the NULL-conversion tests force
+# lsm_volume_record_alloc()/lsm_system_record_alloc() to fail without
+# failing allocations globally; -fsanitize=address,leak catches the
+# fs_snapshots leak this covers (fae61750).
+test_plugin_ipc_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/c_binding \
+	$(LIBGLIB_CFLAGS) $(LIBUDEV_CFLAGS)
+test_plugin_ipc_CXXFLAGS = $(LIBCHECK_CFLAGS) -pthread -fsanitize=address
+test_plugin_ipc_LDFLAGS = -pthread -fsanitize=address -Wl,--wrap=strdup
+test_plugin_ipc_LDADD = $(LIBCHECK_LIBS) $(LIBGLIB_LIBS) $(LIBUDEV_LIBS) \
+	../c_binding/libstoragemgmt.la
+test_plugin_ipc_SOURCES = test_plugin_ipc.cpp \
+	../c_binding/lsm_plugin_ipc.cpp ../c_binding/lsm_plugin_ipc.hpp \
+	../c_binding/lsm_convert.cpp ../c_binding/lsm_convert.hpp \
+	../c_binding/lsm_datatypes.cpp ../c_binding/lsm_datatypes.hpp \
+	../c_binding/lsm_ipc.cpp ../c_binding/lsm_ipc.hpp
+
+all: $(check_PROGRAMS)
+# Built directly against the plug-in-side IPC sources (rather than
+# libstoragemgmt.la) for two reasons: __wrap_strdup (below) only intercepts
+# calls made from object files linked into this binary, not calls already
+# resolved inside the shared library; and AddressSanitizer's leak detector
+# needs every allocation on the path it is checking instrumented the same
+# way. -Wl,--wrap=strdup lets the NULL-conversion tests force
+# lsm_volume_record_alloc()/lsm_system_record_alloc() to fail without
+# failing allocations globally; -fsanitize=address,leak catches the
+# fs_snapshots leak this covers (fae61750).
+test_plugin_ipc_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/c_binding \
+	$(LIBGLIB_CFLAGS) $(LIBUDEV_CFLAGS)
+test_plugin_ipc_CXXFLAGS = $(LIBCHECK_CFLAGS) -pthread -fsanitize=address
+test_plugin_ipc_LDFLAGS = -pthread -fsanitize=address -Wl,--wrap=strdup
+test_plugin_ipc_LDADD = $(LIBCHECK_LIBS) $(LIBGLIB_LIBS) $(LIBUDEV_LIBS) \
+	../c_binding/libstoragemgmt.la
+test_plugin_ipc_SOURCES = test_plugin_ipc.cpp \
+	../c_binding/lsm_plugin_ipc.cpp ../c_binding/lsm_plugin_ipc.hpp \
+	../c_binding/lsm_convert.cpp ../c_binding/lsm_convert.hpp \
+	../c_binding/lsm_datatypes.cpp ../c_binding/lsm_datatypes.hpp \
+	../c_binding/lsm_ipc.cpp ../c_binding/lsm_ipc.hpp
+
 endif
