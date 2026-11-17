@@ -20,10 +20,14 @@ test_ipc_CXXFLAGS = $(LIBCHECK_CFLAGS)
 test_ipc_LDADD = $(LIBCHECK_LIBS)
 test_ipc_SOURCES = test.cpp ../c_binding/lsm_ipc.cpp ../c_binding/lsm_ipc.hpp
 
-# libsg.c's sense data helpers are LSM_DLL_LOCAL, so they are compiled in
-# directly (with the utils.c and libata.c they call) rather than reached
-# through libstoragemgmt.la.
+# libsg.c's sense data helpers and libsas.c are LSM_DLL_LOCAL, so they are
+# compiled in directly (with the utils.c and libata.c they call) rather than
+# reached through libstoragemgmt.la.
+# ioctl is wrapped so the SG_IO paths (_sg_io_vpd, _sg_io_mode_sense,
+# _sg_request_sense, ...) can be driven with canned device responses instead
+# of real hardware.
 test_libsg_CFLAGS = $(LIBCHECK_CFLAGS) -I$(top_srcdir)/c_binding
+test_libsg_LDFLAGS = -Wl,--wrap=ioctl
 test_libsg_LDADD = $(LIBCHECK_LIBS)
 test_libsg_SOURCES = test_libsg.c ../c_binding/libsg.c ../c_binding/libsg.h \
 	../c_binding/utils.c ../c_binding/utils.h ../c_binding/libata.c \

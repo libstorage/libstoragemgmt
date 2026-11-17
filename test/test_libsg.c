@@ -8,16 +8,125 @@
  */
 
 #include <check.h>
+#include <errno.h>
 #include <inttypes.h>
+#include <scsi/scsi.h>
+#include <scsi/sg.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "libsas.h"
 #include "libsg.h"
 #include "libstoragemgmt/libstoragemgmt_error.h"
 #include "libstoragemgmt/libstoragemgmt_types.h"
 #include "utils.h"
+
+/* test_libsg is linked with -Wl,--wrap=ioctl (test/Makefile.am) so the
+ * SG_IO paths in libsg.c (_sg_io_vpd, _sg_io_mode_sense, _sg_request_sense,
+ * ...) can be driven with canned device responses instead of real hardware.
+ * Only the v3 (struct sg_io_hdr) ioctl interface is in play: every SG_IO
+ * call site in libsg.c goes through _sg_io_v3(), never _sg_io_v4().
+ *
+ * A test selects a response by calling fake_ioctl_reset() and then filling
+ * in what it wants returned, before calling into the libsg.c function under
+ * test with any fd value (it is never actually used).
+ */
+extern int __real_ioctl(int fd, unsigned long request, ...);
+
+#define FAKE_IOCTL_DXFER_MAX 256
+
+static uint8_t fake_ioctl_dxfer[FAKE_IOCTL_DXFER_MAX];
+static size_t fake_ioctl_dxfer_len;
+/* LOG SENSE replies get their own slot so a test can serve a MODE SENSE
+ * reply and a LOG SENSE reply to the same _sg_sas_health_status() call.
+ */
+static uint8_t fake_ioctl_log_dxfer[FAKE_IOCTL_DXFER_MAX];
+static size_t fake_ioctl_log_dxfer_len;
+static uint8_t fake_ioctl_sense[_T10_SPC_SENSE_DATA_MAX_LENGTH];
+static size_t fake_ioctl_sense_len;
+/* 0 means the ioctl() call itself succeeds (a real device still may return
+ * CHECK CONDITION via fake_ioctl_sense_len, same as _sg_io_v3 expects).
+ */
+static int fake_ioctl_errno;
+
+static void fake_ioctl_reset(void) {
+    memset(fake_ioctl_dxfer, 0, sizeof(fake_ioctl_dxfer));
+    fake_ioctl_dxfer_len = 0;
+    memset(fake_ioctl_log_dxfer, 0, sizeof(fake_ioctl_log_dxfer));
+    fake_ioctl_log_dxfer_len = 0;
+    memset(fake_ioctl_sense, 0, sizeof(fake_ioctl_sense));
+    fake_ioctl_sense_len = 0;
+    fake_ioctl_errno = 0;
+}
+
+int __wrap_ioctl(int fd, unsigned long request, ...) {
+    va_list ap;
+    void *arg = NULL;
+    struct sg_io_hdr *hdr = NULL;
+    size_t n = 0;
+
+    va_start(ap, request);
+    arg = va_arg(ap, void *);
+    va_end(ap);
+
+    if (request != SG_IO)
+        return __real_ioctl(fd, request, arg);
+
+    hdr = (struct sg_io_hdr *)arg;
+
+    if (fake_ioctl_errno != 0) {
+        errno = fake_ioctl_errno;
+        return -1;
+    }
+
+    if ((hdr->dxferp != NULL) && (hdr->dxfer_direction == SG_DXFER_FROM_DEV)) {
+        const uint8_t *src = fake_ioctl_dxfer;
+        size_t src_len = fake_ioctl_dxfer_len;
+
+        if ((hdr->cmdp != NULL) && (hdr->cmd_len > 0) &&
+            (hdr->cmdp[0] == LOG_SENSE)) {
+            src = fake_ioctl_log_dxfer;
+            src_len = fake_ioctl_log_dxfer_len;
+        }
+        n = src_len;
+        if (n > hdr->dxfer_len)
+            n = hdr->dxfer_len;
+        memcpy(hdr->dxferp, src, n);
+    }
+
+    if ((hdr->sbp != NULL) && (fake_ioctl_sense_len > 0)) {
+        n = fake_ioctl_sense_len;
+        if (n > hdr->mx_sb_len)
+            n = hdr->mx_sb_len;
+        memcpy(hdr->sbp, fake_ioctl_sense, n);
+        hdr->sb_len_wr = (unsigned char)n;
+    } else {
+        hdr->sb_len_wr = 0;
+    }
+
+    hdr->status = 0;
+    return 0;
+}
+
+/* Offsets of ADDITIONAL SENSE CODE, SPC-5 rev 07 Tables 28 and 30 */
+#define SENSE_FIXED_ASC_OFFSET 12
+#define SENSE_DP_ASC_OFFSET    2
+
+/* Distinct values so reading the wrong offset gives a different answer. */
+#define SENTINEL_FIXED_ASC 0xa1
+#define SENTINEL_DP_ASC    0xb2
+
+/* Bit 7 of byte 0 is not part of the response code in either format: it is
+ * VALID in fixed format (SPC-5 rev 07 Table 28) and reserved in descriptor
+ * format.
+ */
+#define SENSE_VALID_BIT 0x80
+
+#define NOT_FOUND (-1)
 
 /* CVE-2026-93433: SPC-5 rev 07 7.7.17 Unit Serial Number VPD page. The page
  * header is 4 bytes (byte 0 PERIPHERAL QUALIFIER/DEVICE TYPE, byte 1 PAGE
@@ -242,6 +351,219 @@ START_TEST(test_parse_vpd_83_bounds) {
 }
 END_TEST
 
+/* 515e355c: _sg_request_sense() must return what the device sent back for
+ * the REQUEST SENSE command (the SG_IO dxferp buffer), not the SG_IO
+ * transport-level sense buffer (sbp), which is all zero on a plain success.
+ */
+START_TEST(test_request_sense_returns_device_data) {
+    static uint8_t returned_sense_data[_T10_SPC_SENSE_DATA_MAX_LENGTH];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int rc = 0;
+    size_t i = 0;
+
+    fake_ioctl_reset();
+    for (i = 0; i < _T10_SPC_REQUEST_SENSE_MAX_LEN; i++)
+        fake_ioctl_dxfer[i] = (uint8_t)(i + 1); /* never 0x00 */
+    fake_ioctl_dxfer_len = _T10_SPC_REQUEST_SENSE_MAX_LEN;
+
+    memset(err_msg, 0, sizeof(err_msg));
+    memset(returned_sense_data, 0, sizeof(returned_sense_data));
+    rc = _sg_request_sense(err_msg, 0, returned_sense_data);
+
+    ck_assert_msg(rc == LSM_ERR_OK, "rc %d (%s)", rc, err_msg);
+    for (i = 0; i < _T10_SPC_SENSE_DATA_MAX_LENGTH; i++)
+        ck_assert_msg(returned_sense_data[i] == (uint8_t)(i + 1),
+                      "byte %zu is 0x%02x, expected 0x%02x (came from the "
+                      "transport sense buffer, not the REQUEST SENSE data)",
+                      i, returned_sense_data[i], (uint8_t)(i + 1));
+}
+END_TEST
+
+/* 75cde6d3: _sg_io_vpd() must zero the whole caller buffer up front, not
+ * just the 'data_len' bytes it asks the device for. The VPD 0x80 parser
+ * trusts the device-reported PAGE LENGTH to decide how much of the buffer
+ * is real, so anything past data_len that is not zeroed reads back as
+ * whatever the caller's stack held before the call.
+ */
+START_TEST(test_io_vpd_zeroes_whole_buffer) {
+    static uint8_t vpd_data[_SG_T10_SPC_VPD_MAX_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    /* VPD 0x80 header (SPC-5 Table 584): byte 0 qualifier/type, byte 1 page
+     * code, bytes 2-3 PAGE LENGTH. The device only has 252 bytes allocated
+     * to send (_SG_T10_SPC_VPD_SMALL_MAX_LEN), but reports a PAGE LENGTH far
+     * past that, as a device with a long serial number legitimately would.
+     */
+    const uint16_t claimed_page_len = 1000;
+    const size_t residue_offset =
+        300; /* past data_len, inside claimed_page_len */
+    int rc = 0;
+
+    ck_assert_uint_lt(residue_offset, (size_t)claimed_page_len + 4);
+
+    memset(vpd_data, 0xab, sizeof(vpd_data)); /* simulate stack residue */
+
+    fake_ioctl_reset();
+    fake_ioctl_dxfer[1] = _SG_T10_SPC_VPD_UNIT_SN;
+    fake_ioctl_dxfer[2] = (claimed_page_len >> 8) & UINT8_MAX;
+    fake_ioctl_dxfer[3] = claimed_page_len & UINT8_MAX;
+    fake_ioctl_dxfer_len = _SG_T10_SPC_VPD_SMALL_MAX_LEN;
+
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _sg_io_vpd(err_msg, 0, _SG_T10_SPC_VPD_UNIT_SN, vpd_data);
+
+    ck_assert_msg(rc == LSM_ERR_OK, "rc %d (%s)", rc, err_msg);
+    ck_assert_msg(vpd_data[residue_offset] == 0,
+                  "byte %zu is 0x%02x, not zeroed: parser will read stack "
+                  "residue instead of empty data",
+                  residue_offset, vpd_data[residue_offset]);
+}
+END_TEST
+
+/* 75cde6d3 (LOG SENSE half): _sg_log_sense() must zero the whole caller
+ * buffer, not just copy the log parameters the device returned. When MRIE
+ * is not "report on request", _sg_sas_health_status() reads the ASC at a
+ * fixed offset of the Informational Exceptions log page, so a short log
+ * page must parse as "no additional sense" (healthy) rather than as
+ * whatever the caller's stack held before the call.
+ */
+#define LOG_SENSE_PAGE_LEN_OFFSET 2 /* LOG DATA LENGTH, SPC-5 Table 208 hdr */
+#define LOG_SENSE_DATA_OFFSET     4
+#define LOG_PARA_HDR_LEN          4 /* struct _sg_t10_log_para_hdr */
+/* MRIE (SPC-5 Table 89) of 0x2 selects the LOG SENSE path in
+ * _sg_sas_health_status().
+ */
+#define MRIE_REPORT_INFO_EXCEP_PERIODICALLY 0x2
+/* Byte holding the MRIE field inside an Informational Exceptions control
+ * mode page (SPC-5 Table 90): byte 3 of the page, low nibble.
+ */
+#define IE_MODE_PAGE_MRIE_OFFSET 3
+
+/* Dirties the stack well below the current frame with _T10_SPC_ASC_
+ * IMPENDING_FAILURE bytes, so a read of never-written stack by a callee is
+ * a deterministic failure verdict instead of a coin flip.
+ */
+static volatile uint32_t dirty_stack_sink;
+
+static void dirty_stack_with_impending_failure(unsigned int depth) {
+    uint8_t dirt[64 * 1024];
+
+    memset(dirt, _T10_SPC_ASC_IMPENDING_FAILURE, sizeof(dirt));
+    dirty_stack_sink += dirt[depth % sizeof(dirt)];
+    if (depth > 0)
+        dirty_stack_with_impending_failure(depth - 1);
+}
+
+START_TEST(test_sas_health_status_short_log_page) {
+    char err_msg[_LSM_ERR_MSG_LEN];
+    int32_t health_status = 0;
+    int rc = 0;
+
+    dirty_stack_with_impending_failure(8);
+
+    fake_ioctl_reset();
+    /* MODE SENSE(10) reply for the Informational Exceptions control mode
+     * page: MODE DATA LENGTH 10, no block descriptor, and the page itself
+     * starting at byte 8 (what _sg_io_mode_sense() copies out).
+     */
+    fake_ioctl_dxfer[0] = 0;
+    fake_ioctl_dxfer[1] = 10;
+    fake_ioctl_dxfer[6] = 0;
+    fake_ioctl_dxfer[7] = 0;
+    fake_ioctl_dxfer[8 + IE_MODE_PAGE_MRIE_OFFSET] =
+        MRIE_REPORT_INFO_EXCEP_PERIODICALLY;
+    fake_ioctl_dxfer_len = 8 + 4;
+
+    /* LOG SENSE reply with LOG DATA LENGTH 4: _sg_log_sense() copies only
+     * those 4 bytes, so the ASC at offset LOG_PARA_HDR_LEN of the caller's
+     * buffer is beyond what the device answered and must read back as
+     * zeroed, not as stack residue.
+     */
+    fake_ioctl_log_dxfer[LOG_SENSE_PAGE_LEN_OFFSET] = 0;
+    fake_ioctl_log_dxfer[LOG_SENSE_PAGE_LEN_OFFSET + 1] = LOG_PARA_HDR_LEN;
+    fake_ioctl_log_dxfer_len = LOG_SENSE_DATA_OFFSET + LOG_PARA_HDR_LEN;
+
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _sg_sas_health_status(err_msg, 0, &health_status);
+
+    ck_assert_msg(rc == LSM_ERR_OK, "rc %d (%s)", rc, err_msg);
+    ck_assert_msg(health_status == LSM_DISK_HEALTH_STATUS_GOOD,
+                  "health status %d, expected GOOD: the ASC past the log "
+                  "parameters was stack residue, not zeros",
+                  health_status);
+}
+END_TEST
+
+/* 31b55484 + 3836b5bb: _sg_io_mode_sense() must reject a MODE DATA LENGTH /
+ * BLOCK DESCRIPTOR LENGTH combination from the device before using them to
+ * size the final memcpy(), rather than letting a bad combination underflow
+ * the copy size (31b55484) or walk one byte past the buffer handed to the
+ * device (3836b5bb's off-by-one in the MODE DATA LENGTH range check).
+ */
+struct mode_sense_case {
+    const char *name;
+    uint16_t mode_data_len;
+    uint16_t block_dp_len;
+    int expect_rc;
+};
+
+static const struct mode_sense_case mode_sense_cases[] = {
+    {"normal, no block descriptor", 10, 0, LSM_ERR_OK},
+    /* 31b55484: MODE DATA LENGTH (8) is too small to cover even the fixed
+     * header remainder (6) plus the claimed BLOCK DESCRIPTOR LENGTH (4):
+     * the memcpy size computation 2 + mode_data_len - 8 - block_dp_len
+     * underflows to a huge size_t without the fix.
+     */
+    {"MODE DATA LENGTH too small for BLOCK DESCRIPTOR LENGTH", 8, 4,
+     LSM_ERR_LIB_BUG},
+    /* 3836b5bb: MODE DATA LENGTH one below the buffer size. The old check
+     * (mode_data_len >= MAX) let this through; the valid range is really
+     * mode_data_len <= MAX - sizeof(mode_data_len_be), i.e. MAX - 2.
+     */
+    {"MODE DATA LENGTH one past the off-by-one boundary",
+     _SG_T10_SPC_MODE_SENSE_MAX_LEN - 1, 0, LSM_ERR_LIB_BUG},
+};
+
+START_TEST(test_io_mode_sense_length_checks) {
+    static uint8_t data[_SG_T10_SPC_MODE_SENSE_MAX_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    const struct mode_sense_case *c = NULL;
+    const uint8_t normal_payload[] = {0x11, 0x22, 0x33, 0x44};
+    int rc = 0;
+    size_t i = 0;
+
+    for (i = 0; i < sizeof(mode_sense_cases) / sizeof(mode_sense_cases[0]);
+         i++) {
+        c = &mode_sense_cases[i];
+
+        fake_ioctl_reset();
+        /* struct _sg_t10_mode_para_hdr: mode_data_len_be, 4 reserved bytes,
+         * block_dp_header_len_be.
+         */
+        fake_ioctl_dxfer[0] = (c->mode_data_len >> 8) & UINT8_MAX;
+        fake_ioctl_dxfer[1] = c->mode_data_len & UINT8_MAX;
+        fake_ioctl_dxfer[6] = (c->block_dp_len >> 8) & UINT8_MAX;
+        fake_ioctl_dxfer[7] = c->block_dp_len & UINT8_MAX;
+        fake_ioctl_dxfer_len = 8;
+        if (c->expect_rc == LSM_ERR_OK) {
+            memcpy(fake_ioctl_dxfer + 8, normal_payload,
+                   sizeof(normal_payload));
+            fake_ioctl_dxfer_len += sizeof(normal_payload);
+        }
+
+        memset(err_msg, 0, sizeof(err_msg));
+        memset(data, 0, sizeof(data));
+        rc = _sg_io_mode_sense(err_msg, 0, 0, 0, data);
+
+        ck_assert_msg(rc == c->expect_rc, "%s: rc %d, expected %d (%s)",
+                      c->name, rc, c->expect_rc, err_msg);
+        if (c->expect_rc == LSM_ERR_OK)
+            ck_assert_msg(
+                memcmp(data, normal_payload, sizeof(normal_payload)) == 0,
+                "%s: mode page data mismatch", c->name);
+    }
+}
+END_TEST
+
 static Suite *libsg_suite(void) {
     Suite *s = suite_create("libsg");
     TCase *tc = tcase_create("vpd80");
@@ -251,6 +573,13 @@ static Suite *libsg_suite(void) {
 
     tc = tcase_create("vpd83");
     tcase_add_test(tc, test_parse_vpd_83_bounds);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("sg_io_fake_device");
+    tcase_add_test(tc, test_request_sense_returns_device_data);
+    tcase_add_test(tc, test_io_vpd_zeroes_whole_buffer);
+    tcase_add_test(tc, test_sas_health_status_short_log_page);
+    tcase_add_test(tc, test_io_mode_sense_length_checks);
     suite_add_tcase(s, tc);
     return s;
 }
