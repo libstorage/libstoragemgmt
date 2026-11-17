@@ -812,6 +812,73 @@ START_TEST(test_io_mode_sense_length_checks) {
 }
 END_TEST
 
+/* 7f6f9bfd: _sysfs_host_speed_get() must not touch buff[file_size - 1] when
+ * the sysfs file is empty (file_size == 0), which underflows to buff[-1].
+ * An empty port_speed/speed file is a real (if degenerate) sysfs state, not
+ * just a hostile input.
+ */
+START_TEST(test_sysfs_host_speed_get_empty_file) {
+    char path[] = "/tmp/test_libsg_host_speed_XXXXXX";
+    char err_msg[_LSM_ERR_MSG_LEN];
+    uint32_t link_speed = 0xdeadbeef;
+    int fd = -1;
+    int rc = 0;
+
+    fd = mkstemp(path);
+    ck_assert_msg(fd >= 0, "mkstemp failed: %s", strerror(errno));
+    close(fd);
+
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _sysfs_host_speed_get(err_msg, path, &link_speed);
+    unlink(path);
+
+    /* An empty file has no usable speed string; LSM_ERR_LIB_BUG (not a
+     * crash) is the correct outcome.
+     */
+    ck_assert_msg(rc == LSM_ERR_LIB_BUG, "rc %d (%s)", rc, err_msg);
+    ck_assert_msg(link_speed == LSM_DISK_LINK_SPEED_UNKNOWN,
+                  "link_speed 0x%" PRIx32 " on error", link_speed);
+}
+END_TEST
+
+/* 2ca209e5: _trim_spaces() must compute the end-of-string pointer before
+ * skipping leading spaces, not after. Using the post-skip 'beginning' with
+ * the pre-skip length overshoots the real end of the (now shorter) string
+ * by exactly the number of leading spaces skipped, and the trailing-space
+ * trim loop then reads and writes past the NUL terminator.
+ */
+START_TEST(test_trim_spaces_no_overread) {
+    /* "   hi" (3 leading spaces, no trailing spaces) NUL-terminated, then
+     * 2 guard bytes set to ' ' (what the overshot end pointer lands on)
+     * and a final sentinel byte that must never be touched either way.
+     */
+    char buf[9] = {' ', ' ', ' ', 'h', 'i', '\0', ' ', ' ', 'Z'};
+    char *result = NULL;
+
+    result = _trim_spaces(buf);
+
+    ck_assert_msg(result != NULL, "unexpected NULL");
+    ck_assert_msg(strcmp(result, "hi") == 0, "got '%s', expected 'hi'", result);
+    ck_assert_msg(buf[6] == ' ',
+                  "guard byte 6 is 0x%02x, _trim_spaces wrote past the "
+                  "string's end",
+                  buf[6]);
+    ck_assert_msg(buf[7] == ' ',
+                  "guard byte 7 is 0x%02x, _trim_spaces wrote past the "
+                  "string's end",
+                  buf[7]);
+    ck_assert_msg(buf[8] == 'Z', "sentinel byte touched (0x%02x)", buf[8]);
+}
+END_TEST
+
+START_TEST(test_trim_spaces_all_spaces) {
+    char buf[4] = "   ";
+
+    ck_assert_msg(_trim_spaces(buf) == NULL,
+                  "all-space string should trim to NULL");
+}
+END_TEST
+
 static Suite *libsg_suite(void) {
     Suite *s = suite_create("libsg");
     TCase *tc = tcase_create("vpd80");
@@ -833,6 +900,12 @@ static Suite *libsg_suite(void) {
     tcase_add_test(tc, test_io_vpd_zeroes_whole_buffer);
     tcase_add_test(tc, test_sas_health_status_short_log_page);
     tcase_add_test(tc, test_io_mode_sense_length_checks);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("utils");
+    tcase_add_test(tc, test_sysfs_host_speed_get_empty_file);
+    tcase_add_test(tc, test_trim_spaces_no_overread);
+    tcase_add_test(tc, test_trim_spaces_all_spaces);
     suite_add_tcase(s, tc);
     return s;
 }
