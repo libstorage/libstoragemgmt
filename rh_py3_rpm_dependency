@@ -18,6 +18,7 @@ perl
 procps-ng
 python3-devel
 python3-pywbem
+python3-pytest
 python3-six
 sqlite-devel
 tar

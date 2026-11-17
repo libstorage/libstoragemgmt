@@ -27,3 +27,4 @@ dh-autoreconf
 systemd
 procps
 libasan8
+python3-pytest
