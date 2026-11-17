@@ -2,6 +2,7 @@
 *.a
 *.la
 *.lo
+INSTALL
 Makefile
 Makefile.in
 .deps
