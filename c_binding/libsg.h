@@ -23,6 +23,16 @@ extern "C" {
 /* SPC-5 rev 7, Table 487 - ASSOCIATION field */
 #define _SG_T10_SPC_ASSOCIATION_TGT_PORT 1
 
+/* SPC-5 rev 07 4.4.2.1 Descriptor format sense data overview
+ * Quote:
+ * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
+ * bytes that follow. The additional sense length shall be less than or equal to
+ * 244 (i.e., limiting the total length of the sense data to 252 bytes).
+ */
+#define _T10_SPC_SENSE_DATA_MAX_LENGTH 252
+
+#define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
+
 #define _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA 0x3
 
 /* SPL-4 rev5 4.2.4 SAS address. With trailing \0. */

@@ -48,14 +48,6 @@
 /* SPC-5 rev 07 - REQUEST SENSE command */
 #define _T10_SPC_VPD_SUP_VPD_PGS_LIST_OFFSET 4
 
-/* SPC-5 rev 07 4.4.2.1 Descriptor format sense data overview
- * Quote:
- * The ADDITIONAL SENSE LENGTH field indicates the number of additional sense
- * bytes that follow. The additional sense length shall be less than or equal to
- * 244 (i.e., limiting the total length of the sense data to 252 bytes).
- */
-#define _T10_SPC_SENSE_DATA_MAX_LENGTH 252
-
 /* The max length of char[] required to hold hex dump of sense data */
 #define _T10_SPC_SENSE_DATA_STR_MAX_LENGTH                                     \
     _T10_SPC_SENSE_DATA_MAX_LENGTH * 2 + 1
@@ -73,9 +65,8 @@
 #define MRIE_REPORT_INFO_EXCEP_ON_REQUEST 0x6
 
 /* SPC-5 rev 07 Table 49 - ASC and ASCQ assignments */
-#define _T10_SPC_ASC_WARNING           0x0b
-#define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
-#define _T10_SPC_ASCQ_ATA_PASSTHROUGH  0x1d
+#define _T10_SPC_ASC_WARNING          0x0b
+#define _T10_SPC_ASCQ_ATA_PASSTHROUGH 0x1d
 
 /* SAT-4 rev 06 Table 176 - ATA Status Return sense data descriptor */
 #define _T10_SAT_ATA_STATUS_RETURN_SENSE_DP_CODE 0x09
