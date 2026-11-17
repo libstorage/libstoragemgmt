@@ -33,6 +33,14 @@ extern "C" {
 
 #define _T10_SPC_ASC_IMPENDING_FAILURE 0x5d
 
+/*
+ * SPC-5 rev 07 Table 27 - Sense data response codes
+ */
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED 0x70
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_FIXED  0x71
+#define _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_DP    0x72
+#define _T10_SPC_SENSE_REPORT_TYPE_DEF_ERR_DP     0x73
+
 #define _SG_T10_SPC_VPD_DI_DESIGNATOR_TYPE_NAA 0x3
 
 /* SPL-4 rev5 4.2.4 SAS address. With trailing \0. */

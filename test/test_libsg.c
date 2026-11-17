@@ -351,6 +351,254 @@ START_TEST(test_parse_vpd_83_bounds) {
 }
 END_TEST
 
+/* aad71dcc + 328ed4ed: _check_sense_data() must clamp the ADDITIONAL SENSE
+ * LENGTH derived length to _T10_SPC_SENSE_DATA_MAX_LENGTH before hex-dumping
+ * sense_data, rather than trusting a device-reported length that can run
+ * past the end of the buffer.
+ */
+#define SENSE_RESPONSE_CODE_OFFSET 0
+#define SENSE_KEY_OFFSET           2
+#define SENSE_LEN_OFFSET           7
+#define SENSE_ASC_OFFSET           12
+#define SENSE_ASCQ_OFFSET          13
+
+/* SPC-5 rev 07 Table 48 - Sense key descriptions (not exported: the parser
+ * only needs the three "no error" keys and one "has error" key to test).
+ */
+#define SENSE_KEY_NO_SENSE        0x0
+#define SENSE_KEY_RECOVERED_ERROR 0x1
+#define SENSE_KEY_ILLEGAL_REQUEST 0x5
+#define SENSE_KEY_COMPLETED       0xf
+
+#define SENSE_UNKNOWN_RESPONSE_CODE 0x55
+
+/* Bytes kept right after the sense_data buffer to catch any read past it. */
+#define SENSE_GUARD_LEN    8
+#define SENSE_GUARD_BYTE   0xee
+#define SENSE_GUARD_NEEDLE "eeeeee"
+
+struct sense_check_case {
+    const char *name;
+    uint8_t response_code;
+    uint8_t sense_key;
+    uint8_t len_field; /* ADDITIONAL SENSE LENGTH, byte 7 */
+    uint8_t asc;
+    uint8_t ascq;
+    int expect_rc;
+    int expect_msg_untouched;
+    const char *expect_substr; /* ignored when expect_msg_untouched */
+    /* 0 to skip: otherwise, byte at _T10_SPC_SENSE_DATA_MAX_LENGTH - 1 is
+     * set to this and must show up as the last hex pair in the dump.
+     * Guards against 328ed4ed's uint8_t overflow of 'len', which (with the
+     * aad71dcc clamp alone, but the narrow type) truncates len to near 0 and
+     * skips the hex dump loop entirely instead of running it out to the
+     * clamp.
+     */
+    uint8_t last_byte_marker;
+};
+
+static const struct sense_check_case sense_check_cases[] = {
+    {"all-zero sense data", 0x00, 0, 0, 0, 0, 0, 1, NULL, 0},
+    {"unknown response code", SENSE_UNKNOWN_RESPONSE_CODE, 0, 0, 0, 0, -1, 0,
+     "unknown sense data response code 55", 0},
+    {"exempt key: no sense", _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED,
+     SENSE_KEY_NO_SENSE, 0, 0, 0, 0, 1, NULL, 0},
+    {"exempt key: recovered error", _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED,
+     SENSE_KEY_RECOVERED_ERROR, 0, 0, 0, 0, 1, NULL, 0},
+    {"exempt key: completed", _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED,
+     SENSE_KEY_COMPLETED, 0, 0, 0, 0, 1, NULL, 0},
+    {"illegal request, short length", _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED,
+     SENSE_KEY_ILLEGAL_REQUEST, 5, 0x11, 0x22, -1, 0,
+     "ADDITIONAL SENSE CODE 0x11", 0},
+    /* CVE regression (aad71dcc/328ed4ed): len_field 248 means a claimed
+     * total length of 256 (248 + the 8-byte fixed header), one past what
+     * the loop counter 'i' (uint8_t) can represent. Without the aad71dcc
+     * clamp, 'i' wraps from 255 back to 0 and the loop never reaches 'len'
+     * again, hanging instead of returning. Without 328ed4ed (len back to
+     * uint8_t), 256 truncates to 0 even with the clamp applied, and the hex
+     * dump loop never runs at all, silently dropping the last_byte_marker
+     * byte it should have included.
+     */
+    {"length wraps the uint8_t loop counter without the fixes",
+     _T10_SPC_SENSE_REPORT_TYPE_CUR_INFO_FIXED, SENSE_KEY_ILLEGAL_REQUEST, 248,
+     0x11, 0x22, -1, 0, "ADDITIONAL SENSE CODE 0x11", 0x99},
+};
+
+static void sense_fixed_build(uint8_t *arena,
+                              const struct sense_check_case *c) {
+    memset(arena, 0, _T10_SPC_SENSE_DATA_MAX_LENGTH);
+    memset(arena + _T10_SPC_SENSE_DATA_MAX_LENGTH, SENSE_GUARD_BYTE,
+           SENSE_GUARD_LEN);
+    arena[SENSE_RESPONSE_CODE_OFFSET] = c->response_code;
+    arena[SENSE_KEY_OFFSET] = c->sense_key & 0x0f;
+    arena[SENSE_LEN_OFFSET] = c->len_field;
+    arena[SENSE_ASC_OFFSET] = c->asc;
+    arena[SENSE_ASCQ_OFFSET] = c->ascq;
+    if (c->last_byte_marker != 0)
+        arena[_T10_SPC_SENSE_DATA_MAX_LENGTH - 1] = c->last_byte_marker;
+}
+
+#define SENSE_ERR_MSG_SENTINEL 'Z'
+
+START_TEST(test_check_sense_data) {
+    static uint8_t arena[_T10_SPC_SENSE_DATA_MAX_LENGTH + SENSE_GUARD_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN / 2];
+    const struct sense_check_case *c = NULL;
+    uint8_t sense_key = 0;
+    int rc = 0;
+    size_t i = 0;
+    size_t j = 0;
+
+    for (i = 0; i < sizeof(sense_check_cases) / sizeof(sense_check_cases[0]);
+         i++) {
+        c = &sense_check_cases[i];
+        sense_fixed_build(arena, c);
+        memset(err_msg, SENSE_ERR_MSG_SENTINEL, sizeof(err_msg));
+        sense_key = 0xff;
+
+        rc = _check_sense_data(err_msg, arena, &sense_key);
+        ck_assert_msg(rc == c->expect_rc, "%s: rc %d, expected %d", c->name, rc,
+                      c->expect_rc);
+
+        if (c->expect_msg_untouched) {
+            for (j = 0; j < sizeof(err_msg); j++)
+                ck_assert_msg(err_msg[j] == SENSE_ERR_MSG_SENTINEL,
+                              "%s: err_msg written to at byte %zu", c->name, j);
+        } else {
+            ck_assert_msg(strstr(err_msg, c->expect_substr) != NULL,
+                          "%s: err_msg missing '%s' (%s)", c->name,
+                          c->expect_substr, err_msg);
+            ck_assert_msg(strstr(err_msg, SENSE_GUARD_NEEDLE) == NULL,
+                          "%s: err_msg leaked guard bytes past the sense "
+                          "data buffer (%s)",
+                          c->name, err_msg);
+            if (c->last_byte_marker != 0) {
+                char marker_hex[3];
+                snprintf(marker_hex, sizeof(marker_hex), "%02x",
+                         c->last_byte_marker);
+                ck_assert_msg(strstr(err_msg, marker_hex) != NULL,
+                              "%s: hex dump missing last_byte_marker %s, "
+                              "the loop did not run out to the clamp (%s)",
+                              c->name, marker_hex, err_msg);
+            }
+        }
+    }
+}
+END_TEST
+
+/* abd55816 + f2675e29: _extract_ata_sense_data() must clamp the end of the
+ * descriptor list to _T10_SPC_SENSE_DATA_MAX_LENGTH (abd55816) and refuse a
+ * truncated descriptor header or ATA status descriptor (f2675e29), instead
+ * of trusting the device-reported ADDITIONAL SENSE LENGTH to find where the
+ * descriptor list actually ends.
+ */
+#define ATA_SENSE_LEN_OFFSET 7
+#define ATA_SENSE_DP_OFFSET  8    /* sense_data_dp_list_begin, SPC-5 Table 28 */
+#define ATA_DP_HDR_LEN       2    /* descriptor_code + len, SPC-5 Table 29 */
+#define ATA_STATUS_DP_CODE   0x09 /* SAT-4 Table 176 */
+#define ATA_STATUS_DP_LEN    0x0c /* SAT-4 Table 176, length after header */
+#define ATA_STATUS_DP_TOTAL  (ATA_DP_HDR_LEN + ATA_STATUS_DP_LEN)
+#define ATA_NON_ATA_DP_CODE  0xaa /* anything other than ATA_STATUS_DP_CODE */
+
+/* Offsets of the fields that matter inside an ATA status descriptor,
+ * relative to its own descriptor_code byte (SAT-4 rev 04 Table 176).
+ */
+#define ATA_DP_LBA_MID_OFFSET  9
+#define ATA_DP_LBA_HIGH_OFFSET 11
+#define ATA_DP_STATUS_OFFSET   13
+
+#define ATA_SENSE_OUT_SENTINEL 0xff /* caller's pre-call value */
+#define ATA_SENSE_GUARD_BYTE   0x5a /* distinct from any real test value */
+
+START_TEST(test_extract_ata_sense_data) {
+    static uint8_t arena[_T10_SPC_SENSE_DATA_MAX_LENGTH + SENSE_GUARD_LEN];
+    char err_msg[_LSM_ERR_MSG_LEN];
+    uint8_t status = 0;
+    uint8_t lba_mid = 0;
+    uint8_t lba_high = 0;
+    int rc = 0;
+
+    /* Normal case: one ATA status descriptor, fully inside the buffer. */
+    memset(arena, 0, sizeof(arena));
+    arena[ATA_SENSE_LEN_OFFSET] = ATA_DP_HDR_LEN + ATA_STATUS_DP_TOTAL;
+    arena[ATA_SENSE_DP_OFFSET] = ATA_STATUS_DP_CODE;
+    arena[ATA_SENSE_DP_OFFSET + 1] = ATA_STATUS_DP_LEN;
+    arena[ATA_SENSE_DP_OFFSET + ATA_DP_LBA_MID_OFFSET] = 0x11;
+    arena[ATA_SENSE_DP_OFFSET + ATA_DP_LBA_HIGH_OFFSET] = 0x22;
+    arena[ATA_SENSE_DP_OFFSET + ATA_DP_STATUS_OFFSET] = 0x33;
+    status = ATA_SENSE_OUT_SENTINEL;
+    lba_mid = ATA_SENSE_OUT_SENTINEL;
+    lba_high = ATA_SENSE_OUT_SENTINEL;
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _extract_ata_sense_data(err_msg, arena, &status, &lba_mid, &lba_high);
+    ck_assert_msg(rc == LSM_ERR_OK, "normal: rc %d (%s)", rc, err_msg);
+    ck_assert_msg(status == 0x33, "normal: status 0x%02x", status);
+    ck_assert_msg(lba_mid == 0x11, "normal: lba_mid 0x%02x", lba_mid);
+    ck_assert_msg(lba_high == 0x22, "normal: lba_high 0x%02x", lba_high);
+
+    /* Truncated descriptor header: ADDITIONAL SENSE LENGTH claims only 1
+     * byte follows, not enough for even the 2-byte descriptor header.
+     */
+    memset(arena, 0, sizeof(arena));
+    arena[ATA_SENSE_LEN_OFFSET] = 1;
+    arena[ATA_SENSE_DP_OFFSET] = ATA_NON_ATA_DP_CODE;
+    status = ATA_SENSE_OUT_SENTINEL;
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _extract_ata_sense_data(err_msg, arena, &status, &lba_mid, &lba_high);
+    ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT,
+                  "truncated header: rc %d (%s)", rc, err_msg);
+    ck_assert_msg(status == ATA_SENSE_OUT_SENTINEL,
+                  "truncated header: status touched (0x%02x)", status);
+
+    /* Zero-length descriptor: not truncated, but len == 0 is still illegal. */
+    memset(arena, 0, sizeof(arena));
+    arena[ATA_SENSE_LEN_OFFSET] = 10;
+    arena[ATA_SENSE_DP_OFFSET] = ATA_NON_ATA_DP_CODE;
+    arena[ATA_SENSE_DP_OFFSET + 1] = 0;
+    status = ATA_SENSE_OUT_SENTINEL;
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _extract_ata_sense_data(err_msg, arena, &status, &lba_mid, &lba_high);
+    ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT,
+                  "zero-length descriptor: rc %d (%s)", rc, err_msg);
+    ck_assert_msg(status == ATA_SENSE_OUT_SENTINEL,
+                  "zero-length descriptor: status touched (0x%02x)", status);
+
+    /* CVE-shaped regression for abd55816: ADDITIONAL SENSE LENGTH (250)
+     * claims the descriptor list runs to offset 258, 6 bytes past the
+     * 252-byte buffer. A leading non-ATA descriptor (offsets 8..239) is
+     * sized so the next descriptor starts at offset 240; an ATA status
+     * descriptor planted there would end at offset 254, 2 bytes into the
+     * guard. The claimed length makes that look like enough room; the
+     * actual buffer does not have it. Expect a refusal, not a read into
+     * the guard.
+     */
+    memset(arena, 0, _T10_SPC_SENSE_DATA_MAX_LENGTH);
+    memset(arena + _T10_SPC_SENSE_DATA_MAX_LENGTH, ATA_SENSE_GUARD_BYTE,
+           SENSE_GUARD_LEN);
+    arena[ATA_SENSE_LEN_OFFSET] = 250;
+    arena[ATA_SENSE_DP_OFFSET] = ATA_NON_ATA_DP_CODE;
+    arena[ATA_SENSE_DP_OFFSET + 1] =
+        240 - ATA_SENSE_DP_OFFSET - ATA_DP_HDR_LEN; /* lands next dp at 240 */
+    arena[240] = ATA_STATUS_DP_CODE;
+    arena[241] = ATA_STATUS_DP_LEN;
+    arena[240 + ATA_DP_LBA_MID_OFFSET] = 0x11;
+    arena[240 + ATA_DP_LBA_HIGH_OFFSET] = 0x22;
+    /* offset 240 + ATA_DP_STATUS_OFFSET (253) is inside the guard */
+    status = ATA_SENSE_OUT_SENTINEL;
+    lba_mid = ATA_SENSE_OUT_SENTINEL;
+    lba_high = ATA_SENSE_OUT_SENTINEL;
+    memset(err_msg, 0, sizeof(err_msg));
+    rc = _extract_ata_sense_data(err_msg, arena, &status, &lba_mid, &lba_high);
+    ck_assert_msg(rc == LSM_ERR_INVALID_ARGUMENT,
+                  "over-length descriptor list: rc %d, status 0x%02x (%s)", rc,
+                  status, err_msg);
+    ck_assert_msg(status != ATA_SENSE_GUARD_BYTE,
+                  "over-length descriptor list: status read from the guard "
+                  "(0x%02x)",
+                  status);
+}
+END_TEST
+
 /* 515e355c: _sg_request_sense() must return what the device sent back for
  * the REQUEST SENSE command (the SG_IO dxferp buffer), not the SG_IO
  * transport-level sense buffer (sbp), which is all zero on a plain success.
@@ -573,6 +821,11 @@ static Suite *libsg_suite(void) {
 
     tc = tcase_create("vpd83");
     tcase_add_test(tc, test_parse_vpd_83_bounds);
+    suite_add_tcase(s, tc);
+
+    tc = tcase_create("sense_data_bounds");
+    tcase_add_test(tc, test_check_sense_data);
+    tcase_add_test(tc, test_extract_ata_sense_data);
     suite_add_tcase(s, tc);
 
     tc = tcase_create("sg_io_fake_device");
