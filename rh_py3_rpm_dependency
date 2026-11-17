@@ -9,6 +9,7 @@ gcc
 gcc-c++
 glib2-devel
 kernel-headers
+libasan
 libconfig-devel
 libtool
 libudev-devel
