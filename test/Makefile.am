@@ -3,7 +3,8 @@ AM_CPPFLAGS = \
 	-I@srcdir@/c_binding/include
 
 EXTRA_DIST=cmdtest.py plugin_test.py test_include.sh runtests.sh.in integration.sh \
-	test_transport.py test_rpc_dispatch.py lsm_stub.py test_nfs_clib.py
+	test_transport.py test_rpc_dispatch.py lsm_stub.py test_nfs_clib.py \
+	test_packaging.py
 
 if WITH_TEST
 check_PROGRAMS = tester test_ipc test_libsg test_plugin_ipc
