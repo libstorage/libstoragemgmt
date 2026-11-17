@@ -27,3 +27,4 @@ dh-python
 dh-autoreconf
 systemd
 procps
+libasan8
