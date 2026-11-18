@@ -1373,7 +1373,7 @@ class TestPlugin(unittest.TestCase):
             "012345678901234567890123456789ag",
             "1234567890123456789012345abcdef",
             "01234567890123456789012345abcdefa", "55cd2e404beec32e0",
-            "55cd2e404beec32ex", "35cd2e404beec32A"
+            "55cd2e404beec32ex"
         ]
 
         for f in failing:
@@ -1381,8 +1381,11 @@ class TestPlugin(unittest.TestCase):
 
         self.assertTrue(
             lsm.Volume.vpd83_verify("61234567890123456789012345abcdef"))
+        self.assertTrue(
+            lsm.Volume.vpd83_verify("61234567890123456789012345ABCDEF"))
         self.assertTrue(lsm.Volume.vpd83_verify("55cd2e404beec32e"))
         self.assertTrue(lsm.Volume.vpd83_verify("35cd2e404beec32e"))
+        self.assertTrue(lsm.Volume.vpd83_verify("35cd2e404beec32A"))
         self.assertTrue(lsm.Volume.vpd83_verify("25cd2e404beec32e"))
 
     def test_available_plugins(self):
