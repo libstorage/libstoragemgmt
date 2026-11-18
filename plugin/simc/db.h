@@ -7,7 +7,7 @@
  */
 
 #ifndef _SIMC_DB_H_
-#define _SIMC_DB_H
+#define _SIMC_DB_H_
 
 #include <sqlite3.h>
 #include <stdint.h>

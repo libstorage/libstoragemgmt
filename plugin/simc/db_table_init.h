@@ -7,7 +7,7 @@
  */
 
 #ifndef _SIMC_DB_TABLE_INIT_H_
-#define _SIMC_DB_TABLE_INIT_H
+#define _SIMC_DB_TABLE_INIT_H_
 
 #include "db.h"
 
